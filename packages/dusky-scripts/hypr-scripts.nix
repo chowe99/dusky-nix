@@ -11,11 +11,11 @@ in
 pkgs.symlinkJoin {
   name = "dusky-hypr-scripts";
   paths = [
-    (pkgs.writeShellApplication {
-      name = "dusky-adjust-scale";
-      runtimeInputs = with pkgs; [ hyprland python3 jq ];
-      text = builtins.readFile "${scriptDir}/adjust_scale.py";
-    })
+    (let python = pkgs.python3.withPackages (ps: with ps; [ ]); in
+    pkgs.writeScriptBin "dusky-adjust-scale" ''
+      #!${python}/bin/python3
+      ${builtins.readFile "${scriptDir}/adjust_scale.py"}
+    '')
     (pkgs.writeShellApplication {
       name = "dusky-screen-rotate";
       runtimeInputs = with pkgs; [ hyprland jq ];
