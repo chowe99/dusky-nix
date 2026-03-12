@@ -46,21 +46,26 @@
       };
 
       # Reusable home-manager modules (for importing into other flakes)
+      # IMPORTANT: When importing multiple modules, also import `dusky-args` once
+      # to inject the `dusky` path argument. The `default` module includes it automatically.
       homeManagerModules = {
-        # Full dusky home — imports everything
+        # Arg injection — import this once alongside any individual modules
+        dusky-args = { ... }: { _module.args.dusky = dusky; };
+
+        # Full dusky home — imports everything (includes dusky-args)
         default = { ... }: {
           _module.args.dusky = dusky;
           imports = [ ./home ];
         };
-        # Individual modules for selective import
-        hyprland = { ... }: { _module.args.dusky = dusky; imports = [ ./home/hyprland ]; };
-        shell = { ... }: { _module.args.dusky = dusky; imports = [ ./home/shell/zsh.nix ./home/shell/starship.nix ./home/shell/environment.nix ]; };
-        terminal = { ... }: { _module.args.dusky = dusky; imports = [ ./home/terminal/kitty.nix ./home/terminal/alacritty.nix ]; };
-        theming = { ... }: { _module.args.dusky = dusky; imports = [ ./home/theming/matugen.nix ./home/theming/gtk.nix ./home/theming/qt.nix ./home/theming/fonts.nix ]; };
-        waybar = { ... }: { _module.args.dusky = dusky; imports = [ ./home/waybar ]; };
-        notifications = { ... }: { _module.args.dusky = dusky; imports = [ ./home/notifications/swaync.nix ./home/notifications/swayosd.nix ]; };
+
+        # Individual modules for selective import (require dusky-args)
+        hyprland = ./home/hyprland;
+        shell = { ... }: { imports = [ ./home/shell/zsh.nix ./home/shell/starship.nix ./home/shell/environment.nix ]; };
+        terminal = { ... }: { imports = [ ./home/terminal/kitty.nix ./home/terminal/alacritty.nix ]; };
+        theming = { ... }: { imports = [ ./home/theming/matugen.nix ./home/theming/gtk.nix ./home/theming/qt.nix ./home/theming/fonts.nix ]; };
+        waybar = ./home/waybar;
+        notifications = { ... }: { imports = [ ./home/notifications/swaync.nix ./home/notifications/swayosd.nix ]; };
         apps = { ... }: {
-          _module.args.dusky = dusky;
           imports = [
             ./home/apps/neovim.nix ./home/apps/rofi.nix ./home/apps/wlogout.nix
             ./home/apps/yazi.nix ./home/apps/zathura.nix ./home/apps/btop.nix
@@ -68,10 +73,10 @@
             ./home/apps/zed.nix ./home/apps/fastfetch.nix ./home/apps/waypaper.nix
           ];
         };
-        desktop-entries = { ... }: { _module.args.dusky = dusky; imports = [ ./home/desktop-entries ]; };
-        services-home = { ... }: { _module.args.dusky = dusky; imports = [ ./home/services ]; };
-        documents = { ... }: { _module.args.dusky = dusky; imports = [ ./home/documents ]; };
-        uwsm = { ... }: { _module.args.dusky = dusky; imports = [ ./home/uwsm.nix ]; };
+        desktop-entries = ./home/desktop-entries;
+        services-home = ./home/services;
+        documents = ./home/documents;
+        uwsm = ./home/uwsm.nix;
       };
 
       # Expose packages as an overlay
