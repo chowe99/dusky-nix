@@ -1,9 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 {
   # Deploy zed config
   xdg.configFile."zed" = {
-    source = ../../dusky/.config/zed;
+    source = "${dusky}/.config/zed";
     recursive = true;
   };
 

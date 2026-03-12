@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 let
   hyprDir = ./.;
@@ -55,32 +55,34 @@ in
     source = ~/.config/hypr/edit_here/hyprland.conf
   '';
 
-  # Deploy all source/*.conf files
-  xdg.configFile."hypr/source/appearance.conf".source = ./source/appearance.conf;
-  xdg.configFile."hypr/source/autostart.conf".source = ./source/autostart.conf;
-  xdg.configFile."hypr/source/environment_variables.conf".source = ./source/environment_variables.conf;
-  xdg.configFile."hypr/source/input.conf".source = ./source/input.conf;
-  xdg.configFile."hypr/source/keybinds.conf".source = ./source/keybinds.conf;
-  xdg.configFile."hypr/source/monitors.conf".source = ./source/monitors.conf;
-  xdg.configFile."hypr/source/permissions.conf".source = ./source/permissions.conf;
-  xdg.configFile."hypr/source/window_rules.conf".source = ./source/window_rules.conf;
-  xdg.configFile."hypr/source/workspace_rules.conf".source = ./source/workspace_rules.conf;
+  # Deploy source/*.conf files
+  # Unpatched configs reference dusky/ submodule directly (upstream updates flow through)
+  # Patched configs (autostart, keybinds) live in this repo with dusky-* script name translations
+  xdg.configFile."hypr/source/appearance.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/appearance.conf";
+  xdg.configFile."hypr/source/autostart.conf".source = lib.mkDefault ./source/autostart.conf;
+  xdg.configFile."hypr/source/environment_variables.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/environment_variables.conf";
+  xdg.configFile."hypr/source/input.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/input.conf";
+  xdg.configFile."hypr/source/keybinds.conf".source = lib.mkDefault ./source/keybinds.conf;
+  xdg.configFile."hypr/source/monitors.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/monitors.conf";
+  xdg.configFile."hypr/source/permissions.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/permissions.conf";
+  xdg.configFile."hypr/source/window_rules.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/window_rules.conf";
+  xdg.configFile."hypr/source/workspace_rules.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/workspace_rules.conf";
 
   # Deploy animation presets
   xdg.configFile."hypr/source/animations" = {
-    source = ./source/animations;
+    source = lib.mkDefault "${dusky}/.config/hypr/source/animations";
     recursive = true;
   };
 
   # Deploy shaders
   xdg.configFile."hypr/shaders" = {
-    source = ./shaders;
+    source = lib.mkDefault "${dusky}/.config/hypr/shaders";
     recursive = true;
   };
 
   # Deploy hyprlock themes
   xdg.configFile."hypr/hyprlock_themes" = {
-    source = ./hyprlock-themes;
+    source = lib.mkDefault "${dusky}/.config/hypr/hyprlock_themes";
     recursive = true;
   };
 

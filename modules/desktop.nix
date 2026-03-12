@@ -75,7 +75,7 @@ in
     swayosd
 
     # App launcher
-    rofi-wayland
+    rofi
 
     # Logout menu
     wlogout

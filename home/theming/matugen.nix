@@ -1,8 +1,7 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 let
-  dusky = ../..;
-  matugenSrc = "${dusky}/dusky/.config/matugen";
+  matugenSrc = "${dusky}/.config/matugen";
 in
 {
   # Deploy matugen config.toml with patched post_hooks

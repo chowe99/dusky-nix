@@ -1,7 +1,7 @@
-{ pkgs }:
+{ pkgs, dusky }:
 
 let
-  dusky-scripts = import ./dusky-scripts { inherit pkgs; };
+  dusky-scripts = import ./dusky-scripts { inherit pkgs dusky; };
 in
 {
   inherit (dusky-scripts)

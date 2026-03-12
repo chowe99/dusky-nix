@@ -1,8 +1,8 @@
-{ pkgs }:
+{ pkgs, dusky }:
 
 let
-  scriptDir = ../../assets/scripts/theme_matugen;
-  gtkDir = ../../assets/scripts/gtk;
+  scriptDir = "${dusky}/user_scripts/theme_matugen";
+  gtkDir = "${dusky}/user_scripts/gtk";
 in
 pkgs.symlinkJoin {
   name = "dusky-theme-scripts";
@@ -14,7 +14,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication {
       name = "dusky-matugen-presets";
-      runtimeInputs = with pkgs; [ matugen rofi-wayland coreutils ];
+      runtimeInputs = with pkgs; [ matugen rofi coreutils ];
       text = builtins.readFile "${scriptDir}/dusky_matugen_presets.sh";
     })
     (pkgs.writeShellApplication {

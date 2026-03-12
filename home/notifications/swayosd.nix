@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 {
   # Swayosd config
@@ -10,5 +10,5 @@
   '';
 
   # Swayosd style
-  xdg.configFile."swayosd/style.css".source = ../../dusky/.config/swayosd/style.css;
+  xdg.configFile."swayosd/style.css".source = "${dusky}/.config/swayosd/style.css";
 }

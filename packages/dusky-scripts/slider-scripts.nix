@@ -1,4 +1,4 @@
-{ pkgs }:
+{ pkgs, dusky }:
 
 # Python GTK slider UIs
 let
@@ -9,5 +9,5 @@ let
 in
 pkgs.writeScriptBin "dusky-sliders" ''
   #!${python}/bin/python3
-  ${builtins.readFile ../../assets/scripts/sliders/dusky_sliders.py}
+  ${builtins.readFile "${dusky}/user_scripts/sliders/dusky_sliders.py"}
 ''

@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 {
   # Swaync config with patched button commands
@@ -45,5 +45,5 @@
   };
 
   # Swaync style.css
-  xdg.configFile."swaync/style.css".source = ../../dusky/.config/swaync/style.css;
+  xdg.configFile."swaync/style.css".source = "${dusky}/.config/swaync/style.css";
 }

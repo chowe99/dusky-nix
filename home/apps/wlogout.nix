@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 {
   # Wlogout layout with patched commands
@@ -41,12 +41,9 @@
     }
   '';
 
-  # Wlogout style (imports matugen colors)
-  xdg.configFile."wlogout/style.css".source = ../../dusky/.config/wlogout/style.css;
-
   # Wlogout icons
   xdg.configFile."wlogout/icons" = {
-    source = ../../dusky/.config/wlogout/icons;
+    source = "${dusky}/.config/wlogout/icons";
     recursive = true;
   };
 }

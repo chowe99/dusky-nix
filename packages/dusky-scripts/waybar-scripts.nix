@@ -1,7 +1,7 @@
-{ pkgs }:
+{ pkgs, dusky }:
 
 let
-  scriptDir = ../../assets/scripts/waybar;
+  scriptDir = "${dusky}/user_scripts/waybar";
 in
 pkgs.symlinkJoin {
   name = "dusky-waybar-scripts";
@@ -29,7 +29,7 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication {
       name = "dusky-waybar-network-meter";
       runtimeInputs = with pkgs; [ coreutils iproute2 ];
-      text = builtins.readFile "${scriptDir}/network_meter_daemon.sh";
+      text = builtins.readFile "${scriptDir}/network/network_meter_daemon.sh";
     })
     (pkgs.writeShellApplication {
       name = "dusky-waybar-weather";
