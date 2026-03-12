@@ -87,7 +87,7 @@
       exec = "uwsm-app -- kitty --class bluetui -e bluetui";
       icon = "bluetooth";
       comment = "TUI for managing Bluetooth devices";
-      categories = [ "Hardware" "Settings" ];
+      categories = [ "Settings" ];
     };
     traytui = {
       name = "Tray TUI";
@@ -131,7 +131,7 @@
       exec = "uwsm-app -- kitty --class dusky_monitor -e dusky-monitor";
       icon = "preferences-desktop-display";
       comment = "Configure monitors, resolution, and scaling";
-      categories = [ "Settings" "Hardware" ];
+      categories = [ "Settings" ];
     };
     dusky_window_rules = {
       name = "Window Rule Manager";
