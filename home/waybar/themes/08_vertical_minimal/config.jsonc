@@ -1,0 +1,139 @@
+//Minimal Vertical
+{
+    "layer": "top",
+    "position": "right",
+    "spacing": 0,
+    "width": 30, // Slightly wider to fit the numbers comfortably
+    "margin-top": 5,
+    "margin-bottom": 5,
+    "margin-left": 4,
+    "margin-right": 4,
+    "fixed-center": true,
+    "reload_style_on_change": true,
+
+    // ===================================================================
+    // MODULE LAYOUT
+    // ===================================================================
+    "modules-left": [ 
+        "clock", 
+        //"group/stats",
+        "custom/notification"
+    ],
+    
+    "modules-center": [ 
+        "hyprland/workspaces"
+    ],
+    
+    "modules-right": [
+        //"custom/network",
+        "pulseaudio",
+        "battery",
+        "custom/power"
+    ],
+
+    // ===================================================================
+    // MODULE CONFIGURATION
+    // ===================================================================
+
+    "hyprland/workspaces": {
+        //"format": "{name}",
+        "format": "",
+        "on-click": "activate",
+        "sort-by-number": true,
+        "persistent-workspaces": {}
+    },
+
+    "group/stats": {
+        "orientation": "vertical",
+        "modules": [ "cpu", "memory", "temperature" ]
+    },
+
+    "cpu": {
+        "format": "\n{usage}",
+        "interval": 2,
+        "on-click": "uwsm-app -- kitty --class htop -e htop",
+        "tooltip-format": "CPU: {usage}%",
+        "states": {
+            "critical": 80
+        }
+    },
+
+    "memory": {
+        "format": "\n{percentage}",
+        "interval": 2,
+        "on-click": "uwsm-app -- kitty --class io_monitor.sh -e dusky-io-monitor",
+        "tooltip-format": "Used: {used}GiB",
+        "states": {
+            "critical": 80
+        }
+    },
+
+    "temperature": {
+        "thermal-zone": 6,
+        "format": "\n{temperatureC}",
+        "critical-threshold": 80,
+        "format-critical": "🔥\n{temperatureC}",
+        "tooltip-format": "Temp: {temperatureC}°C"
+    },
+
+    "clock": {
+        "format": "{:%I\n%M}",
+        "tooltip-format": "{:%A, %d %B %Y}",
+        "on-click": "uwsm-app -- gnome-clocks",
+        "interval": 60
+    },
+
+    "custom/notification": {
+        "format": "{icon}",
+        "format-icons": {
+            "notification": "<span foreground='red'><sup></sup></span>",
+            "none": "",
+            "dnd-notification": "<span foreground='red'><sup></sup></span>",
+            "dnd-none": "",
+            "inhibited-notification": "<span foreground='red'><sup></sup></span>",
+            "inhibited-none": "",
+            "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
+            "dnd-inhibited-none": ""
+        },
+        "return-type": "json",
+        "exec": "swaync-client -swb",
+        "on-click": "swaync-client -t -sw",
+        "on-click-right": "swaync-client -d -sw",
+        "escape": true
+    },
+
+    // --- UPDATED MODULES WITH NUMBERS ---
+
+    "pulseaudio": {
+        // Stacked: Icon on top, Volume % below
+        "format": "{icon} ",
+        "format-muted": "󰖁",
+        "on-click": "uwsm-app -- pavucontrol",
+        "format-icons": ["", "", ""],
+        "tooltip-format": "Volume: {volume}%"
+    },
+
+    "battery": {
+        // Stacked: Icon on top, Capacity % below
+        "format": " {icon}\n{capacity}",
+        "format-charging": "\n{capacity}",
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "interval": 5,
+        "tooltip-format": "{timeTo}\nHealth: {health}%"
+    },
+
+    "custom/network": {
+        "return-type": "json",
+        "exec": "dusky-waybar-network-meter --vertical",
+        "interval": 1,
+        "on-click": "uwsm-app -- kitty --class wifitui -e wifitui",
+        "on-click-right": "nmcli radio wifi on",
+        "on-click-middle": "nmcli radio wifi off"
+    },
+
+    "custom/power": {
+        "format": "",
+        "tooltip": false,
+        "on-click": "uwsm-app -- dusky-wlogout-scale"
+    }
+}

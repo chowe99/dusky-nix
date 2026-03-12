@@ -1,0 +1,284 @@
+[config]
+# Matugen configuration - NixOS adapted
+# Post hooks reference packaged scripts on $PATH
+
+[templates.master_dump]
+input_path = "~/.config/matugen/templates/master-dump.jsonl"
+output_path = "~/.config/matugen/generated/master-dump.jsonl"
+
+# -----------------------------------------------------------------------------
+# GTK & Qt
+# -----------------------------------------------------------------------------
+
+[templates.gtk3]
+input_path  = '~/.config/matugen/templates/gtk-colors.css'
+output_path = '~/.config/matugen/generated/gtk-3.css'
+post_hook   = '''
+bash -c '
+{
+  gsettings set org.gnome.desktop.interface icon-theme "Papirus"
+} >/dev/null 2>&1 </dev/null & disown'
+'''
+
+[templates.gtk4]
+input_path  = '~/.config/matugen/templates/gtk-colors.css'
+output_path = '~/.config/matugen/generated/gtk-4.css'
+post_hook   = '''
+bash -c '
+{
+  dusky-papirus-folder-colors
+  mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
+  ln -nfs "$HOME/.config/matugen/generated/gtk-3.css" "$HOME/.config/gtk-3.0/gtk.css"
+  ln -nfs "$HOME/.config/matugen/generated/gtk-4.css" "$HOME/.config/gtk-4.0/gtk.css"
+  gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3"
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.qt5ct]
+input_path  = '~/.config/matugen/templates/qtct-colors.conf'
+output_path = '~/.config/matugen/generated/qt5ct-colors.conf'
+
+[templates.qt6ct]
+input_path  = '~/.config/matugen/templates/qtct-colors.conf'
+output_path = '~/.config/matugen/generated/qt6ct-colors.conf'
+
+# -----------------------------------------------------------------------------
+# System Components (Wayland, Bars, Notifications)
+# -----------------------------------------------------------------------------
+
+[templates.hyprland]
+input_path  = '~/.config/matugen/templates/hyprland-colors.conf'
+output_path = '~/.config/matugen/generated/hyprland-colors.conf'
+post_hook   = '''
+bash -c '{ hyprctl reload; } >/dev/null 2>&1 </dev/null & disown'
+'''
+
+[templates.hyprlock]
+input_path  = '~/.config/matugen/templates/hyprlock-colors.conf'
+output_path = '~/.config/matugen/generated/hyprlock-colors.conf'
+
+[templates.waybar]
+input_path  = '~/.config/matugen/templates/colors.css'
+output_path = '~/.config/matugen/generated/waybar-colors.css'
+post_hook   = 'systemd-run --user --quiet bash -c "dusky-waybar-autostart"'
+
+[templates.swaync]
+input_path  = '~/.config/matugen/templates/colors.css'
+output_path = '~/.config/matugen/generated/swaync-colors.css'
+post_hook   = '''
+bash -c '
+{
+  if command -v swaync-client >/dev/null 2>&1; then
+    swaync-client -R
+    swaync-client -rs
+  fi
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.swayosd]
+input_path  = '~/.config/matugen/templates/swayosd-colors.css'
+output_path = '~/.config/matugen/generated/swayosd-colors.css'
+post_hook   = 'systemd-run --user --quiet bash -c "dusky-restart-swayosd"'
+
+[templates.wlogout]
+input_path  = '~/.config/matugen/templates/colors.css'
+output_path = '~/.config/matugen/generated/wlogout-colors.css'
+
+[templates.rofi]
+input_path  = '~/.config/matugen/templates/rofi-colors.rasi'
+output_path = '~/.config/matugen/generated/rofi-colors.rasi'
+
+# -----------------------------------------------------------------------------
+# Applications (Terminals, Editors, Browsers)
+# -----------------------------------------------------------------------------
+
+[templates.kitty]
+input_path  = '~/.config/matugen/templates/kitty-colors.conf'
+output_path = '~/.config/matugen/generated/kitty-colors.conf'
+post_hook   = '''
+bash -c '
+{
+  pkill -SIGUSR1 kitty
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.opencode]
+input_path = '~/.config/matugen/templates/opencode-colors.json'
+output_path = '~/.config/opencode/generated/opencode.json'
+
+[templates.vscode]
+input_path  = '~/.config/matugen/templates/vscode.json'
+output_path = '~/.config/matugen/generated/vscode.json'
+post_hook   = '''
+bash -c '
+{
+  if command -v vscodium >/dev/null 2>&1; then
+    unlink "$HOME/.config/VSCodium/User/settings.json" && ln -nfs "$HOME/.config/matugen/generated/vscode.json" "$HOME/.config/VSCodium/User/settings.json"
+  fi
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.neovim]
+input_path  = '~/.config/matugen/templates/neovim/template.lua'
+output_path = '~/.config/matugen/generated/neovim-colors.lua'
+post_hook   = '''
+bash -c '{ pkill -SIGUSR1 nvim; } >/dev/null 2>&1 </dev/null & disown'
+'''
+
+[templates.zed]
+input_path  = '~/.config/matugen/templates/zed-colors.json'
+output_path = '~/.config/matugen/generated/zed-theme.json'
+post_hook   = '''
+bash -c '
+{
+  mkdir -p "$HOME/.config/zed/themes"
+  ln -nfs "$HOME/.config/matugen/generated/zed-theme.json" "$HOME/.config/zed/themes/matugen.json"
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.yazi]
+input_path  = '~/.config/matugen/templates/yazi-theme.toml'
+output_path = '~/.config/matugen/generated/yazi-theme.toml'
+post_hook   = '''
+bash -c '{ ln -nfs "$HOME/.config/matugen/generated/yazi-theme.toml" "$HOME/.config/yazi/theme.toml"; } >/dev/null 2>&1 </dev/null & disown'
+'''
+
+[templates.zathura]
+input_path  = '~/.config/matugen/templates/zathura-colors'
+output_path = '~/.config/matugen/generated/zathura-colors'
+post_hook   = '''
+bash -c '{ ln -nfs "$HOME/.config/matugen/generated/zathura-colors" "$HOME/.config/zathura/zathurarc"; } >/dev/null 2>&1 </dev/null & disown'
+'''
+
+[templates.pywalfox]
+input_path  = '~/.config/matugen/templates/pywalfox-colors.json'
+output_path = '~/.config/matugen/generated/pywalfox-colors.json'
+post_hook   = '''
+bash -c '
+{
+  if command -v pywalfox >/dev/null 2>&1; then
+    mkdir -p "$HOME/.cache/wal"
+    ln -nfs "$HOME/.config/matugen/generated/pywalfox-colors.json" "$HOME/.cache/wal/colors.json"
+    pywalfox update
+  fi
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.Obsidian]
+input_path  = '~/.config/matugen/templates/obsidian-theme.css'
+output_path = '~/.config/matugen/generated/obsidian-theme.css'
+post_hook   = '''
+bash -c '
+{
+  mkdir -p "$HOME/Documents/pensive/.obsidian/snippets"
+  ln -nfs "$HOME/.config/matugen/generated/obsidian-theme.css" "$HOME/Documents/pensive/.obsidian/snippets/matugen-theme.css"
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.obs]
+input_path  = '~/.config/matugen/templates/obs.obt'
+output_path = '~/.config/matugen/generated/obs.obt'
+post_hook   = '''
+bash -c '
+{
+  if command -v obs >/dev/null 2>&1; then
+    mkdir -p "$HOME/.config/obs-studio/themes"
+    ln -nfs "$HOME/.config/matugen/generated/obs.obt" "$HOME/.config/obs-studio/themes/matugen.obt"
+  fi
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.vesktop]
+input_path  = '~/.config/matugen/templates/midnight-discord.css'
+output_path = '~/.config/matugen/generated/midnight-discord.css'
+post_hook   = '''
+bash -c '
+{
+  mkdir -p "$HOME/.config/vesktop/themes/"
+  ln -nfs "$HOME/.config/matugen/generated/midnight-discord.css" "$HOME/.config/vesktop/themes/midnight-discord.css"
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.beeper]
+input_path  = '~/.config/matugen/templates/beeper.css'
+output_path = '~/.config/matugen/generated/beeper.css'
+post_hook   = '''
+bash -c '
+{
+  if command -v beeper >/dev/null 2>&1; then
+    ln -nfs "$HOME/.config/matugen/generated/beeper.css" "$HOME/.config/BeeperTexts/custom.css"
+    hyprctl dispatch sendshortcut "CTRL SHIFT ALT, R, class:^(BeeperTexts)$"
+  fi
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.spicetify]
+input_path  = '~/.config/matugen/templates/spotify-colors.ini'
+output_path = '~/.config/matugen/generated/spotify-colors.ini'
+post_hook   = '''
+if command -v spicetify &> /dev/null && [ -d "$HOME/.config/spicetify/Themes/Comfy" ]; then
+    ln -nfs $HOME/.config/matugen/generated/spotify-colors.ini $HOME/.config/spicetify/Themes/Comfy/color.ini;
+    spicetify apply -n;
+    hyprctl dispatch sendshortcut "CTRL SHIFT, R, class:^(spotify)$" || true;
+fi
+'''
+
+[templates.cava]
+input_path  = '~/.config/matugen/templates/cava-colors.ini'
+output_path = '~/.config/matugen/generated/cava-colors.ini'
+post_hook   = '''
+bash -c '
+{
+  mkdir -p "$HOME/.config/cava/themes"
+  ln -nfs "$HOME/.config/matugen/generated/cava-colors.ini" "$HOME/.config/cava/themes/cava-colors.ini"
+  pkill -USR1 cava
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.btop]
+input_path  = '~/.config/matugen/templates/btop.theme'
+output_path = '~/.config/matugen/generated/btop-colors.theme'
+post_hook   = '''
+bash -c '
+{
+  mkdir -p "$HOME/.config/btop/themes"
+  ln -nfs "$HOME/.config/matugen/generated/btop-colors.theme" "$HOME/.config/btop/themes/matugen.theme"
+  notify-send -i applications-graphics-symbolic "Theme Updated"
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.script_runner]
+input_path  = '/dev/null'
+output_path = '/dev/null'
+post_hook   = '''
+bash -c '
+{
+  dusky-cc-restart --quiet &
+  dusky-reload-sliders --quiet &
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''
+
+[templates.command_runner]
+input_path  = '/dev/null'
+output_path = '/dev/null'
+post_hook   = '''
+bash -c '
+{
+  systemctl --user reset-failed hyprpolkitagent
+  systemctl --user restart hyprpolkitagent
+} >/dev/null 2>&1 </dev/null & disown
+'
+'''

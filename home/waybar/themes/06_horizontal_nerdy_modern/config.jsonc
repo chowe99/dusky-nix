@@ -1,0 +1,377 @@
+{
+    "layer": "top",
+    "position": "top",
+    "spacing": 4,
+    "height": 32,
+    "margin-top": 5,
+    "margin-bottom": 0,
+    "margin-left": 8,
+    "margin-right": 8,
+    "fixed-center": true,
+    "exclusive": true,
+    "reload_style_on_change": true,
+
+    // ===================================================================
+    // MODULE LAYOUT
+    // ===================================================================
+    "modules-left": [
+        "custom/launcher",
+        "hyprland/workspaces",
+        "hyprland/submap",
+        "hyprland/window"
+    ],
+    
+    "modules-center": [
+        "custom/net-speed",
+        "clock",
+        "privacy"
+    ],
+    
+    "modules-right": [
+        "cpu", 
+        "memory", 
+     //   "disk", 
+        "temperature",
+        "custom/separator",
+        "backlight", 
+        "network", 
+        "bluetooth", 
+        "pulseaudio", 
+        "battery",
+        "custom/separator-2",
+        "custom/theme", 
+        "custom/inhibit-suspend", 
+        "custom/notification",
+        "tray",
+        "custom/power"
+    ],
+
+    // ===================================================================
+    // SEPARATORS
+    // ===================================================================
+    "custom/separator": {
+        "format": "│",
+        "tooltip": false
+    },
+
+    "custom/separator-2": {
+        "format": "│",
+        "tooltip": false
+    },
+
+    // ===================================================================
+    // LEFT MODULES
+    // ===================================================================
+    "custom/launcher": {
+        "format": "󰣇",
+        "tooltip-format": "App Launcher\n\nLMB: Control Center\nRMB: Application Launcher",
+        "on-click-right": "uwsm-app -- rofi -show drun",
+        "on-click": "dusky-control-center"
+    },
+
+    "hyprland/workspaces": {
+        "format": "{icon}",
+        "format-icons": {
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9",
+            "10": "0",
+            "special": "󰠱",
+            "default": ""
+        },
+        "on-click": "activate",
+        "sort-by-number": true,
+        "all-outputs": true,
+        "show-special": true,
+        "special-visible-only": false,
+        "persistent-workspaces": {},
+        "on-scroll-up": "hyprctl dispatch workspace e-1",
+        "on-scroll-down": "hyprctl dispatch workspace e+1"
+    },
+
+    "hyprland/submap": {
+        "format": "󱊁 {}",
+        "max-length": 12,
+        "tooltip": false
+    },
+
+    "hyprland/window": {
+        "format": "{title}",
+        "max-length": 40,
+        "separate-outputs": true,
+        "icon": true,
+        "icon-size": 16,
+        "rewrite": {
+            "(.*) — Mozilla Firefox": "󰈹",
+            "(.*) - Visual Studio Code": "󰨞",
+            "(.*) - Discord": "󰙯",
+            "(.*) - Obsidian(.*)": "󱓧",
+            "(.*) - Spotify": "󰓇",
+            "(.*) - Chromium": "",
+            "(.*) - Google Chrome": "",
+            "(.*) - Brave": "󰖟",
+            "(.*)Steam": "󰓓",
+            "kitty": "",
+            "Alacritty": "",
+            "foot": "",
+            "": "󰇄"
+        }
+    },
+
+    // ===================================================================
+    // NETWORK METER (CUSTOM)
+    // ===================================================================
+    "custom/net-speed": {
+        // Updated path as requested
+        "exec": "dusky-waybar-network-meter --horizontal",
+        "return-type": "json",
+        "format": "{}",
+        "interval": 1,
+        "tooltip": true
+    },
+
+    // ===================================================================
+    // CENTER MODULES
+    // ===================================================================
+    "clock": {
+        "format": " {:%I:%M %p}",
+        "format-alt": " {:%A, %d %B %Y  •  %I:%M:%S %p}",
+        "tooltip-format": "<big>{:%A, %d %B %Y}</big>\n<tt><small>{calendar}</small></tt>",
+    //    "timezone": "Asia/Kolkata",
+        "interval": 1,
+        "calendar": {
+            "mode": "year",
+            "mode-mon-col": 3,
+            "weeks-pos": "right",
+            "on-scroll": 1,
+            "format": {
+                "months": "<span color='#ffead3'><b>{}</b></span>",
+                "days": "<span color='#ecc6d9'><b>{}</b></span>",
+                "weeks": "<span color='#99ffdd'><b>W{}</b></span>",
+                "weekdays": "<span color='#ffcc66'><b>{}</b></span>",
+                "today": "<span color='#ff6699'><b><u>{}</u></b></span>"
+            }
+        },
+        "actions": {
+            "on-click-right": "mode",
+            "on-scroll-up": "shift_up",
+            "on-scroll-down": "shift_down"
+        },
+        "on-click": "uwsm-app -- gnome-clocks",
+        "on-click-middle": "uwsm-app -- kitty --class peaclock -e peaclock"
+    },
+
+    "privacy": {
+        "icon-spacing": 4,
+        "icon-size": 14,
+        "transition-duration": 250,
+        "modules": [
+            {"type": "screenshare", "tooltip": true, "tooltip-icon-size": 16},
+            {"type": "audio-in", "tooltip": true, "tooltip-icon-size": 16},
+            {"type": "audio-out", "tooltip": true, "tooltip-icon-size": 16}
+        ]
+    },
+
+    // ===================================================================
+    // RIGHT MODULES - Hardware Stats
+    // ===================================================================
+    "cpu": {
+        "format": " {usage}%",
+        "interval": 2,
+        "on-click": "uwsm-app -- kitty --class htop -e htop",
+        "on-click-right": "uwsm-app -- kitty --class sysbench_benchmark.sh -e $HOME/user_scripts/performance/sysbench_benchmark.sh",
+        "tooltip-format": "CPU Usage: {usage}%\nAvg Frequency: {avg_frequency} GHz\n\nLMB: htop\nRMB: sysbench",
+        "states": {
+            "warning": 60,
+            "critical": 80
+        }
+    },
+
+    "memory": {
+        "format": "󰍛 {percentage}%",
+        "format-alt": "󰍛 {used:0.1f}G",
+        "interval": 3,
+        "on-click-right": "uwsm-app -- kitty --class io_monitor.sh -e dusky-io-monitor",
+        "tooltip-format": "RAM: {used:0.2f} GiB / {total:0.2f} GiB ({percentage}%)\nAvailable: {avail:0.2f} GiB\nSwap: {swapUsed:0.2f} GiB / {swapTotal:0.2f} GiB\n\nRMB: I/O Monitor",
+        "states": {
+            "warning": 70,
+            "critical": 85
+        }
+    },
+
+    "disk": {
+        "format": "󰋊 {percentage_used}%",
+        "format-alt": "󰋊 {used}/{total}",
+        "path": "/",
+        "interval": 60,
+        "tooltip-format": "Disk Usage: {used}/{total} ({percentage_used}%)\nFree: {free}\nPath: {path}\n\nLMB: Toggle Format\nRMB: File Manager",
+        "states": {
+            "warning": 75,
+            "critical": 90
+        },
+        "on-click-right": "uwsm-app -- thunar"
+    },
+
+    "temperature": {
+        "thermal-zone": 6,
+        "format": "{icon} {temperatureC}°",
+        "format-icons": ["󱃃", "󰔏", "󱃂"],
+        "critical-threshold": 75,
+        "format-critical": "󰸁 {temperatureC}°",
+        "tooltip-format": "CPU Package: {temperatureC}°C / {temperatureF}°F\nThermal Zone: 6",
+        "interval": 3
+    },
+
+    // ===================================================================
+    // RIGHT MODULES - Connectivity
+    // ===================================================================
+    "backlight": {
+        "device": "intel_backlight",
+        "format": "{icon} {percent}%",
+        "format-icons": ["󰃞", "󰃟", "󰃠"],
+        "tooltip-format": "Brightness: {percent}%\n\nLMB: Brightness Slider\nRMB: Hyprsunset Slider\nMMB: Shader Menu\nScroll: Adjust",
+        "on-click": "uwsm-app -- dusky-sliders",
+        "on-click-right": "uwsm-app -- dusky-sliders",
+        "on-click-middle": "uwsm-app -- dusky-rofi-shader",
+        "on-scroll-up": "swayosd-client --brightness raise",
+        "on-scroll-down": "swayosd-client --brightness lower",
+        "interval": 60
+    },
+
+    "network": {
+        "format": "{ifname}",
+        "format-wifi": "{icon} {signalStrength}%",
+        "format-ethernet": "󰈀 {bandwidthTotalBytes}",
+        "format-linked": "󰈀 No IP",
+        "format-disconnected": "󰤭 Off",
+        "format-disabled": "󰀝",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "tooltip-format-wifi": " {essid}\n\nSignal: {signalStrength}% ({signaldBm} dBm)\nFrequency: {frequency} MHz\nInterface: {ifname}\nIP: {ipaddr}/{cidr}\n\n󰕒 {bandwidthUpBytes}  󰇚 {bandwidthDownBytes}\n\nLMB: wifitui\nRMB: WiFi ON\nMMB: WiFi OFF",
+        "tooltip-format-ethernet": "󰈀 {ifname}\n\nIP: {ipaddr}/{cidr}\nGateway: {gwaddr}\n\n󰕒 {bandwidthUpBytes}  󰇚 {bandwidthDownBytes}",
+        "tooltip-format-disconnected": "No connection\n\nRMB: Turn WiFi ON",
+        "interval": 2,
+        "on-click": "uwsm-app -- kitty --class wifitui -e wifitui",
+        "on-click-right": "nmcli radio wifi on && notify-send 'WiFi' 'Turned ON'",
+        "on-click-middle": "nmcli radio wifi off && notify-send 'WiFi' 'Turned OFF'"
+    },
+
+    "bluetooth": {
+        "format": "󰂯",
+        "format-on": "󰂯",
+        "format-off": "󰂲",
+        "format-disabled": "󰂲",
+        "format-connected": "󰂱 {num_connections}",
+        "format-connected-battery": "󰂱 {device_battery_percentage}%",
+        "tooltip-format": "{controller_alias}\n{controller_address}\n\nLMB: Blueman\nRMB: Bluetui",
+        "tooltip-format-off": "Bluetooth OFF\n\nLMB: Blueman\nRMB: Bluetui",
+        "tooltip-format-connected": "{controller_alias}\n{controller_address}\n\n{device_enumerate}\n\nLMB: Blueman\nRMB: Bluetui",
+        "tooltip-format-enumerate-connected": " {device_alias}",
+        "tooltip-format-enumerate-connected-battery": " {device_alias} ({device_battery_percentage}%)",
+        "on-click": "uwsm-app -- blueman-manager",
+        "on-click-right": "uwsm-app -- kitty --class bluetui -e bluetui",
+        "interval": 5
+    },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰖁 Mute",
+        "format-bluetooth": "󰂰 {volume}%",
+        "format-bluetooth-muted": "󰂲 Mute",
+        "format-icons": {
+            "headphone": "󰋋",
+            "hands-free": "󰋎",
+            "headset": "󰋎",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["󰕿", "󰖀", "󰕾"]
+        },
+        "on-click": "uwsm-app -- pavucontrol",
+        "on-click-right": "uwsm-app -- kitty --class cava -e cava",
+        "on-click-middle": "swayosd-client --output-volume mute-toggle",
+        "on-scroll-up": "swayosd-client --output-volume raise",
+        "on-scroll-down": "swayosd-client --output-volume lower",
+        "tooltip-format": "{desc}\nVolume: {volume}%\n\nLMB: Pavucontrol\nRMB: Cava\nMMB: Mute Toggle\nScroll: Volume",
+        "scroll-step": 5,
+        "max-volume": 150
+    },
+
+    "battery": {
+        "format": "{icon} {capacity}%",
+        "format-alt": "{icon} {capacity}% {power:.1f}W",
+        "format-charging": "󰂄 {capacity}% {power:.1f}W",
+        "format-plugged": "󰂄 {capacity}%",
+        "format-full": "󱟢 Full",
+        "format-warning": "{icon} {capacity}%",
+        "format-critical": "󰂃 {capacity}%",
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "interval": 5,
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "tooltip-format": "{timeTo}\nHealth: {health}%\nPower Draw: {power:.2f} W\nCycles: {cycles}\n\nLMB: Toggle Format\nRMB: Timeout Settings",
+        "on-click-right": "uwsm-app -- kitty --class dusky_hypridle.sh -e $HOME/user_scripts/hypridle/dusky_hypridle.sh"
+    },
+
+    // ===================================================================
+    // SYSTEM CONTROLS
+    // ===================================================================
+    "custom/theme": {
+        "format": "",
+        "tooltip-format": "Theme Switcher\n\nSwitch wallpapers with waypaper\nor Super + ' after toggling\nfor theme uniformity.\n\nLMB: Dark Mode\nRMB: Light Mode\nMMB: Waypaper",
+        "on-click": "uwsm-app -- dusky-theme-ctl set --mode dark",
+        "on-click-right": "uwsm-app -- dusky-theme-ctl set --mode light",
+        "on-click-middle": "uwsm-app -- waypaper"
+    },
+
+    "custom/inhibit-suspend": {
+        "format": "{}",
+        "exec": "if pgrep -x 'hypridle' > /dev/null; then echo '{\"text\": \"󰌾\", \"tooltip\": \"Auto-suspend ENABLED\\nClick to disable hypridle\", \"class\": \"enabled\"}'; else echo '{\"text\": \"󰅶\", \"tooltip\": \"Auto-suspend DISABLED\\nClick to enable hypridle\", \"class\": \"disabled\"}'; fi",
+        "return-type": "json",
+        "interval": 5,
+        "signal": 9,
+        "on-click": "uwsm-app -- dusky-toggle-hypridle",
+        "escape": true
+    },
+
+    "custom/notification": {
+        "format": "{icon}",
+        "format-icons": {
+            "notification": "󱅫",
+            "none": "󰂚",
+            "dnd-notification": "󱏧",
+            "dnd-none": "󰂛",
+            "inhibited-notification": "󱅫",
+            "inhibited-none": "󰂚",
+            "dnd-inhibited-notification": "󱏧",
+            "dnd-inhibited-none": "󰂛"
+        },
+        "return-type": "json",
+        "exec-if": "which swaync-client",
+        "exec": "swaync-client -swb",
+        "on-click": "swaync-client -t -sw",
+        "on-click-right": "swaync-client -d -sw",
+        "escape": true,
+        "tooltip-format": "Notifications\n\nLMB: Toggle Panel\nRMB: Do Not Disturb"
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 5, // Reduced from 8 to 5 to tighten space
+        "show-passive-items": true
+    },
+
+    "custom/power": {
+        "format": "⏻",
+        "tooltip-format": "Power Menu\n\nLMB: Wlogout\nRMB: Lock Screen",
+        "on-click": "uwsm-app -- dusky-wlogout-scale",
+        "on-click-right": "hyprlock"
+    }
+}
