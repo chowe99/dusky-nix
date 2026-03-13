@@ -95,7 +95,7 @@ in
     networkmanagerapplet
     brightnessctl
     playerctl
-    xorg.xhost
+    xhost
 
     # Cursor
     bibata-cursors
