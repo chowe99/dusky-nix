@@ -86,6 +86,9 @@ in
     recursive = true;
   };
 
+  # UWSM is required for dusky's keybinds, desktop entries, and autostart commands
+  home.packages = [ pkgs.uwsm ];
+
   # Create mutable edit_here directory structure via activation
   home.activation.createHyprEditHere = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p "$HOME/.config/hypr/edit_here/source"
@@ -103,6 +106,37 @@ $menu        = rofi -show drun
 $browser     = firefox
 $textEditor  = nvim
 CONF
+    fi
+  '';
+
+  # Create default animation preset if none is active
+  home.activation.createDefaultAnimation = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run mkdir -p "$HOME/.config/hypr/source/animations/active"
+    if [ ! -f "$HOME/.config/hypr/source/animations/active/active.conf" ]; then
+      run cp "$HOME/.config/hypr/source/animations/horizontal_dusky.conf" \
+             "$HOME/.config/hypr/source/animations/active/active.conf" 2>/dev/null || \
+      cat > "$HOME/.config/hypr/source/animations/active/active.conf" << 'ANIM'
+animations {
+    enabled = true
+    bezier = overshot, 0.05, 0.9, 0.1, 1.1
+    bezier = fluid, 0.25, 1, 0, 1
+    bezier = snap, 0.5, 0.9, 0.1, 1.05
+    bezier = menu_decel, 0.1, 1, 0, 1
+    bezier = liner, 1, 1, 1, 1
+    animation = windowsIn, 1, 7, overshot, popin 80%
+    animation = windowsOut, 1, 5, snap, popin 80%
+    animation = windowsMove, 1, 7, overshot, slide
+    animation = border, 1, 2, liner
+    animation = borderangle, 1, 40, liner, once
+    animation = fade, 1, 5, fluid
+    animation = layersIn, 1, 6, overshot, popin 70%
+    animation = layersOut, 0, 0, menu_decel, slide
+    animation = fadeLayersIn, 1, 5, menu_decel
+    animation = fadeLayersOut, 1, 4, menu_decel
+    animation = workspaces, 1, 8, overshot, slide
+    animation = specialWorkspace, 1, 8, overshot, slidevert
+}
+ANIM
     fi
   '';
 }
