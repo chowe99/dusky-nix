@@ -22,6 +22,14 @@ in
 
   home.packages = [ pkgs.matugen ];
 
+  # Deploy default wallpaper from upstream dusky
+  home.activation.deployWallpapers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run mkdir -p "$HOME/Pictures/wallpapers"
+    if [ ! -f "$HOME/Pictures/wallpapers/dusk_default.jpg" ]; then
+      run cp "${dusky}/Pictures/wallpapers/dusk_default.jpg" "$HOME/Pictures/wallpapers/"
+    fi
+  '';
+
   # Generate default matugen colors on first activation if none exist
   home.activation.createMatugenGenerated = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p "$HOME/.config/matugen/generated"
@@ -29,7 +37,7 @@ in
       run ${pkgs.matugen}/bin/matugen \
         -c "$HOME/.config/matugen/config.toml" \
         --mode dark \
-        color hex "#89b4fa" || true
+        image "${dusky}/Pictures/wallpapers/dusk_default.jpg" || true
     fi
   '';
 }
