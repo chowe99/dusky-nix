@@ -96,6 +96,8 @@ in
     brightnessctl
     playerctl
     xhost
+    glib.bin  # gdbus for control center D-Bus activation
+    libxkbcommon  # xkbcli for keybindings rofi script
 
     # Cursor
     bibata-cursors
