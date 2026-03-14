@@ -33,6 +33,32 @@
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
+  # Dusky control center daemon (D-Bus activated via SUPER+Space)
+  systemd.user.services.dusky = {
+    Unit = {
+      Description = "Dusky Control Center Daemon";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      Environment = "PYTHONUNBUFFERED=1";
+      ExecStart = "/etc/profiles/per-user/%u/bin/dusky-control-center --gapplication-service";
+      Restart = "always";
+      RestartSec = 3;
+      Slice = "app.slice";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # D-Bus service file for control center activation
+  xdg.dataFile."dbus-1/services/com.github.dusky.controlcenter.service".text = lib.mkDefault ''
+    [D-BUS Service]
+    Name=com.github.dusky.controlcenter
+    SystemdService=dusky.service
+    Exec=/usr/bin/false
+  '';
+
   # Hyprsunset (blue light filter)
   systemd.user.services.hyprsunset = {
     Unit = {
