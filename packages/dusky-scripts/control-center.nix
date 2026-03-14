@@ -28,9 +28,12 @@ pkgs.stdenv.mkDerivation {
   installPhase = ''
     mkdir -p $out/bin $out/lib/dusky-control-center
     cp -r . $out/lib/dusky-control-center/
+  '';
 
+  postFixup = ''
     makeWrapper ${python}/bin/python3 $out/bin/dusky-control-center \
       --add-flags "$out/lib/dusky-control-center/dusky_control_center.py" \
-      "''${gappsWrapperArgs[@]}"
+      "''${gappsWrapperArgs[@]}" \
+      --prefix GI_TYPELIB_PATH : "${pkgs.gobject-introspection}/lib/girepository-1.0"
   '';
 }
