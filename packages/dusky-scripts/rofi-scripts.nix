@@ -23,7 +23,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-wallpaper";
-      runtimeInputs = with pkgs; [ rofi swww matugen coreutils ];
+      runtimeInputs = with pkgs; [ rofi swww matugen coreutils findutils gawk imagemagick util-linux ];
       text = builtins.readFile "${scriptDir}/rofi_wallpaper_selctor.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
@@ -33,7 +33,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-keybindings";
-      runtimeInputs = with pkgs; [ rofi hyprland gnugrep gawk ];
+      runtimeInputs = with pkgs; [ rofi hyprland gnugrep gawk libxkbcommon ];
       text = builtins.readFile "${scriptDir}/keybindings.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
