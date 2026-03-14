@@ -33,7 +33,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-keybindings";
-      runtimeInputs = with pkgs; [ rofi hyprland gnugrep gawk libxkbcommon ];
+      runtimeInputs = with pkgs; [ rofi hyprland gnugrep gawk libxkbcommon jq ];
       text = builtins.readFile "${scriptDir}/keybindings.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
