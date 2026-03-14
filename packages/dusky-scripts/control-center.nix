@@ -15,7 +15,15 @@ pkgs.stdenv.mkDerivation {
 
   src = scriptDir;
 
-  nativeBuildInputs = [ pkgs.makeWrapper ];
+  nativeBuildInputs = with pkgs; [ makeWrapper wrapGAppsHook4 gobject-introspection ];
+
+  buildInputs = with pkgs; [
+    gtk4
+    libadwaita
+    glib
+  ];
+
+  dontWrapGApps = true;
 
   installPhase = ''
     mkdir -p $out/bin $out/lib/dusky-control-center
@@ -23,6 +31,6 @@ pkgs.stdenv.mkDerivation {
 
     makeWrapper ${python}/bin/python3 $out/bin/dusky-control-center \
       --add-flags "$out/lib/dusky-control-center/dusky_control_center.py" \
-      --prefix GI_TYPELIB_PATH : "${pkgs.lib.makeSearchPath "lib/girepository-1.0" (with pkgs; [ gtk4 glib libadwaita graphene gdk-pixbuf pango harfbuzz ])}"
+      "''${gappsWrapperArgs[@]}"
   '';
 }
