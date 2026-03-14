@@ -1,7 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = "${dusky}/user_scripts/rofi";
+  scriptDir = ../../assets/scripts/rofi;
 in
 pkgs.symlinkJoin {
   name = "dusky-rofi-scripts";
