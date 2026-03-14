@@ -1,7 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = ../../assets/scripts/theme_matugen;
+  scriptDir = "${dusky}/user_scripts/theme_matugen";
   gtkDir = "${dusky}/user_scripts/gtk";
 in
 pkgs.symlinkJoin {

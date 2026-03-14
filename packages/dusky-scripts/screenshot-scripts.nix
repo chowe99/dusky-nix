@@ -1,7 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = ../../assets/scripts/images;
+  scriptDir = "${dusky}/user_scripts/images";
 in
 pkgs.symlinkJoin {
   name = "dusky-screenshot-scripts";

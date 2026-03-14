@@ -6,7 +6,7 @@ let
     pygobject3
     pycairo
   ]);
-  scriptDir = ../../assets/scripts/control_center;
+  scriptDir = "${dusky}/user_scripts/dusky_system/control_center";
 in
 pkgs.stdenv.mkDerivation {
   pname = "dusky-control-center";

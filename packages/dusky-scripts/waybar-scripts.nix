@@ -1,8 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = ../../assets/scripts/waybar;
-  upstreamDir = "${dusky}/user_scripts/waybar";
+  scriptDir = "${dusky}/user_scripts/waybar";
 in
 pkgs.symlinkJoin {
   name = "dusky-waybar-scripts";
@@ -30,12 +29,12 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-waybar-network-meter";
       runtimeInputs = with pkgs; [ coreutils iproute2 ];
-      text = builtins.readFile "${upstreamDir}/network/network_meter_daemon.sh";
+      text = builtins.readFile "${scriptDir}/network/network_meter_daemon.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-waybar-weather";
       runtimeInputs = with pkgs; [ python3 ];
-      text = ''exec python3 ${upstreamDir}/weather.py "$@"'';
+      text = ''exec python3 ${scriptDir}/weather.py "$@"'';
     })
   ];
 }

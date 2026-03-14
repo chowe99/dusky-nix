@@ -1,7 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = ../../assets/scripts/audio;
+  scriptDir = "${dusky}/user_scripts/audio";
 in
 pkgs.symlinkJoin {
   name = "dusky-audio-scripts";
