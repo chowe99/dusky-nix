@@ -42,7 +42,7 @@ pkgs.symlinkJoin {
 
         STATE_FILE="''${HOME}/.config/dusky/settings/dusky_theme/state.conf"
 
-        log()  { printf '\033[1;34m::\033[0m %s\n' "$*"; }
+        log()  { printf '\033[1;34m::\033[0m %s\n' "$*" >&2; }
         err()  { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; }
         die()  { err "$*"; exit 1; }
 
