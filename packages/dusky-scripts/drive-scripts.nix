@@ -1,7 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = "${dusky}/user_scripts/drives";
+  scriptDir = ../../assets/scripts/drives;
 in
 pkgs.symlinkJoin {
   name = "dusky-drive-scripts";

@@ -1,7 +1,7 @@
 { pkgs, dusky }:
 
 let
-  scriptDir = "${dusky}/user_scripts/hypr";
+  scriptDir = ../../assets/scripts/hypr;
   mkScript = name: src: deps:
     pkgs.writeShellScriptBin name ''
       export PATH="${pkgs.lib.makeBinPath deps}:$PATH"
