@@ -6,6 +6,24 @@ let
 
   # Patched scripts (modified from upstream for NixOS compatibility)
   patched = ../../assets/scripts;
+
+  # Python packages for TTS/STT
+  espeakng-loader = import ../python/espeakng-loader.nix { inherit pkgs; };
+  phonemizer-fork = import ../python/phonemizer-fork.nix { inherit pkgs; };
+  kokoro-onnx = import ../python/kokoro-onnx.nix { inherit pkgs espeakng-loader phonemizer-fork; };
+
+  # Bundled Python environments for TTS/STT scripts
+  tts-python = pkgs.python3.withPackages (_: [
+    kokoro-onnx
+    pkgs.python3Packages.numpy
+    pkgs.python3Packages.onnxruntime
+    pkgs.python3Packages.soundfile
+  ]);
+  stt-python = pkgs.python3.withPackages (ps: [
+    ps.onnx-asr
+    ps.numpy
+    ps.onnxruntime
+  ]);
 in
 pkgs.symlinkJoin {
   name = "dusky-misc-scripts";
@@ -125,16 +143,16 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${upstream}/wayclick/dusky_wayclick.sh";
     })
 
-    # --- TTS/STT (Python wrappers — require user venv with ML deps) ---
+    # --- TTS/STT (bundled Python ML environments — no venv needed) ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-kokoro-tts";
-      runtimeInputs = with pkgs; [ python3 ];
-      text = ''exec python3 ${upstream}/tts_stt/dusky_kokoro/dusky_main.py "$@"'';
+      runtimeInputs = [ tts-python pkgs.mpv pkgs.libnotify ];
+      text = ''exec ${tts-python}/bin/python3 ${upstream}/tts_stt/dusky_kokoro/dusky_main.py "$@"'';
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-parakeet-stt";
-      runtimeInputs = with pkgs; [ python3 ];
-      text = ''exec python3 ${upstream}/tts_stt/dusky_parakeet/dusky_stt_main.py "$@"'';
+      runtimeInputs = [ stt-python pkgs.wl-clipboard pkgs.libnotify ];
+      text = ''exec ${stt-python}/bin/python3 ${upstream}/tts_stt/dusky_parakeet/dusky_stt_main.py "$@"'';
     })
   ];
 }
