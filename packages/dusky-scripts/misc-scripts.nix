@@ -23,6 +23,7 @@ let
     ps.onnx-asr
     ps.numpy
     ps.onnxruntime
+    ps.huggingface-hub
   ]);
 in
 pkgs.symlinkJoin {
