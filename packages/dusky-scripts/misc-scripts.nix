@@ -55,6 +55,11 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ gum procps systemd ];
       text = builtins.readFile "${upstream}/performance/services_and_process_terminator.sh";
     })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-sysbench";
+      runtimeInputs = with pkgs; [ sysbench util-linux coreutils gawk procps ];
+      text = builtins.readFile "${upstream}/performance/sysbench_benchmark.sh";
+    })
 
     # --- Hypridle ---
     (pkgs.writeShellApplication { checkPhase = "";

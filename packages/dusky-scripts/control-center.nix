@@ -69,6 +69,7 @@ let
     # Services / Performance / Power
     ["\\$HOME/user_scripts/services/dusky_service_toggle.sh"        "dusky-service-toggle"]
     ["\\$HOME/user_scripts/performance/services_and_process_terminator.sh" "dusky-process-terminator"]
+    ["\\$HOME/user_scripts/performance/sysbench_benchmark.sh"            "dusky-sysbench"]
     ["\\$HOME/user_scripts/power/dusky_power.sh"                    "dusky-power"]
 
     # Battery

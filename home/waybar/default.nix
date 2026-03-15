@@ -13,7 +13,7 @@ let
       -e 's|\$HOME/user_scripts/battery/power_saving_off/power_saver_off.sh|dusky-power-saver-off|g' \
       -e 's|\$HOME/user_scripts/hypridle/dusky_hypridle.sh|dusky-hypridle|g' \
       -e 's|\$HOME/user_scripts/hyprlock/lock.sh|dusky-lock|g' \
-      -e 's|\$HOME/user_scripts/performance/sysbench_benchmark.sh|dusky-process-terminator|g' \
+      -e 's|\$HOME/user_scripts/performance/sysbench_benchmark.sh|dusky-sysbench|g' \
       -e 's|\$HOME/user_scripts/rofi/shader_menu.sh|dusky-rofi-shader|g' \
       -e 's|\$HOME/user_scripts/wlogout/wlogout_scale.sh|dusky-wlogout-scale|g' \
       -e 's|\$HOME/user_scripts/audio/router/audio_routing_output_to_mic.py|dusky-mono-audio|g' \
