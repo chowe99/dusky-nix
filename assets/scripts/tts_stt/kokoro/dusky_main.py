@@ -24,7 +24,7 @@ import logging
 VERSION = "4.4 (Universal HW + Dual Speed Control)"
 
 ZRAM_MOUNT = Path("/mnt/zram1")
-AUDIO_OUTPUT_DIR = ZRAM_MOUNT / "kokoro_audio"
+AUDIO_OUTPUT_DIR = (ZRAM_MOUNT / "kokoro_audio") if ZRAM_MOUNT.is_dir() else Path("/tmp/dusky_kokoro_audio")
 FIFO_PATH = Path("/tmp/dusky_kokoro.fifo")
 PID_FILE = Path("/tmp/dusky_kokoro.pid")
 READY_FILE = Path("/tmp/dusky_kokoro.ready")

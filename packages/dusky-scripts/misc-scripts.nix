@@ -147,12 +147,12 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-kokoro-tts";
       runtimeInputs = [ tts-python pkgs.mpv pkgs.libnotify ];
-      text = ''exec ${tts-python}/bin/python3 ${upstream}/tts_stt/dusky_kokoro/dusky_main.py "$@"'';
+      text = ''exec ${tts-python}/bin/python3 ${patched}/tts_stt/kokoro/dusky_main.py "$@"'';
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-parakeet-stt";
       runtimeInputs = [ stt-python pkgs.wl-clipboard pkgs.libnotify ];
-      text = ''exec ${stt-python}/bin/python3 ${upstream}/tts_stt/dusky_parakeet/dusky_stt_main.py "$@"'';
+      text = ''exec ${stt-python}/bin/python3 ${patched}/tts_stt/parakeet/dusky_stt_main.py "$@"'';
     })
   ];
 }
