@@ -63,7 +63,7 @@ preflight_checks() {
 
     local -a missing=()
     local cmd
-    for cmd in pgrep systemctl journalctl python3; do
+    for cmd in pgrep systemctl journalctl; do
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
     done
 
