@@ -9,7 +9,7 @@ pkgs.symlinkJoin {
   paths = [
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-theme-ctl";
-      runtimeInputs = with pkgs; [ swww matugen coreutils findutils gnugrep gawk procps ];
+      runtimeInputs = with pkgs; [ swww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas ];
       text = builtins.readFile "${scriptDir}/theme_ctl.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
