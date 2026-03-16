@@ -1,6 +1,24 @@
 # openwakeword — on-device wake word detection
 { pkgs }:
 
+let
+  # Pre-download ONNX models (openwakeword expects them in resources/models/)
+  releaseBase = "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1";
+  models = {
+    "hey_jarvis_v0.1.onnx" = pkgs.fetchurl {
+      url = "${releaseBase}/hey_jarvis_v0.1.onnx";
+      hash = "sha256-lKE8/mAHWxMvakcufkYugSPucIYbw/tYQ0pzcS7g0ss=";
+    };
+    "embedding_model.onnx" = pkgs.fetchurl {
+      url = "${releaseBase}/embedding_model.onnx";
+      hash = "sha256-cNFkKQwdCV0dTuFJvF4AVDJQpzFrWfMdBWz/e9MHXB8=";
+    };
+    "melspectrogram.onnx" = pkgs.fetchurl {
+      url = "${releaseBase}/melspectrogram.onnx";
+      hash = "sha256-uisOD4t7h1NposicsTNg/1O6xDbyiVzO2fR5+mXrF28=";
+    };
+  };
+in
 pkgs.python3Packages.buildPythonPackage rec {
   pname = "openwakeword";
   version = "0.6.0";
@@ -22,6 +40,15 @@ pkgs.python3Packages.buildPythonPackage rec {
 
   # tflite-runtime is not in nixpkgs but openwakeword works with onnxruntime alone
   pythonRemoveDeps = [ "tflite-runtime" ];
+
+  # Install ONNX models into the package's resources/models/ directory
+  postInstall = ''
+    MODEL_DIR="$out/${pkgs.python3.sitePackages}/openwakeword/resources/models"
+    mkdir -p "$MODEL_DIR"
+    ${builtins.concatStringsSep "\n" (
+      pkgs.lib.mapAttrsToList (name: src: ''cp ${src} "$MODEL_DIR/${name}"'') models
+    )}
+  '';
 
   pythonImportsCheck = [ "openwakeword" ];
 
