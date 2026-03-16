@@ -93,6 +93,22 @@
     # To auto-start: systemctl --user enable dusky-parakeet-stt.service
   };
 
+  # Dusky Voice Assistant daemon (lazy-started by trigger, or auto-start on login)
+  systemd.user.services.dusky-voice-assistant = {
+    Unit = {
+      Description = "Dusky Voice Assistant daemon";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "/etc/profiles/per-user/%u/bin/dusky-voice-assistant-daemon";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    # Not in WantedBy — started on-demand by trigger script
+  };
+
   # Hyprsunset (blue light filter)
   systemd.user.services.hyprsunset = {
     Unit = {

@@ -25,6 +25,17 @@ let
     ps.onnxruntime
     ps.huggingface-hub
   ]);
+  openwakeword = import ../python/openwakeword.nix { inherit pkgs; };
+  voice-python = pkgs.python3.withPackages (ps: [
+    openwakeword
+    ps.onnx-asr
+    ps.numpy
+    ps.onnxruntime
+    ps.huggingface-hub
+    ps.sounddevice
+    ps.scipy
+    ps.scikit-learn
+  ]);
 in
 pkgs.symlinkJoin {
   name = "dusky-misc-scripts";
@@ -334,6 +345,27 @@ bm_lewis"
           notify-send -a "Kokoro TTS" -u critical "Error" "Daemon unresponsive"
         fi
       '';
+    })
+
+    # --- Voice Assistant daemon launcher ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-voice-assistant-daemon";
+      runtimeInputs = [ voice-python pkgs.pipewire pkgs.mpv pkgs.libnotify pkgs.sox pkgs.procps ];
+      text = ''exec ${voice-python}/bin/python3 ${patched}/tts_stt/voice_assistant/dusky_voice_assistant.py --daemon "$@"'';
+    })
+
+    # --- Voice Assistant trigger (keybind target): toggle listening ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-voice-assistant";
+      runtimeInputs = with pkgs; [ libnotify coreutils ];
+      text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_trigger.sh";
+    })
+
+    # --- Voice Assistant reset conversation ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-voice-reset";
+      runtimeInputs = with pkgs; [ libnotify coreutils ];
+      text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_reset.sh";
     })
 
     # --- STT trigger (keybind target): toggle recording, send audio to daemon ---
