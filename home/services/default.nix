@@ -59,7 +59,7 @@
     Exec=/usr/bin/false
   '';
 
-  # Kokoro TTS daemon (lazy-started by trigger, or auto-start on login)
+  # Kokoro TTS daemon (auto-starts on login, required by voice assistant)
   systemd.user.services.dusky-kokoro-tts = {
     Unit = {
       Description = "Dusky Kokoro TTS daemon";
@@ -72,8 +72,7 @@
       Restart = "on-failure";
       RestartSec = 5;
     };
-    # Not in WantedBy — started on-demand by trigger script
-    # To auto-start: systemctl --user enable dusky-kokoro-tts.service
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   # Parakeet STT daemon (lazy-started by trigger, or auto-start on login)
@@ -93,12 +92,13 @@
     # To auto-start: systemctl --user enable dusky-parakeet-stt.service
   };
 
-  # Dusky Voice Assistant daemon (lazy-started by trigger, or auto-start on login)
+  # Dusky Voice Assistant daemon (always listening for wake word on login)
   systemd.user.services.dusky-voice-assistant = {
     Unit = {
       Description = "Dusky Voice Assistant daemon";
       PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" "dusky-kokoro-tts.service" ];
+      Requires = [ "dusky-kokoro-tts.service" ];
     };
     Service = {
       Type = "simple";
@@ -106,7 +106,7 @@
       Restart = "on-failure";
       RestartSec = 5;
     };
-    # Not in WantedBy — started on-demand by trigger script
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   # Hyprsunset (blue light filter)

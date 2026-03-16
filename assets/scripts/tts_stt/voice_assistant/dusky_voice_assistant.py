@@ -25,7 +25,7 @@ VERSION = "1.0 (Voice Assistant + Wake Word)"
 WAKE_WORD = os.environ.get("DUSKY_WAKE_WORD", "hey_jarvis")
 VOICE_MODE = os.environ.get("DUSKY_VOICE_MODE", "local")
 FOLLOWUP_TIMEOUT = float(os.environ.get("DUSKY_FOLLOWUP_TIMEOUT", "8"))
-MAX_TURNS = int(os.environ.get("DUSKY_MAX_TURNS", "10"))
+MAX_TURNS = int(os.environ.get("DUSKY_MAX_TURNS", "20"))
 LLM_COMMAND = os.environ.get("DUSKY_LLM_COMMAND", "claude")
 CHIME_SOUND = os.environ.get("DUSKY_CHIME_SOUND", "")
 STT_MODEL_NAME = os.environ.get("DUSKY_STT_MODEL", "nemo-parakeet-tdt-0.6b-v2")
@@ -443,7 +443,7 @@ class DuskyVoiceAssistant:
             env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
             result = subprocess.run(
                 [LLM_COMMAND, "-p", prompt, "--no-session-persistence", "--output-format", "text",
-                 "--allowedTools", "WebSearch", "WebFetch"],
+                 "--model", "sonnet", "--allowedTools", "WebSearch", "WebFetch"],
                 capture_output=True, text=True, timeout=120, env=env,
             )
             if result.returncode != 0:
