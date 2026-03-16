@@ -269,7 +269,7 @@ bm_lewis"
     # --- TTS/STT daemon launchers (started by systemd or manually) ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-kokoro-tts-daemon";
-      runtimeInputs = [ tts-python pkgs.mpv pkgs.libnotify ];
+      runtimeInputs = [ tts-python pkgs.mpv pkgs.libnotify pkgs.piper-tts ];
       text = ''exec ${tts-python}/bin/python3 ${patched}/tts_stt/kokoro/dusky_main.py --daemon "$@"'';
     })
     (pkgs.writeShellApplication { checkPhase = "";
