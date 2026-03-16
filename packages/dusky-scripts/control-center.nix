@@ -106,6 +106,9 @@ let
     ["\\$HOME/user_scripts/tts_stt/dusky_kokoro/kokoro_installer.sh"   "dusky-kokoro-tts"]
     ["\\$HOME/user_scripts/tts_stt/dusky_parakeet/parakeet_installer.sh" "dusky-parakeet-stt"]
 
+    # Wallpaper download (from arch_setup_scripts but not actually Arch-specific)
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/150_wallpapers_download.sh" "dusky-wallpaper-download"]
+
     # NOTE: The following scripts are referenced in dusky_config.yaml but do NOT
     # have Nix packages yet. They remain as hardcoded paths until packaged:
     #   - $HOME/user_scripts/swaync/dusky_swaync_side.sh
@@ -113,7 +116,7 @@ let
     #   - $HOME/user_scripts/nvim/reset/01_reset_neovim.sh
     #   - $HOME/user_scripts/nvim/reset/02_cli_plugins_download.sh
     #   - $HOME/user_scripts/gtk/dusky_gsettings.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/* (Arch-specific, N/A on NixOS)
+    #   - $HOME/user_scripts/arch_setup_scripts/* (remaining Arch-specific scripts)
     #   - $HOME/user_scripts/update_dusky/* (Arch-specific)
     #   - $HOME/user_scripts/ftp/* (no Nix equivalent)
   ];

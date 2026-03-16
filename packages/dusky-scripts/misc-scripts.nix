@@ -137,6 +137,13 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${patched}/sliders/reload_sliders.sh";
     })
 
+    # --- Wallpaper Download ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-wallpaper-download";
+      runtimeInputs = with pkgs; [ curl unzip coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/150_wallpapers_download.sh";
+    })
+
     # --- Wayclick ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-wayclick";
