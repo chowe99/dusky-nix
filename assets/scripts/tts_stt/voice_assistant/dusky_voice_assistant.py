@@ -162,7 +162,7 @@ class WakeWordThread(threading.Thread):
     def _get_model(self):
         if self._oww_model is None:
             from openwakeword.model import Model
-            self._oww_model = Model(wakeword_models=[WAKE_WORD])
+            self._oww_model = Model(wakeword_models=[WAKE_WORD], inference_framework="onnx")
             logger.info(f"Wake word model loaded: {WAKE_WORD}")
         return self._oww_model
 
