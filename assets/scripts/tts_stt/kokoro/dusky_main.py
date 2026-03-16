@@ -30,6 +30,13 @@ PID_FILE = Path("/tmp/dusky_kokoro.pid")
 READY_FILE = Path("/tmp/dusky_kokoro.ready")
 
 DEFAULT_VOICE = "af_sarah"
+AVAILABLE_VOICES = [
+    "af_sarah", "af_bella", "af_nicole", "af_sky",
+    "am_adam", "am_michael",
+    "bf_emma", "bf_isabella",
+    "bm_george", "bm_lewis",
+]
+VOICE_FILE = Path("/tmp/dusky_kokoro.voice")
 SPEED = 1.0
 MPV_SPEED = 1.0  # MPV playback speed control
 SAMPLE_RATE = 24000
@@ -453,7 +460,30 @@ class DuskyDaemon:
         self.model_dir = model_dir
         self.model_path = str(model_dir / "kokoro-v0_19.onnx")
         self.voices_path = str(model_dir / "voices.bin")
+        self.voice = self._load_voice()
         self.last_used = 0
+
+    def _load_voice(self):
+        """Load saved voice preference, or use default."""
+        if VOICE_FILE.exists():
+            v = VOICE_FILE.read_text().strip()
+            if v in AVAILABLE_VOICES:
+                logger.info(f"Loaded saved voice: {v}")
+                return v
+        return DEFAULT_VOICE
+
+    def set_voice(self, voice):
+        """Switch voice and persist to disk."""
+        if voice not in AVAILABLE_VOICES:
+            logger.warning(f"Unknown voice '{voice}'. Available: {AVAILABLE_VOICES}")
+            return
+        self.voice = voice
+        VOICE_FILE.write_text(voice)
+        logger.info(f"Voice switched to: {voice}")
+        subprocess.run(
+            ["notify-send", "-a", "Kokoro TTS", "-t", "2000", "Voice Changed", voice],
+            check=False,
+        )
 
     def _ensure_models(self):
         """Download model files if not cached."""
@@ -523,7 +553,7 @@ class DuskyDaemon:
             for i, sentence in enumerate(sentences):
                 if self._should_stop(): break
                 logger.debug(f"  Sentence {i+1}/{len(sentences)}: {sentence[:60]}...")
-                audio, sr = model.create(sentence, voice=DEFAULT_VOICE, speed=SPEED, lang="en-us")
+                audio, sr = model.create(sentence, voice=self.voice, speed=SPEED, lang="en-us")
                 if audio is None: continue
                 final_sr = sr
                 all_audio.append(audio)
@@ -560,6 +590,11 @@ class DuskyDaemon:
                 try:
                     text = self.text_queue.get(timeout=0.5)
                     self.stop_event.clear()
+                    # Handle commands
+                    if text.startswith("!voice "):
+                        self.set_voice(text[7:].strip())
+                        self.text_queue.task_done()
+                        continue
                     clean = clean_text(text)
                     if clean: self.generate(clean)
                     if self.stop_event.is_set():

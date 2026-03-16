@@ -144,6 +144,31 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${upstream}/wayclick/dusky_wayclick.sh";
     })
 
+    # --- TTS voice picker (rofi menu) ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-kokoro-voice";
+      runtimeInputs = with pkgs; [ rofi libnotify coreutils ];
+      text = ''
+        FIFO_PATH="/tmp/dusky_kokoro.fifo"
+        VOICE_FILE="/tmp/dusky_kokoro.voice"
+        VOICES="af_sarah
+af_bella
+af_nicole
+af_sky
+am_adam
+am_michael
+bf_emma
+bf_isabella
+bm_george
+bm_lewis"
+        CURRENT=$(cat "$VOICE_FILE" 2>/dev/null || echo "af_sarah")
+        CHOICE=$(echo "$VOICES" | rofi -dmenu -p "TTS Voice" -mesg "Current: $CURRENT" -theme-str 'window {width: 300px;}')
+        if [[ -n "$CHOICE" ]]; then
+          printf '!voice %s\n' "$CHOICE" > "$FIFO_PATH"
+        fi
+      '';
+    })
+
     # --- TTS/STT daemon launchers (started by systemd or manually) ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-kokoro-tts-daemon";
