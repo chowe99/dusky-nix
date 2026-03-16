@@ -37,6 +37,10 @@ SILENCE_DURATION = 2.0   # Seconds of silence to stop recording
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
+# Audio source — use PipeWire echo-cancelled source to filter out TTS playback
+# Falls back to default source if echo-cancel module isn't available
+AUDIO_SOURCE = os.environ.get("DUSKY_AUDIO_SOURCE", "echo-cancel-source")
+
 # File paths
 ZRAM_MOUNT = Path("/mnt/zram1")
 AUDIO_DIR = (ZRAM_MOUNT / "voice_assistant") if ZRAM_MOUNT.is_dir() else Path("/tmp/dusky_voice_assistant_audio")
@@ -166,16 +170,31 @@ class WakeWordThread(threading.Thread):
             logger.info(f"Wake word model loaded: {WAKE_WORD}")
         return self._oww_model
 
+    def _find_echo_cancel_device(self):
+        """Find the PipeWire echo-cancelled source device index for sounddevice."""
+        import sounddevice as sd
+        try:
+            for i, dev in enumerate(sd.query_devices()):
+                if "echo-cancel" in dev["name"].lower() and dev["max_input_channels"] > 0:
+                    logger.info(f"Using echo-cancelled source: {dev['name']} (index {i})")
+                    return i
+        except Exception as e:
+            logger.warning(f"Error searching for echo-cancel device: {e}")
+        logger.info("Echo-cancel source not found, using default mic")
+        return None
+
     def run(self):
         import sounddevice as sd
         import numpy as np
 
+        device = self._find_echo_cancel_device()
         chunk_size = 1280  # 80ms at 16kHz (openwakeword expects this)
         stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
             channels=CHANNELS,
             dtype='int16',
             blocksize=chunk_size,
+            device=device,
         )
         stream.start()
         logger.info("Wake word listener started")
@@ -258,7 +277,7 @@ def record_until_silence(output_path, timeout=30):
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
     proc = subprocess.Popen(
-        ["pw-record", "--target", "@DEFAULT_AUDIO_SOURCE@",
+        ["pw-record", "--target", AUDIO_SOURCE,
          "--rate", str(SAMPLE_RATE), "--channels", str(CHANNELS),
          "--format=s16", str(output_path)],
         stdin=subprocess.DEVNULL,
