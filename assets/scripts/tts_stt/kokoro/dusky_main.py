@@ -37,6 +37,7 @@ BUILTIN_VOICES = [
     "bm_george", "bm_lewis",
 ]
 CUSTOM_VOICES_DIR = Path("~/.local/share/kokoro/voices").expanduser()
+PIPER_VOICES_DIR = Path("~/.local/share/piper/voices").expanduser()
 VOICE_FILE = Path("/tmp/dusky_kokoro.voice")
 VOICE_LIST_FILE = Path("/tmp/dusky_kokoro.voices")
 
@@ -48,9 +49,17 @@ def scan_custom_voices():
             custom.append(f"custom_{f.stem}")
     return custom
 
+def scan_piper_voices():
+    """Scan PIPER_VOICES_DIR for .onnx files, return list of piper_<name> voice IDs."""
+    piper = []
+    if PIPER_VOICES_DIR.is_dir():
+        for f in sorted(PIPER_VOICES_DIR.glob("*.onnx")):
+            piper.append(f"piper_{f.stem}")
+    return piper
+
 def get_available_voices():
-    """Return combined list of built-in + custom voices."""
-    return BUILTIN_VOICES + scan_custom_voices()
+    """Return combined list of built-in + custom + piper voices."""
+    return BUILTIN_VOICES + scan_custom_voices() + scan_piper_voices()
 
 SPEED = 1.0
 MPV_SPEED = 1.0  # MPV playback speed control
@@ -263,13 +272,14 @@ class AudioPlaybackThread(threading.Thread):
                 proc.wait()
         except Exception: pass
 
-    def _spawn_mpv(self):
+    def _spawn_mpv(self, sample_rate=None):
+        sr = sample_rate or SAMPLE_RATE
         cmd = [
             "mpv", "--no-terminal", "--force-window", "--title=Kokoro TTS",
             "--x11-name=kokoro", "--wayland-app-id=kokoro", "--geometry=400x100",
             "--keep-open=no",
             f"--speed={MPV_SPEED}",
-            "--demuxer=rawaudio", f"--demuxer-rawaudio-rate={SAMPLE_RATE}",
+            "--demuxer=rawaudio", f"--demuxer-rawaudio-rate={sr}",
             "--demuxer-rawaudio-channels=1", "--demuxer-rawaudio-format=float",
             "--cache=yes", "--cache-secs=300",
             "-"
@@ -289,7 +299,7 @@ class AudioPlaybackThread(threading.Thread):
             logger.error(f"Failed to start MPV: {e}")
             return None
 
-    def _prepare_mpv_for_chunk(self, chunk_stream_id):
+    def _prepare_mpv_for_chunk(self, chunk_stream_id, sample_rate=None):
         with self._lock:
             proc = self._mpv_process
             is_alive = (proc is not None and proc.poll() is None)
@@ -305,9 +315,9 @@ class AudioPlaybackThread(threading.Thread):
             if is_alive:
                 logger.info("New stream ID. Restarting MPV.")
                 self._kill_process(proc)
-            
+
             logger.info(f"Starting new stream ({chunk_stream_id[:8]}...). Spawning MPV.")
-            new_proc = self._spawn_mpv()
+            new_proc = self._spawn_mpv(sample_rate)
             self._mpv_process = new_proc
             self._current_stream_id = chunk_stream_id
             return new_proc
@@ -367,12 +377,12 @@ class AudioPlaybackThread(threading.Thread):
                     self.audio_queue.task_done()
                     continue
 
-                samples, _, stream_id = item
+                samples, sr, stream_id = item
                 if samples.dtype != np.float32: samples = samples.astype(np.float32)
                 raw_bytes = samples.tobytes()
 
                 try:
-                    proc = self._prepare_mpv_for_chunk(stream_id)
+                    proc = self._prepare_mpv_for_chunk(stream_id, sample_rate=sr)
                     if not proc:
                         self.audio_queue.task_done()
                         self._drain_queue()
@@ -580,7 +590,75 @@ class DuskyDaemon:
             return voice_array.astype(np.float32)
         return self.voice
 
+    def generate_piper(self, text):
+        """Generate speech using Piper TTS for piper_* voices."""
+        try:
+            name = self.voice[len("piper_"):]
+            model_path = PIPER_VOICES_DIR / f"{name}.onnx"
+            if not model_path.exists():
+                logger.error(f"Piper model not found: {model_path}")
+                return
+
+            slug = generate_filename_slug(text)
+            logger.info(f"Generating (Piper): '{slug}'")
+            current_stream_id = str(uuid.uuid4())
+
+            try: AUDIO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            except OSError as e: logger.warning(f"Cannot create audio output dir: {e}")
+
+            # Piper outputs raw 16-bit signed PCM at its model's sample rate (typically 22050)
+            # Read sample rate from model config
+            config_path = PIPER_VOICES_DIR / f"{name}.onnx.json"
+            piper_sr = 22050
+            if config_path.exists():
+                import json
+                with open(config_path) as f:
+                    cfg = json.load(f)
+                piper_sr = cfg.get("audio", {}).get("sample_rate", 22050)
+
+            cmd = ["piper", "--model", str(model_path), "--output-raw",
+                   "--length-scale", str(1.0 / SPEED)]
+            proc = subprocess.Popen(
+                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+            proc.stdin.write(text.encode("utf-8"))
+            proc.stdin.close()
+
+            # Read raw PCM output in chunks
+            all_audio = []
+            chunk_size = piper_sr * 2  # 1 second of 16-bit mono
+            while not self._should_stop():
+                raw = proc.stdout.read(chunk_size)
+                if not raw:
+                    break
+                # Convert 16-bit PCM to float32
+                audio = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+                all_audio.append(audio)
+                while not self._should_stop():
+                    try:
+                        self.audio_queue.put((audio, piper_sr, current_stream_id), timeout=0.2)
+                        break
+                    except queue.Full: continue
+
+            proc.wait()
+
+            if all_audio:
+                try: self.audio_queue.put(None, timeout=5.0)
+                except queue.Full: logger.warning("Could not send end-of-stream sentinel.")
+                try:
+                    idx = get_next_index(AUDIO_OUTPUT_DIR)
+                    combined = np.concatenate(all_audio)
+                    wav_path = AUDIO_OUTPUT_DIR / f"{idx}_{slug}.wav"
+                    sf.write(str(wav_path), combined, piper_sr)
+                    logger.info(f"Saved: {wav_path.name}")
+                except Exception as e: logger.error(f"Failed to save WAV: {e}")
+        except Exception as e:
+            logger.error(f"Piper Generation Error: {e}")
+
     def generate(self, text):
+        if self.voice.startswith("piper_"):
+            return self.generate_piper(text)
         try:
             model = self.get_model()
             voice_param = self._resolve_voice()
