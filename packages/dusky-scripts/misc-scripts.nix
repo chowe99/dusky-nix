@@ -241,7 +241,8 @@ pkgs.symlinkJoin {
       text = ''
         FIFO_PATH="/tmp/dusky_kokoro.fifo"
         VOICE_FILE="/tmp/dusky_kokoro.voice"
-        VOICES="af_sarah
+        VOICE_LIST_FILE="/tmp/dusky_kokoro.voices"
+        FALLBACK_VOICES="af_sarah
 af_bella
 af_nicole
 af_sky
@@ -251,6 +252,12 @@ bf_emma
 bf_isabella
 bm_george
 bm_lewis"
+        # Use daemon-generated voice list if available, else fallback
+        if [[ -f "$VOICE_LIST_FILE" ]]; then
+          VOICES=$(cat "$VOICE_LIST_FILE")
+        else
+          VOICES="$FALLBACK_VOICES"
+        fi
         CURRENT=$(cat "$VOICE_FILE" 2>/dev/null || echo "af_sarah")
         CHOICE=$(echo "$VOICES" | rofi -dmenu -p "TTS Voice" -mesg "Current: $CURRENT" -theme-str 'window {width: 300px;}')
         if [[ -n "$CHOICE" ]]; then
