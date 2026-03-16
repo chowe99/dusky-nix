@@ -361,10 +361,19 @@ class DuskyVoiceAssistant:
 
     # --- STT Model Management (same pattern as Parakeet) ---
 
+    # Map onnx_asr model names to their HuggingFace repo IDs
+    _MODEL_REPOS = {
+        "nemo-parakeet-tdt-0.6b-v2": "istupakov/parakeet-tdt-0.6b-v2-onnx",
+        "nemo-parakeet-tdt-0.6b-v3": "istupakov/parakeet-tdt-0.6b-v3-onnx",
+        "nemo-parakeet-ctc-0.6b": "istupakov/parakeet-ctc-0.6b-onnx",
+        "nemo-parakeet-rnnt-0.6b": "istupakov/parakeet-rnnt-0.6b-onnx",
+    }
+
     def _model_is_cached(self):
         try:
             from huggingface_hub import try_to_load_from_cache
-            result = try_to_load_from_cache(f"onnx-community/{STT_MODEL_NAME}", "model.onnx")
+            repo_id = self._MODEL_REPOS.get(STT_MODEL_NAME, STT_MODEL_NAME)
+            result = try_to_load_from_cache(repo_id, "config.json")
             return result is not None and isinstance(result, str)
         except Exception:
             return False
@@ -433,8 +442,9 @@ class DuskyVoiceAssistant:
             # Unset CLAUDECODE to avoid nesting detection if launched from Claude Code
             env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
             result = subprocess.run(
-                [LLM_COMMAND, "-p", prompt, "--no-session-persistence", "--output-format", "text"],
-                capture_output=True, text=True, timeout=60, env=env,
+                [LLM_COMMAND, "-p", prompt, "--no-session-persistence", "--output-format", "text",
+                 "--allowedTools", "WebSearch", "WebFetch"],
+                capture_output=True, text=True, timeout=120, env=env,
             )
             if result.returncode != 0:
                 err_msg = (result.stderr or result.stdout or "unknown error").strip()[:200]
@@ -497,26 +507,39 @@ class DuskyVoiceAssistant:
             proc.kill()
             logger.error("TTS FIFO write timed out")
 
+    def _is_mpv_playing(self):
+        """Check if Kokoro's MPV process is running."""
+        result = subprocess.run(
+            ["pgrep", "-fi", "mpv.*kokoro"],
+            capture_output=True, check=False,
+        )
+        return result.returncode == 0
+
     def wait_for_speech_done(self):
         """Wait for Kokoro TTS to finish speaking.
 
-        Polls the Kokoro PID to check if it's still processing.
-        Simple heuristic: wait a base time proportional to text length.
+        First waits for MPV to start (Kokoro needs time to generate audio),
+        then waits for it to finish playing.
         """
-        # Give TTS time to start processing
-        time.sleep(0.5)
+        # Phase 1: Wait for MPV to START (Kokoro is generating audio)
+        start_wait = time.time()
+        mpv_started = False
+        while time.time() - start_wait < 15:  # Max 15s for generation
+            if self._is_mpv_playing():
+                mpv_started = True
+                break
+            time.sleep(0.3)
 
-        # Poll: check if mpv is playing audio for Kokoro
-        max_wait = 120  # Never wait more than 2 minutes
+        if not mpv_started:
+            logger.debug("MPV never started — TTS may have failed")
+            return
+
+        # Phase 2: Wait for MPV to FINISH playing
+        max_wait = 120
         waited = 0
         while waited < max_wait:
-            result = subprocess.run(
-                ["pgrep", "-f", "mpv.*kokoro"],
-                capture_output=True, check=False,
-            )
-            if result.returncode != 0:
-                # mpv not running for kokoro — speech probably done
-                time.sleep(0.5)  # Small buffer
+            if not self._is_mpv_playing():
+                time.sleep(0.3)  # Small buffer after playback ends
                 break
             time.sleep(0.5)
             waited += 0.5

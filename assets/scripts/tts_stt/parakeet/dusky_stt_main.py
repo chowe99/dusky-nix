@@ -163,11 +163,20 @@ class DuskySTTDaemon:
         self.model = None
         self.last_used = 0
 
+    # Map onnx_asr model names to their HuggingFace repo IDs
+    _MODEL_REPOS = {
+        "nemo-parakeet-tdt-0.6b-v2": "istupakov/parakeet-tdt-0.6b-v2-onnx",
+        "nemo-parakeet-tdt-0.6b-v3": "istupakov/parakeet-tdt-0.6b-v3-onnx",
+        "nemo-parakeet-ctc-0.6b": "istupakov/parakeet-ctc-0.6b-onnx",
+        "nemo-parakeet-rnnt-0.6b": "istupakov/parakeet-rnnt-0.6b-onnx",
+    }
+
     def _model_is_cached(self):
         """Check if the model files exist in HuggingFace cache."""
         try:
             from huggingface_hub import try_to_load_from_cache
-            result = try_to_load_from_cache(f"onnx-community/{STT_MODEL_NAME}", "model.onnx")
+            repo_id = self._MODEL_REPOS.get(STT_MODEL_NAME, STT_MODEL_NAME)
+            result = try_to_load_from_cache(repo_id, "config.json")
             return result is not None and isinstance(result, str)
         except Exception:
             return False
