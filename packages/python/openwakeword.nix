@@ -17,7 +17,11 @@ pkgs.python3Packages.buildPythonPackage rec {
     scipy
     scikit-learn
     tqdm
+    requests
   ];
+
+  # tflite-runtime is not in nixpkgs but openwakeword works with onnxruntime alone
+  pythonRemoveDeps = [ "tflite-runtime" ];
 
   pythonImportsCheck = [ "openwakeword" ];
 
