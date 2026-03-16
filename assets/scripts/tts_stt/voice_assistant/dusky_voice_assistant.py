@@ -411,12 +411,16 @@ class DuskyVoiceAssistant:
         prompt = self.build_prompt(user_text)
 
         try:
+            # Unset CLAUDECODE to avoid nesting detection if launched from Claude Code
+            env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
             result = subprocess.run(
                 [LLM_COMMAND, "-p", prompt, "--no-session-persistence", "--output-format", "text"],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True, text=True, timeout=60, env=env,
             )
             if result.returncode != 0:
-                logger.error(f"LLM error (rc={result.returncode}): {result.stderr[:200]}")
+                err_msg = (result.stderr or result.stdout or "unknown error").strip()[:200]
+                logger.error(f"LLM error (rc={result.returncode}): {err_msg}")
+                notify("Voice Assistant", f"LLM error: {err_msg[:100]}", critical=True)
                 return None
 
             response = result.stdout.strip()
