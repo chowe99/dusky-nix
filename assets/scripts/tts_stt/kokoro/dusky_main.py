@@ -448,15 +448,39 @@ class DuskyDaemon:
         self.stop_event = threading.Event()
         self.playback = AudioPlaybackThread(self.audio_queue, self.stop_event)
         self.fifo_reader = FifoReader(self.text_queue, FIFO_PATH)
-        env_dir = Path(__file__).parent
+        model_dir = Path(os.environ.get("KOKORO_MODEL_DIR", Path.home() / ".cache" / "kokoro" / "models"))
         self.kokoro = None
-        self.model_path = str(env_dir / "models/kokoro-v0_19.onnx")
-        self.voices_path = str(env_dir / "models/voices.bin")
+        self.model_dir = model_dir
+        self.model_path = str(model_dir / "kokoro-v0_19.onnx")
+        self.voices_path = str(model_dir / "voices.bin")
         self.last_used = 0
+
+    def _ensure_models(self):
+        """Download model files if not cached."""
+        model_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
+        voices_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/voices.bin"
+
+        self.model_dir.mkdir(parents=True, exist_ok=True)
+
+        for path, url, label in [
+            (self.model_path, model_url, "ONNX model"),
+            (self.voices_path, voices_url, "voices"),
+        ]:
+            if not Path(path).exists():
+                logger.info(f"Downloading {label}: {url}")
+                subprocess.run(
+                    ["notify-send", "-a", "Kokoro TTS", "-t", "5000",
+                     "Downloading Model", f"First-time download of {label}. This may take a minute..."],
+                    check=False,
+                )
+                import urllib.request
+                urllib.request.urlretrieve(url, path)
+                logger.info(f"Downloaded {label} to {path}")
 
     def get_model(self):
         self.last_used = time.time()
         if self.kokoro is None:
+            self._ensure_models()
             logger.info("Loading Kokoro...")
             self.kokoro = Kokoro(self.model_path, self.voices_path)
         return self.kokoro

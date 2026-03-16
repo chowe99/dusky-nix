@@ -163,9 +163,21 @@ class DuskySTTDaemon:
         self.model = None
         self.last_used = 0
 
+    def _model_is_cached(self):
+        """Check if the model files exist in HuggingFace cache."""
+        try:
+            from huggingface_hub import try_to_load_from_cache
+            result = try_to_load_from_cache(f"onnx-community/{STT_MODEL_NAME}", "model.onnx")
+            return result is not None and isinstance(result, str)
+        except Exception:
+            return False
+
     def get_model(self):
         self.last_used = time.time()
         if self.model is None:
+            if not self._model_is_cached():
+                notify("Downloading Model", f"First-time download of {STT_MODEL_NAME}. This may take a minute...")
+                logger.info(f"Model not cached — downloading {STT_MODEL_NAME}...")
             logger.info(f"Loading {STT_MODEL_NAME} (Quantization: {QUANTIZATION}) into VRAM...")
             self.model = onnx_asr.load_model(STT_MODEL_NAME, quantization=QUANTIZATION)
         return self.model
