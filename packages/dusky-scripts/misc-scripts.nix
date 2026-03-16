@@ -144,6 +144,78 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/150_wallpapers_download.sh";
     })
 
+    # --- Portable Arch Setup Scripts (work on NixOS without modification) ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-mouse-reverse";
+      runtimeInputs = with pkgs; [ gawk hyprland procps ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/265_mouse_button_reverse.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-file-manager-switch";
+      runtimeInputs = with pkgs; [ gawk xdg-utils coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/235_file_manager_switch.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-browser-switch";
+      runtimeInputs = with pkgs; [ gawk xdg-utils coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/236_browser_switcher.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-editor-switch";
+      runtimeInputs = with pkgs; [ gawk xdg-utils coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/237_text_editer_switcher.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-terminal-switch";
+      runtimeInputs = with pkgs; [ gawk coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/238_terminal_switcher.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-waypaper-reset";
+      runtimeInputs = with pkgs; [ coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/170_waypaper_config_reset.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-animation-default";
+      runtimeInputs = with pkgs; [ coreutils hyprland ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/175_animation_default.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-cursor-bibata";
+      runtimeInputs = with pkgs; [ curl gnutar hyprland ncurses ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-clipboard-switch";
+      runtimeInputs = with pkgs; [ hyprland util-linux coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/460_switch_clipboard.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-clipboard-persistence";
+      runtimeInputs = with pkgs; [ gawk wl-clipboard cliphist procps uwsm ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/390_clipboard_persistance.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-hosts-blocker";
+      runtimeInputs = with pkgs; [ gawk coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/325_hosts_files_block.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-blur-visibility";
+      runtimeInputs = with pkgs; [ brightnessctl ];
+      text = builtins.readFile "${patched}/arch_portable/155_blur_shadow_opacity.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-github-backup-new";
+      runtimeInputs = with pkgs; [ git openssh coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-github-backup-sync";
+      runtimeInputs = with pkgs; [ git openssh coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh";
+    })
+
     # --- Wayclick ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-wayclick";

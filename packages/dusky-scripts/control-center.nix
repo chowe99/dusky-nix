@@ -106,8 +106,22 @@ let
     ["\\$HOME/user_scripts/tts_stt/dusky_kokoro/kokoro_installer.sh"   "dusky-kokoro-tts"]
     ["\\$HOME/user_scripts/tts_stt/dusky_parakeet/parakeet_installer.sh" "dusky-parakeet-stt"]
 
-    # Wallpaper download (from arch_setup_scripts but not actually Arch-specific)
+    # Portable arch_setup_scripts (work on NixOS)
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/150_wallpapers_download.sh" "dusky-wallpaper-download"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/265_mouse_button_reverse.sh" "dusky-mouse-reverse"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/235_file_manager_switch.sh" "dusky-file-manager-switch"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/236_browser_switcher.sh" "dusky-browser-switch"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/237_text_editer_switcher.sh" "dusky-editor-switch"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/238_terminal_switcher.sh" "dusky-terminal-switch"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/170_waypaper_config_reset.sh" "dusky-waypaper-reset"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/175_animation_default.sh" "dusky-animation-default"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh" "dusky-cursor-bibata"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/460_switch_clipboard.sh" "dusky-clipboard-switch"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/390_clipboard_persistance.sh" "dusky-clipboard-persistence"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/325_hosts_files_block.sh" "dusky-hosts-blocker"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/155_blur_shadow_opacity.sh" "dusky-blur-visibility"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh" "dusky-github-backup-new"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh" "dusky-github-backup-sync"]
 
     # NOTE: The following scripts are referenced in dusky_config.yaml but do NOT
     # have Nix packages yet. They remain as hardcoded paths until packaged:
@@ -116,7 +130,7 @@ let
     #   - $HOME/user_scripts/nvim/reset/01_reset_neovim.sh
     #   - $HOME/user_scripts/nvim/reset/02_cli_plugins_download.sh
     #   - $HOME/user_scripts/gtk/dusky_gsettings.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/* (remaining Arch-specific scripts)
+    #   - $HOME/user_scripts/arch_setup_scripts/* (remaining Arch-only: pacman/paru/AUR scripts)
     #   - $HOME/user_scripts/update_dusky/* (Arch-specific)
     #   - $HOME/user_scripts/ftp/* (no Nix equivalent)
   ];
