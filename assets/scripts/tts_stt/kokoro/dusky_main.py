@@ -30,13 +30,28 @@ PID_FILE = Path("/tmp/dusky_kokoro.pid")
 READY_FILE = Path("/tmp/dusky_kokoro.ready")
 
 DEFAULT_VOICE = "af_sarah"
-AVAILABLE_VOICES = [
+BUILTIN_VOICES = [
     "af_sarah", "af_bella", "af_nicole", "af_sky",
     "am_adam", "am_michael",
     "bf_emma", "bf_isabella",
     "bm_george", "bm_lewis",
 ]
+CUSTOM_VOICES_DIR = Path("~/.local/share/kokoro/voices").expanduser()
 VOICE_FILE = Path("/tmp/dusky_kokoro.voice")
+VOICE_LIST_FILE = Path("/tmp/dusky_kokoro.voices")
+
+def scan_custom_voices():
+    """Scan CUSTOM_VOICES_DIR for .npz files, return list of custom_<name> voice IDs."""
+    custom = []
+    if CUSTOM_VOICES_DIR.is_dir():
+        for f in sorted(CUSTOM_VOICES_DIR.glob("*.npz")):
+            custom.append(f"custom_{f.stem}")
+    return custom
+
+def get_available_voices():
+    """Return combined list of built-in + custom voices."""
+    return BUILTIN_VOICES + scan_custom_voices()
+
 SPEED = 1.0
 MPV_SPEED = 1.0  # MPV playback speed control
 SAMPLE_RATE = 24000
@@ -465,17 +480,25 @@ class DuskyDaemon:
 
     def _load_voice(self):
         """Load saved voice preference, or use default."""
+        available = get_available_voices()
         if VOICE_FILE.exists():
             v = VOICE_FILE.read_text().strip()
-            if v in AVAILABLE_VOICES:
+            if v in available:
                 logger.info(f"Loaded saved voice: {v}")
                 return v
         return DEFAULT_VOICE
 
+    def _write_voice_list(self):
+        """Write current voice list to file for rofi picker."""
+        available = get_available_voices()
+        VOICE_LIST_FILE.write_text("\n".join(available))
+        logger.info(f"Voice list written: {len(available)} voices ({len(available) - len(BUILTIN_VOICES)} custom)")
+
     def set_voice(self, voice):
         """Switch voice and persist to disk."""
-        if voice not in AVAILABLE_VOICES:
-            logger.warning(f"Unknown voice '{voice}'. Available: {AVAILABLE_VOICES}")
+        available = get_available_voices()
+        if voice not in available:
+            logger.warning(f"Unknown voice '{voice}'. Available: {available}")
             return
         self.voice = voice
         VOICE_FILE.write_text(voice)
@@ -535,9 +558,35 @@ class DuskyDaemon:
         self.fifo_reader.fd = fd
         logger.debug("FIFO created and opened.")
 
+    def _resolve_voice(self):
+        """Resolve current voice to a value Kokoro.create() accepts (string or ndarray)."""
+        if self.voice.startswith("custom_"):
+            name = self.voice[len("custom_"):]
+            npz_path = CUSTOM_VOICES_DIR / f"{name}.npz"
+            if not npz_path.exists():
+                logger.error(f"Custom voice file not found: {npz_path}")
+                return None
+            data = np.load(str(npz_path))
+            # Accept either 'style' key or first array in the npz
+            if 'style' in data:
+                voice_array = data['style']
+            else:
+                keys = list(data.keys())
+                if not keys:
+                    logger.error(f"Custom voice npz is empty: {npz_path}")
+                    return None
+                voice_array = data[keys[0]]
+            logger.info(f"Loaded custom voice '{name}' shape={voice_array.shape}")
+            return voice_array.astype(np.float32)
+        return self.voice
+
     def generate(self, text):
         try:
             model = self.get_model()
+            voice_param = self._resolve_voice()
+            if voice_param is None:
+                logger.error("Could not resolve voice, falling back to default")
+                voice_param = DEFAULT_VOICE
             slug = generate_filename_slug(text)
             sentences = smart_split(text)
             if not sentences: return
@@ -553,7 +602,7 @@ class DuskyDaemon:
             for i, sentence in enumerate(sentences):
                 if self._should_stop(): break
                 logger.debug(f"  Sentence {i+1}/{len(sentences)}: {sentence[:60]}...")
-                audio, sr = model.create(sentence, voice=self.voice, speed=SPEED, lang="en-us")
+                audio, sr = model.create(sentence, voice=voice_param, speed=SPEED, lang="en-us")
                 if audio is None: continue
                 final_sr = sr
                 all_audio.append(audio)
@@ -581,6 +630,7 @@ class DuskyDaemon:
         signal.signal(signal.SIGINT, lambda s, f: self.stop())
         PID_FILE.write_text(str(os.getpid()))
         self._setup_fifo()
+        self._write_voice_list()
         self.playback.start()
         self.fifo_reader.start()
         READY_FILE.touch()
@@ -628,7 +678,7 @@ class DuskyDaemon:
         self.stop_event.set()
         self.fifo_reader.active = False
         self.playback.cleanup()
-        for p in (FIFO_PATH, PID_FILE, READY_FILE):
+        for p in (FIFO_PATH, PID_FILE, READY_FILE, VOICE_LIST_FILE):
             try: p.unlink(missing_ok=True)
             except Exception: pass
 
