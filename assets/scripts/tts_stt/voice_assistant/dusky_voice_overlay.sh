@@ -148,10 +148,19 @@ while true; do
                     done <<< "$(echo "$tts_raw" | grep -oP '"sentences": \[\K[^\]]+' 2>/dev/null | tr ',' '\n' | sed 's/^ *"//;s/" *$//')"
 
                     if [[ -n "$visible_text" ]]; then
-                        while IFS= read -r line; do
-                            (( row > ROWS )) && break
-                            draw_line $((row++)) "  ${line}"
-                        done <<< "$(echo "$visible_text" | fold -s -w "$TEXT_WIDTH")"
+                        # Wrap text into lines
+                        mapfile -t wrapped_lines <<< "$(echo "$visible_text" | fold -s -w "$TEXT_WIDTH")"
+                        max_text_rows=$(( ROWS - row ))
+                        total_wrapped=${#wrapped_lines[@]}
+                        # If text exceeds available space, show the tail (auto-scroll)
+                        if (( total_wrapped > max_text_rows )); then
+                            start_idx=$(( total_wrapped - max_text_rows ))
+                        else
+                            start_idx=0
+                        fi
+                        for (( li=start_idx; li<total_wrapped && row<=ROWS; li++ )); do
+                            draw_line $((row++)) "  ${wrapped_lines[$li]}"
+                        done
                     fi
                 else
                     # No progress yet — show first few words as preview
