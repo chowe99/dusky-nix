@@ -188,12 +188,24 @@ class WakeWordThread(threading.Thread):
         import numpy as np
 
         device = self._find_echo_cancel_device()
-        chunk_size = 1280  # 80ms at 16kHz (openwakeword expects this)
+        # Query the device's native sample rate — PortAudio may reject non-native rates
+        dev_info = sd.query_devices(device, 'input') if device is not None else sd.query_devices(kind='input')
+        native_rate = int(dev_info['default_samplerate'])
+        need_resample = native_rate != SAMPLE_RATE
+
+        if need_resample:
+            logger.info(f"Device native rate {native_rate}Hz, will resample to {SAMPLE_RATE}Hz")
+            # Calculate chunk size at native rate to produce ~80ms of audio
+            native_chunk = int(native_rate * 0.08)  # 80ms at native rate
+        else:
+            native_chunk = 1280  # 80ms at 16kHz
+
+        target_chunk = 1280  # openwakeword expects 80ms at 16kHz
         stream = sd.InputStream(
-            samplerate=SAMPLE_RATE,
+            samplerate=native_rate,
             channels=CHANNELS,
             dtype='int16',
-            blocksize=chunk_size,
+            blocksize=native_chunk,
             device=device,
         )
         stream.start()
@@ -205,9 +217,14 @@ class WakeWordThread(threading.Thread):
                     time.sleep(0.1)
                     continue
 
-                audio_data, overflowed = stream.read(chunk_size)
+                audio_data, overflowed = stream.read(native_chunk)
                 if overflowed:
                     continue
+
+                if need_resample:
+                    # Simple linear interpolation downsample
+                    indices = np.linspace(0, len(audio_data) - 1, target_chunk).astype(int)
+                    audio_data = audio_data[indices]
 
                 try:
                     model = self._get_model()
