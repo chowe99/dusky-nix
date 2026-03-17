@@ -194,13 +194,13 @@ class WakeWordThread(threading.Thread):
         need_resample = native_rate != SAMPLE_RATE
 
         if need_resample:
-            logger.info(f"Device native rate {native_rate}Hz, will resample to {SAMPLE_RATE}Hz")
-            # Calculate chunk size at native rate to produce ~80ms of audio
-            native_chunk = int(native_rate * 0.08)  # 80ms at native rate
+            resample_ratio = native_rate // SAMPLE_RATE  # e.g. 48000/16000 = 3
+            logger.info(f"Device native rate {native_rate}Hz, will decimate by {resample_ratio}x to {SAMPLE_RATE}Hz")
+            # Read enough native samples so that after decimation we get 1280 (80ms at 16kHz)
+            native_chunk = 1280 * resample_ratio
         else:
             native_chunk = 1280  # 80ms at 16kHz
-
-        target_chunk = 1280  # openwakeword expects 80ms at 16kHz
+            resample_ratio = 1
         stream = sd.InputStream(
             samplerate=native_rate,
             channels=CHANNELS,
@@ -222,9 +222,8 @@ class WakeWordThread(threading.Thread):
                     continue
 
                 if need_resample:
-                    # Simple linear interpolation downsample
-                    indices = np.linspace(0, len(audio_data) - 1, target_chunk).astype(int)
-                    audio_data = audio_data[indices]
+                    # Simple decimation — take every Nth sample
+                    audio_data = audio_data[::resample_ratio]
 
                 try:
                     model = self._get_model()
