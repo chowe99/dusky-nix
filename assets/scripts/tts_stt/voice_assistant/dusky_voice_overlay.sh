@@ -20,6 +20,17 @@ trap 'printf "\033[?25h"; exit 0' EXIT INT TERM
 
 frame=0
 
+# Get terminal width for text wrapping
+get_cols() { tput cols 2>/dev/null || echo 40; }
+
+wrap() {
+    # Wrap text to terminal width minus indent
+    local indent=$1 text=$2
+    local cols=$(( $(get_cols) - indent ))
+    (( cols < 10 )) && cols=10
+    echo "$text" | fold -s -w "$cols"
+}
+
 while true; do
     # Read state file
     cur_state=""
@@ -50,9 +61,12 @@ while true; do
             spin_chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
             idx=$(( frame % ${#spin_chars[@]} ))
             if [[ -n "$user_text" ]]; then
-                printf "${YELLOW}${BOLD} 󰗊 ${spin_chars[$idx]}${RESET} ${user_text}\n"
+                printf "${YELLOW}${BOLD} 󰗊 ${spin_chars[$idx]}${RESET} "
+                wrap 5 "$user_text" | while IFS= read -r line; do
+                    printf "%s\n" "$line"
+                done
             else
-                printf "${YELLOW}${BOLD} 󰗊 Transcribing ${spin_chars[$idx]}${RESET}\n"
+                printf "${YELLOW}${BOLD} 󰗊 Transcribing ${spin_chars[$idx]}${RESET}"
             fi
             ;;
         THINKING)
@@ -60,7 +74,9 @@ while true; do
             idx=$(( frame / 3 % ${#think_frames[@]} ))
             printf "${MAGENTA}${BOLD} 󰧑 Thinking${think_frames[$idx]}${RESET}\n"
             if [[ -n "$user_text" ]]; then
-                printf " ${DIM}${user_text}${RESET}\n"
+                wrap 1 "$user_text" | while IFS= read -r line; do
+                    printf " ${DIM}%s${RESET}\n" "$line"
+                done
             fi
             ;;
         SPEAKING)

@@ -56,6 +56,16 @@ KOKORO_PID_FILE = Path("/tmp/dusky_kokoro.pid")
 STATE_FILE = Path("/tmp/dusky_voice_state.json")
 OVERLAY_SCRIPT = Path(__file__).parent / "dusky_voice_overlay.sh"
 
+# Persistent memory & session
+MEMORY_DIR = Path.home() / ".local" / "share" / "dusky-voice"
+MEMORY_FILE = MEMORY_DIR / "memory.md"
+SESSION_FILE = MEMORY_DIR / "session.json"
+
+# Compaction settings — approximate token count via char length
+# ~4 chars per token, so 80k chars ≈ 20k tokens. Compact at 60 turns or ~60k chars.
+COMPACTION_TURN_THRESHOLD = 60
+COMPACTION_CHAR_THRESHOLD = 60000
+
 IDLE_TIMEOUT = 30.0  # Longer than STT — voice assistant is more interactive
 WAKE_THRESHOLD = 0.5  # openwakeword confidence threshold
 
@@ -404,9 +414,15 @@ class DuskyVoiceAssistant:
         self.listening_enabled = True
         self._overlay_proc = None
         self._last_user_text = ""
+        self._compacted_summary = ""
 
         logger.info(f"Dusky Voice Assistant {VERSION} Initializing...")
         logger.info(f"Wake word: {WAKE_WORD}, LLM: {LLM_COMMAND}, Follow-up: {FOLLOWUP_TIMEOUT}s")
+
+        # Ensure memory dir exists
+        MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+        if not MEMORY_FILE.exists():
+            MEMORY_FILE.write_text("")
 
         # STT model (lazy loaded)
         self.stt_model = None
@@ -511,6 +527,110 @@ class DuskyVoiceAssistant:
         except OSError:
             pass
 
+    # --- Session & Memory ---
+
+    def _load_session(self):
+        """Load the single persistent session, resuming conversation history."""
+        try:
+            if SESSION_FILE.exists():
+                data = json.loads(SESSION_FILE.read_text())
+                self.conversation = data.get("turns", [])
+                summary = data.get("summary", "")
+                if summary:
+                    self._compacted_summary = summary
+                logger.info(f"Session resumed ({len(self.conversation)} turns)")
+            else:
+                self.conversation = []
+                logger.info("No existing session — starting fresh")
+        except Exception as e:
+            logger.warning(f"Failed to load session: {e}")
+            self.conversation = []
+
+    def _save_session(self):
+        """Save conversation to the single persistent session file."""
+        if not self.conversation:
+            return
+        try:
+            data = {
+                "turns": self.conversation,
+            }
+            if hasattr(self, '_compacted_summary') and self._compacted_summary:
+                data["summary"] = self._compacted_summary
+            SESSION_FILE.write_text(json.dumps(data, indent=2))
+            logger.debug(f"Session saved ({len(self.conversation)} turns)")
+        except OSError as e:
+            logger.warning(f"Failed to save session: {e}")
+
+    def _check_compaction(self):
+        """Check if conversation needs compacting and do it if so."""
+        total_chars = sum(len(t.get("text", "")) for t in self.conversation)
+        num_turns = len(self.conversation)
+
+        if num_turns < COMPACTION_TURN_THRESHOLD and total_chars < COMPACTION_CHAR_THRESHOLD:
+            return
+
+        logger.info(f"Compaction triggered: {num_turns} turns, ~{total_chars} chars")
+        notify("Dusky Voice", "Compacting conversation history...")
+        self.set_state(State.THINKING, user_text="Compacting memory...")
+
+        # Keep the most recent 10 turns intact, summarize the rest
+        keep_recent = 10
+        to_compact = self.conversation[:-keep_recent]
+        recent = self.conversation[-keep_recent:]
+
+        # Build compaction prompt
+        old_summary = getattr(self, '_compacted_summary', '') or ''
+        history_text = ""
+        if old_summary:
+            history_text += f"[Previous summary:]\n{old_summary}\n\n"
+        for turn in to_compact:
+            role = "User" if turn["role"] == "user" else "Dusky"
+            history_text += f"{role}: {turn['text']}\n"
+
+        compact_prompt = (
+            "Summarize this conversation history into a concise paragraph. "
+            "Preserve key facts, decisions, user preferences, and anything the user asked you to remember. "
+            "This summary will be used as context for future conversations.\n\n"
+            f"{history_text}"
+        )
+
+        try:
+            env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+            result = subprocess.run(
+                [LLM_COMMAND, "-p", compact_prompt, "--no-session-persistence",
+                 "--output-format", "text", "--model", "haiku"],
+                capture_output=True, text=True, timeout=60, env=env,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                self._compacted_summary = result.stdout.strip()
+                self.conversation = recent
+                self._save_session()
+                logger.info(f"Compaction done: {num_turns} turns → {len(recent)} + summary")
+                notify("Dusky Voice", f"History compacted ({num_turns} → {len(recent)} turns)")
+            else:
+                logger.warning("Compaction LLM returned empty — skipping")
+        except Exception as e:
+            logger.warning(f"Compaction failed: {e}")
+
+    def _load_memory(self):
+        """Load persistent memory notes."""
+        try:
+            text = MEMORY_FILE.read_text().strip()
+            return text if text else None
+        except OSError:
+            return None
+
+    def _save_to_memory(self, note):
+        """Append a note to persistent memory."""
+        try:
+            from datetime import datetime
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            with open(MEMORY_FILE, "a") as f:
+                f.write(f"\n- [{ts}] {note}\n")
+            logger.info(f"Saved to memory: {note[:60]}")
+        except OSError as e:
+            logger.warning(f"Failed to save memory: {e}")
+
     # --- Transcription ---
 
     def transcribe(self, audio_path):
@@ -530,15 +650,29 @@ class DuskyVoiceAssistant:
     # --- LLM Interaction ---
 
     def build_prompt(self, user_text):
-        """Build prompt with conversation history for the LLM."""
+        """Build prompt with conversation history and persistent memory for the LLM."""
         system_context = (
             "You are Dusky, a helpful voice assistant. "
             "Keep responses concise and conversational — they will be spoken aloud via TTS. "
             "Avoid markdown formatting, code blocks, or long lists. "
-            "Use natural spoken language."
+            "Use natural spoken language. "
+            "If the user says 'remember that...' or 'remember:', save the information — "
+            "respond confirming what you'll remember."
         )
 
-        parts = [system_context, ""]
+        parts = [system_context]
+
+        # Add persistent memory if available
+        memory = self._load_memory()
+        if memory:
+            parts.append(f"\n[Your memory notes about the user:]\n{memory}")
+
+        # Add compacted summary from previous conversations
+        summary = getattr(self, '_compacted_summary', '') or ''
+        if summary:
+            parts.append(f"\n[Summary of earlier conversation:]\n{summary}")
+
+        parts.append("")
 
         # Add conversation history
         for turn in self.conversation[-(MAX_TURNS * 2):]:
@@ -706,8 +840,13 @@ class DuskyVoiceAssistant:
                     return False
                 elif cmd == "RESET":
                     self.conversation.clear()
-                    notify("Voice Assistant", "Conversation reset")
-                    logger.info("Conversation history cleared")
+                    self._compacted_summary = ""
+                    try:
+                        SESSION_FILE.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    notify("Voice Assistant", "Session cleared")
+                    logger.info("Session and conversation history cleared")
                 elif cmd == "TOGGLE":
                     self.listening_enabled = not self.listening_enabled
                     status = "enabled" if self.listening_enabled else "disabled"
@@ -758,6 +897,21 @@ class DuskyVoiceAssistant:
         logger.info(f"User said: {text}")
         self.set_state(State.TRANSCRIBING, user_text=text)
 
+        # Check for "remember" command — save to persistent memory
+        text_lower = text.lower().strip()
+        if text_lower.startswith("remember that") or text_lower.startswith("remember:"):
+            note = text[text.index(" ", 9):].strip() if " " in text[8:] else text[9:].strip()
+            if note:
+                self._save_to_memory(note)
+                response = f"Got it, I'll remember that."
+                self.conversation.append({"role": "user", "text": text})
+                self.conversation.append({"role": "assistant", "text": response})
+                self._save_session()
+                self.set_state(State.SPEAKING)
+                self.speak(response)
+                self.wait_for_speech_done()
+                return True
+
         # Add to conversation
         self.conversation.append({"role": "user", "text": text})
 
@@ -772,9 +926,15 @@ class DuskyVoiceAssistant:
         logger.info(f"Response: {response[:100]}...")
         self.conversation.append({"role": "assistant", "text": response})
 
+        # Check if the LLM response contains something to remember
+        # (LLM can also detect "remember" patterns we didn't catch)
+
         # Trim conversation history
         while len(self.conversation) > MAX_TURNS * 2:
             self.conversation.pop(0)
+
+        # Save session after each turn
+        self._save_session()
 
         # Speak response
         self.set_state(State.SPEAKING)
@@ -817,6 +977,7 @@ class DuskyVoiceAssistant:
                     self.set_state(State.WAKE_DETECTED)
                     logger.info("Wake detected — starting conversation")
                     self.wake_thread.paused = True  # Pause wake detection during conversation
+                    self._load_session()
                     self.show_overlay()
 
                     self.play_chime()
@@ -913,6 +1074,21 @@ class DuskyVoiceAssistant:
                         logger.info(f"Follow-up: {text}")
                         self.set_state(State.TRANSCRIBING, user_text=text)
 
+                        # Check for "remember" command in follow-up
+                        text_lower = text.lower().strip()
+                        if text_lower.startswith("remember that") or text_lower.startswith("remember:"):
+                            note = text[text.index(" ", 9):].strip() if " " in text[8:] else text[9:].strip()
+                            if note:
+                                self._save_to_memory(note)
+                                response = "Got it, I'll remember that."
+                                self.conversation.append({"role": "user", "text": text})
+                                self.conversation.append({"role": "assistant", "text": response})
+                                self._save_session()
+                                self.set_state(State.SPEAKING)
+                                self.speak(response)
+                                self.wait_for_speech_done()
+                                continue
+
                         # Add to conversation and get response
                         self.conversation.append({"role": "user", "text": text})
 
@@ -928,11 +1104,16 @@ class DuskyVoiceAssistant:
                         while len(self.conversation) > MAX_TURNS * 2:
                             self.conversation.pop(0)
 
+                        # Save session after each turn
+                        self._save_session()
+
                         self.set_state(State.SPEAKING)
                         self.speak(response)
                         self.wait_for_speech_done()
 
-                    # Re-enable wake word detection
+                    # Save session, check compaction, re-enable wake word
+                    self._save_session()
+                    self._check_compaction()
                     self.wake_thread.paused = not self.listening_enabled
                     self.hide_overlay()
                     self.set_state(State.IDLE)
