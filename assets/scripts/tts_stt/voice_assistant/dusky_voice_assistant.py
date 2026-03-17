@@ -1096,7 +1096,7 @@ class DuskyVoiceAssistant:
                         silence_since = time.time()
 
                         while time.time() - followup_start < FOLLOWUP_TIMEOUT:
-                            if not self.running:
+                            if not self.running or self._interrupted:
                                 break
 
                             # Check for commands
@@ -1132,8 +1132,8 @@ class DuskyVoiceAssistant:
                             proc.kill()
                             proc.wait()
 
-                        if not has_followup_speech:
-                            logger.info("No follow-up detected, returning to idle")
+                        if self._interrupted or not has_followup_speech:
+                            logger.info("No follow-up detected or interrupted, returning to idle")
                             try:
                                 followup_audio.unlink(missing_ok=True)
                             except OSError:
@@ -1165,7 +1165,7 @@ class DuskyVoiceAssistant:
                                 self.conversation.append({"role": "user", "text": text})
                                 self.conversation.append({"role": "assistant", "text": response})
                                 self._save_session()
-                                self.set_state(State.SPEAKING)
+                                self.set_state(State.SPEAKING, response_text=response)
                                 self.speak(response)
                                 self.wait_for_speech_done()
                                 continue
@@ -1188,7 +1188,7 @@ class DuskyVoiceAssistant:
                         # Save session after each turn
                         self._save_session()
 
-                        self.set_state(State.SPEAKING)
+                        self.set_state(State.SPEAKING, response_text=response)
                         self.speak(response)
                         self.wait_for_speech_done()
 
