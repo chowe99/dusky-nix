@@ -20,7 +20,20 @@ in
     recursive = true;
   };
 
-  home.packages = [ pkgs.matugen ];
+  # Deploy dusky-nix-specific templates (not in upstream dusky)
+  xdg.configFile."matugen/templates/omp-theme.omp.json".source = ../../assets/templates/omp-theme.omp.json;
+
+  home.packages = [ pkgs.matugen pkgs.oh-my-posh ];
+
+  # Oh My Posh — use matugen-generated theme, fallback to built-in
+  programs.zsh.initExtra = lib.mkBefore ''
+    _omp_theme="$HOME/.config/matugen/generated/omp-theme.omp.json"
+    if [[ ! -f "$_omp_theme" ]]; then
+      _omp_theme="${pkgs.oh-my-posh}/share/oh-my-posh/themes/1_shell.omp.json"
+    fi
+    eval "$(${pkgs.oh-my-posh}/bin/oh-my-posh init zsh --config "$_omp_theme")"
+    unset _omp_theme
+  '';
 
   # Deploy default wallpaper from upstream dusky
   home.activation.deployWallpapers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

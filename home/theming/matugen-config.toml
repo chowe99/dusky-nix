@@ -260,6 +260,10 @@ bash -c '
 '
 '''
 
+[templates.oh-my-posh]
+input_path  = '~/.config/matugen/templates/omp-theme.omp.json'
+output_path = '~/.config/matugen/generated/omp-theme.omp.json'
+
 [templates.script_runner]
 input_path  = '/dev/null'
 output_path = '/dev/null'

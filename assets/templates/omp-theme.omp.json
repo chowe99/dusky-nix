@@ -1,0 +1,124 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "palette": {
+    "primary": "{{colors.primary.default.hex}}",
+    "secondary": "{{colors.secondary.default.hex}}",
+    "tertiary": "{{colors.tertiary.default.hex}}",
+    "surface": "{{colors.surface.default.hex}}",
+    "on-surface": "{{colors.on_surface.default.hex}}",
+    "primary-container": "{{colors.primary_container.default.hex}}",
+    "on-primary": "{{colors.on_primary.default.hex}}",
+    "inverse-primary": "{{colors.inverse_primary.default.hex}}",
+    "error": "{{colors.error.default.hex}}",
+    "success": "{{colors.tertiary.default.hex}}"
+  },
+  "blocks": [
+    {
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "foreground": "p:primary",
+          "leading_diamond": "<p:tertiary> \ue200 </>",
+          "style": "diamond",
+          "template": "{{ "{{" }} .UserName {{ "}}" }} <p:on-surface>on</>",
+          "type": "session"
+        },
+        {
+          "foreground": "p:secondary",
+          "options": {
+            "time_format": "Monday <p:on-surface>at</> 3:04 PM"
+          },
+          "style": "diamond",
+          "template": " {{ "{{" }} .CurrentDate | date .Format {{ "}}" }} ",
+          "type": "time"
+        },
+        {
+          "foreground": "p:tertiary",
+          "options": {
+            "branch_icon": "\ue725 ",
+            "fetch_status": true,
+            "fetch_upstream_icon": true
+          },
+          "style": "diamond",
+          "template": " {{ "{{" }} .UpstreamIcon {{ "}}" }}{{ "{{" }} .HEAD {{ "}}" }}{{ "{{" }}if .BranchStatus {{ "}}" }} {{ "{{" }} .BranchStatus {{ "}}" }}{{ "{{" }} end {{ "}}" }}{{ "{{" }} if .Working.Changed {{ "}}" }} \uf044 {{ "{{" }} .Working.String {{ "}}" }}{{ "{{" }} end {{ "}}" }}{{ "{{" }} if and (.Working.Changed) (.Staging.Changed) {{ "}}" }} |{{ "{{" }} end {{ "}}" }}{{ "{{" }} if .Staging.Changed {{ "}}" }} \uf046 {{ "{{" }} .Staging.String {{ "}}" }}{{ "{{" }} end {{ "}}" }}{{ "{{" }} if gt .StashCount 0 {{ "}}" }} \ueb4b {{ "{{" }} .StashCount {{ "}}" }}{{ "{{" }} end {{ "}}" }} ",
+          "type": "git"
+        }
+      ],
+      "type": "prompt"
+    },
+    {
+      "alignment": "right",
+      "segments": [
+        {
+          "foreground": "p:success",
+          "style": "plain",
+          "type": "text"
+        },
+        {
+          "foreground": "p:success",
+          "options": {
+            "style": "dallas",
+            "threshold": 0
+          },
+          "style": "diamond",
+          "template": " {{ "{{" }} .FormattedMs {{ "}}" }}s <p:on-surface>\ue601</>",
+          "type": "executiontime"
+        },
+        {
+          "options": {
+            "root_icon": "\uf292 "
+          },
+          "style": "diamond",
+          "template": " \uf0e7 ",
+          "type": "root"
+        },
+        {
+          "foreground": "p:inverse-primary",
+          "style": "diamond",
+          "template": " <p:on-surface>MEM:</> {{ "{{" }} round .PhysicalPercentUsed .Precision {{ "}}" }}% ({{ "{{" }} (div ((sub .PhysicalTotalMemory .PhysicalAvailableMemory)|float64) 1073741824.0) {{ "}}" }}/{{ "{{" }} (div .PhysicalTotalMemory 1073741824.0) {{ "}}" }}GB)",
+          "type": "sysinfo"
+        }
+      ],
+      "type": "prompt"
+    },
+    {
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "foreground": "p:primary",
+          "leading_diamond": "<p:tertiary> \ue285 </><p:primary>{</>",
+          "options": {
+            "folder_icon": "\uf07b",
+            "folder_separator_icon": " \uebcb ",
+            "home_icon": "home",
+            "style": "agnoster_full"
+          },
+          "style": "diamond",
+          "template": " \ue5ff {{ "{{" }} .Path {{ "}}" }} ",
+          "trailing_diamond": "<p:primary>}</>",
+          "type": "path"
+        },
+        {
+          "foreground": "p:success",
+          "foreground_templates": ["{{ "{{" }} if gt .Code 0 {{ "}}" }}p:error{{ "{{" }} end {{ "}}" }}"],
+          "options": {
+            "always_enabled": true
+          },
+          "style": "plain",
+          "template": " \ue286 ",
+          "type": "status"
+        }
+      ],
+      "type": "prompt"
+    }
+  ],
+  "console_title_template": "{{ "{{" }} .Folder {{ "}}" }}",
+  "transient_prompt": {
+    "background": "transparent",
+    "foreground": "p:on-surface",
+    "template": "\ue285 "
+  },
+  "version": 4
+}

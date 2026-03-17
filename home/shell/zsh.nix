@@ -227,4 +227,5 @@
     enable = true;
     enableZshIntegration = true;
   };
+
 }
