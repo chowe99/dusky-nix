@@ -9,8 +9,8 @@
     "primary-container": "{{colors.primary_container.default.hex}}",
     "on-primary": "{{colors.on_primary.default.hex}}",
     "inverse-primary": "{{colors.inverse_primary.default.hex}}",
-    "error": "{{colors.error.default.hex}}",
-    "success": "{{colors.tertiary.default.hex}}"
+    "error": "#ef5350",
+    "success": "#a9ffb4"
   },
   "blocks": [
     {
