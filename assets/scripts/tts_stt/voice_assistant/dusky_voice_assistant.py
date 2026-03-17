@@ -414,6 +414,8 @@ class DuskyVoiceAssistant:
         self.listening_enabled = True
         self._overlay_proc = None
         self._last_user_text = ""
+        self._last_response_text = ""
+        self._last_tool_use = ""
         self._compacted_summary = ""
 
         logger.info(f"Dusky Voice Assistant {VERSION} Initializing...")
@@ -470,15 +472,25 @@ class DuskyVoiceAssistant:
 
     # --- State & Overlay ---
 
-    def set_state(self, new_state, user_text=None):
+    def set_state(self, new_state, user_text=None, response_text=None, tool_use=None):
         """Update state and write to state file for the overlay."""
         self.state = new_state
         if user_text is not None:
             self._last_user_text = user_text
+        if response_text is not None:
+            self._last_response_text = response_text
+        if tool_use is not None:
+            self._last_tool_use = tool_use
+        # Clear tool/response on non-thinking/speaking states
+        if new_state in (State.IDLE, State.RECORDING, State.WAKE_DETECTED, State.LISTENING_FOLLOWUP):
+            self._last_response_text = ""
+            self._last_tool_use = ""
         try:
             STATE_FILE.write_text(json.dumps({
                 "state": new_state,
                 "user_text": self._last_user_text,
+                "response_text": getattr(self, '_last_response_text', ''),
+                "tool_use": getattr(self, '_last_tool_use', ''),
                 "ts": time.time(),
             }))
         except OSError:
@@ -498,8 +510,8 @@ class DuskyVoiceAssistant:
                  "--title", "Dusky Voice",
                  "-o", "confirm_os_window_close=0",
                  "-o", "remember_window_size=no",
-                 "-o", "initial_window_width=280",
-                 "-o", "initial_window_height=80",
+                 "-o", "initial_window_width=440",
+                 "-o", "initial_window_height=200",
                  "-o", "background_opacity=0.7",
                  "-o", "hide_window_decorations=yes",
                  "-o", "font_size=11",
@@ -685,30 +697,59 @@ class DuskyVoiceAssistant:
         return "\n".join(parts)
 
     def query_llm(self, user_text):
-        """Send user text to LLM and return response."""
+        """Send user text to LLM, streaming stderr to detect tool usage."""
         prompt = self.build_prompt(user_text)
 
         try:
             # Unset CLAUDECODE to avoid nesting detection if launched from Claude Code
             env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-            result = subprocess.run(
+            proc = subprocess.Popen(
                 [LLM_COMMAND, "-p", prompt, "--no-session-persistence", "--output-format", "text",
                  "--model", "sonnet", "--allowedTools", "WebSearch", "WebFetch"],
-                capture_output=True, text=True, timeout=120, env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
             )
-            if result.returncode != 0:
-                err_msg = (result.stderr or result.stdout or "unknown error").strip()[:200]
-                logger.error(f"LLM error (rc={result.returncode}): {err_msg}")
+
+            # Monitor stderr for tool usage while waiting for completion
+            stderr_lines = []
+            while proc.poll() is None:
+                # Non-blocking read of stderr
+                import select as _sel
+                readable, _, _ = _sel.select([proc.stderr], [], [], 0.3)
+                if readable:
+                    line = proc.stderr.readline()
+                    if line:
+                        stderr_lines.append(line)
+                        line_lower = line.lower().strip()
+                        # Detect tool usage patterns from Claude CLI output
+                        if "websearch" in line_lower or "searching" in line_lower:
+                            self.set_state(State.THINKING, tool_use="Web Searching")
+                        elif "webfetch" in line_lower or "fetching" in line_lower:
+                            self.set_state(State.THINKING, tool_use="Fetching Page")
+                        elif "read" in line_lower and "tool" in line_lower:
+                            self.set_state(State.THINKING, tool_use="Reading")
+
+            # Collect remaining output
+            stdout, remaining_stderr = proc.communicate(timeout=10)
+            stderr_lines.append(remaining_stderr)
+
+            if proc.returncode != 0:
+                err_msg = ("".join(stderr_lines) or stdout or "unknown error").strip()[:200]
+                logger.error(f"LLM error (rc={proc.returncode}): {err_msg}")
                 notify("Voice Assistant", f"LLM error: {err_msg[:100]}", critical=True)
                 return None
 
-            response = result.stdout.strip()
+            response = stdout.strip()
             # Remove any "Dusky:" prefix the model might echo
             if response.lower().startswith("dusky:"):
                 response = response[6:].strip()
+
+            # Clear tool use indicator
+            self.set_state(State.THINKING, tool_use="")
+
             return response if response else None
 
         except subprocess.TimeoutExpired:
+            proc.kill()
             logger.error("LLM request timed out")
             return None
         except FileNotFoundError:
@@ -907,7 +948,7 @@ class DuskyVoiceAssistant:
                 self.conversation.append({"role": "user", "text": text})
                 self.conversation.append({"role": "assistant", "text": response})
                 self._save_session()
-                self.set_state(State.SPEAKING)
+                self.set_state(State.SPEAKING, response_text=response)
                 self.speak(response)
                 self.wait_for_speech_done()
                 return True
@@ -937,7 +978,7 @@ class DuskyVoiceAssistant:
         self._save_session()
 
         # Speak response
-        self.set_state(State.SPEAKING)
+        self.set_state(State.SPEAKING, response_text=response)
         self.speak(response)
         self.wait_for_speech_done()
 
