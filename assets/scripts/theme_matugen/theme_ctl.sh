@@ -559,21 +559,28 @@ update_wallpaper_tracker() {
 
 pick_color_index() {
     local img="$1"
-    local -a base_cmd chosen
-    local i hex preview
+    local -a base_cmd
+    local chosen i json_out pri pri_c ter
 
     base_cmd=(matugen --mode "$THEME_MODE" --dry-run -j hex)
     [[ "$MATUGEN_TYPE" != "disable" ]] && base_cmd+=(--type "$MATUGEN_TYPE")
     [[ "$MATUGEN_CONTRAST" != "disable" ]] && base_cmd+=(--contrast "$MATUGEN_CONTRAST")
 
-    printf '\n\033[1m  Source colors extracted from wallpaper:\033[0m\n\n'
+    printf '\n\033[1m  Color palettes by source index:\033[0m\n\n'
     for i in 0 1 2 3; do
-        hex=$("${base_cmd[@]}" image --source-color-index "$i" "$img" 2>/dev/null \
-            | python3 -c "import json,sys; print(json.load(sys.stdin)['colors']['primary']['default']['color'])" 2>/dev/null) || hex="?"
-        if [[ "$hex" != "?" ]]; then
-            # Print color swatch using truecolor
-            local r=$((16#${hex:1:2})) g=$((16#${hex:3:2})) b=$((16#${hex:5:2}))
-            printf '    \033[48;2;%d;%d;%dm    \033[0m  [%d] primary=%s\n' "$r" "$g" "$b" "$i" "$hex"
+        json_out=$("${base_cmd[@]}" image --source-color-index "$i" "$img" 2>/dev/null) || { printf '    ----  [%d] (extraction failed)\n' "$i"; continue; }
+
+        pri=$(printf '%s' "$json_out" | python3 -c "import json,sys; d=json.load(sys.stdin)['colors']; print(d['primary']['default']['color'])" 2>/dev/null) || pri="?"
+        pri_c=$(printf '%s' "$json_out" | python3 -c "import json,sys; d=json.load(sys.stdin)['colors']; print(d['primary_container']['default']['color'])" 2>/dev/null) || pri_c="?"
+        ter=$(printf '%s' "$json_out" | python3 -c "import json,sys; d=json.load(sys.stdin)['colors']; print(d['tertiary']['default']['color'])" 2>/dev/null) || ter="?"
+
+        if [[ "$pri" != "?" && "$pri_c" != "?" && "$ter" != "?" ]]; then
+            local pr=$((16#${pri:1:2})) pg=$((16#${pri:3:2})) pb=$((16#${pri:5:2}))
+            local cr=$((16#${pri_c:1:2})) cg=$((16#${pri_c:3:2})) cb=$((16#${pri_c:5:2}))
+            local tr=$((16#${ter:1:2})) tg=$((16#${ter:3:2})) tb=$((16#${ter:5:2}))
+            printf '    \033[48;2;%d;%d;%dm  \033[48;2;%d;%d;%dm  \033[48;2;%d;%d;%dm  \033[0m  [%d] %s  %s  %s\n' \
+                "$pr" "$pg" "$pb" "$cr" "$cg" "$cb" "$tr" "$tg" "$tb" \
+                "$i" "$pri" "$pri_c" "$ter"
         else
             printf '    ----  [%d] (extraction failed)\n' "$i"
         fi
@@ -596,8 +603,9 @@ generate_colors() {
 
     ensure_swaync_running
 
+    # "pick" is only valid during interactive cmd_set; default to 0 otherwise
     if [[ "$SOURCE_COLOR_INDEX" == "pick" ]]; then
-        pick_color_index "$img"
+        SOURCE_COLOR_INDEX="0"
     fi
 
     log "Matugen: Mode=[${THEME_MODE}] Type=[${MATUGEN_TYPE}] Contrast=[${MATUGEN_CONTRAST}] Index=[${SOURCE_COLOR_INDEX}] Base16=[${BASE16_BACKEND}] Lightness=[${LIGHTNESS_DARK}]"
@@ -809,6 +817,24 @@ cmd_set() {
         same_mode_requested=1
     fi
 
+    # If user requested --index pick, resolve it interactively before writing state
+    if [[ "$desired_index" == "pick" ]]; then
+        local pick_wall
+        pick_wall=$(swww query 2>/dev/null | sed -n 's/.*currently displaying: image: //p' | head -1)
+        pick_wall=$(trim_trailing "$pick_wall")
+        if [[ -n "$pick_wall" && -f "$pick_wall" ]]; then
+            pick_color_index "$pick_wall"
+            # pick_color_index updates SOURCE_COLOR_INDEX and writes state
+            desired_index="$SOURCE_COLOR_INDEX"
+        else
+            warn "Cannot determine current wallpaper for pick; using index 0"
+            SOURCE_COLOR_INDEX="0"
+            desired_index="0"
+            write_state "$desired_mode" "$desired_type" "$desired_contrast" "$desired_index" "$desired_base16" "$desired_lightness"
+        fi
+    fi
+
+    # Write state now (after pick resolved desired_index to a number)
     if (( mode_changed || do_refresh )); then
         write_state "$desired_mode" "$desired_type" "$desired_contrast" "$desired_index" "$desired_base16" "$desired_lightness"
     fi
