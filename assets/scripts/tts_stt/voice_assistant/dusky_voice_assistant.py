@@ -696,56 +696,74 @@ class DuskyVoiceAssistant:
 
         return "\n".join(parts)
 
+    # Tool name → display label mapping
+    _TOOL_LABELS = {
+        "WebSearch": "Web Searching",
+        "WebFetch": "Fetching Page",
+        "Read": "Reading File",
+        "Bash": "Running Command",
+        "Grep": "Searching Code",
+        "Glob": "Finding Files",
+    }
+
     def query_llm(self, user_text):
-        """Send user text to LLM, streaming stderr to detect tool usage."""
+        """Send user text to LLM via stream-json, detecting tool usage in real-time."""
         prompt = self.build_prompt(user_text)
 
         try:
-            # Unset CLAUDECODE to avoid nesting detection if launched from Claude Code
             env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
             proc = subprocess.Popen(
-                [LLM_COMMAND, "-p", prompt, "--no-session-persistence", "--output-format", "text",
+                [LLM_COMMAND, "-p", prompt, "--no-session-persistence",
+                 "--output-format", "stream-json", "--verbose",
                  "--model", "sonnet", "--allowedTools", "WebSearch", "WebFetch"],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env,
             )
 
-            # Monitor stderr for tool usage while waiting for completion
-            stderr_lines = []
-            while proc.poll() is None:
-                # Non-blocking read of stderr
-                import select as _sel
-                readable, _, _ = _sel.select([proc.stderr], [], [], 0.3)
-                if readable:
-                    line = proc.stderr.readline()
-                    if line:
-                        stderr_lines.append(line)
-                        line_lower = line.lower().strip()
-                        # Detect tool usage patterns from Claude CLI output
-                        if "websearch" in line_lower or "searching" in line_lower:
-                            self.set_state(State.THINKING, tool_use="Web Searching")
-                        elif "webfetch" in line_lower or "fetching" in line_lower:
-                            self.set_state(State.THINKING, tool_use="Fetching Page")
-                        elif "read" in line_lower and "tool" in line_lower:
-                            self.set_state(State.THINKING, tool_use="Reading")
+            response_text = ""
+            for line in proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
 
-            # Collect remaining output
-            stdout, remaining_stderr = proc.communicate(timeout=10)
-            stderr_lines.append(remaining_stderr)
+                etype = event.get("type", "")
+
+                if etype == "assistant":
+                    msg = event.get("message", {})
+                    for block in msg.get("content", []):
+                        btype = block.get("type", "")
+                        if btype == "text":
+                            response_text = block.get("text", "")
+                        elif btype == "tool_use":
+                            tool_name = block.get("name", "")
+                            label = self._TOOL_LABELS.get(tool_name, tool_name)
+                            self.set_state(State.THINKING, tool_use=label)
+                            logger.info(f"Tool use: {tool_name}")
+                        elif btype == "tool_result":
+                            # Tool finished, back to thinking
+                            self.set_state(State.THINKING, tool_use="")
+
+                elif etype == "result":
+                    # Final result — use this as the authoritative response
+                    result_text = event.get("result", "")
+                    if result_text:
+                        response_text = result_text
+
+            proc.wait(timeout=10)
 
             if proc.returncode != 0:
-                err_msg = ("".join(stderr_lines) or stdout or "unknown error").strip()[:200]
-                logger.error(f"LLM error (rc={proc.returncode}): {err_msg}")
-                notify("Voice Assistant", f"LLM error: {err_msg[:100]}", critical=True)
+                logger.error(f"LLM error (rc={proc.returncode})")
+                notify("Voice Assistant", "LLM error", critical=True)
                 return None
 
-            response = stdout.strip()
-            # Remove any "Dusky:" prefix the model might echo
+            response = response_text.strip()
             if response.lower().startswith("dusky:"):
                 response = response[6:].strip()
 
-            # Clear tool use indicator
             self.set_state(State.THINKING, tool_use="")
-
             return response if response else None
 
         except subprocess.TimeoutExpired:
