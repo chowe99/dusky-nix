@@ -90,7 +90,7 @@ ensure_dir() {
 
 process_running() {
     local proc_name="$1"
-    pgrep -u "$UID" -f "(^|/)${proc_name}(\\s|$)" >/dev/null 2>&1
+    pgrep -u "$(id -u)" -f "(^|/)${proc_name}( |$)" >/dev/null 2>&1
 }
 
 check_deps() {
