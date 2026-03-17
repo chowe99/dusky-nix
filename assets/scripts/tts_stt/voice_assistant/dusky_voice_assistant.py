@@ -856,14 +856,14 @@ class DuskyVoiceAssistant:
     # --- Chime ---
 
     def play_chime(self):
-        """Play activation chime sound."""
+        """Play a soft activation chime."""
         chime = CHIME_SOUND
         if not chime or not Path(chime).exists():
-            # Generate a simple chime via shell
+            # Gentle soft chime — quiet, short, non-intrusive
             try:
                 subprocess.run(
                     ["bash", "-c",
-                     "play -qn synth 0.15 sine 880 sine 1100 remix - fade t 0 0.15 0.05 2>/dev/null || true"],
+                     "play -qn synth 0.08 sine 660 fade t 0.01 0.08 0.03 vol 0.15 2>/dev/null || true"],
                     timeout=2, check=False,
                 )
             except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -871,11 +871,18 @@ class DuskyVoiceAssistant:
             return
 
         try:
-            subprocess.run(["mpv", "--no-terminal", "--no-video", chime],
+            subprocess.run(["mpv", "--no-terminal", "--no-video", "--volume=30", chime],
                          timeout=3, check=False,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
+
+    def interrupt_speech(self):
+        """Stop TTS playback immediately."""
+        # Kill any running MPV TTS processes
+        subprocess.run(["pkill", "-f", "mpv.*demuxer-rawaudio"], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        logger.info("Speech interrupted")
 
     # --- Wake Word Callback ---
 
@@ -915,6 +922,8 @@ class DuskyVoiceAssistant:
                 elif cmd == "ACTIVATE":
                     # Manual activation (skip wake word)
                     self.wake_event.set()
+                elif cmd == "INTERRUPT":
+                    self.interrupt_speech()
 
                 self.command_queue.task_done()
         except queue.Empty:

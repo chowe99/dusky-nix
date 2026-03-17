@@ -375,6 +375,13 @@ bm_lewis"
       text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_reset.sh";
     })
 
+    # --- Voice Assistant interrupt TTS ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-voice-interrupt";
+      runtimeInputs = with pkgs; [ coreutils procps ];
+      text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_interrupt.sh";
+    })
+
     # --- STT trigger (keybind target): toggle recording, send audio to daemon ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-parakeet-stt";

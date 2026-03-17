@@ -21,35 +21,37 @@ printf '\033[?25l\033[2J'
 trap 'printf "\033[?25h"; exit 0' EXIT INT TERM
 
 frame=0
-scroll_offset=0
-last_response=""
 last_state=""
+speak_start_ts=""
 
 # Terminal dimensions
 COLS=$(tput cols 2>/dev/null || echo 50)
 ROWS=$(tput lines 2>/dev/null || echo 12)
 TEXT_WIDTH=$(( COLS - 4 ))
 (( TEXT_WIDTH < 10 )) && TEXT_WIDTH=10
-# Reserve lines: 1 header + 1 animation + rest for text
 TEXT_ROWS=$(( ROWS - 3 ))
 (( TEXT_ROWS < 2 )) && TEXT_ROWS=2
 
-wrap_text() {
-    echo "$1" | fold -s -w "$TEXT_WIDTH"
-}
+# Words per second for TTS sync (~150 WPM = 2.5 WPS)
+WPS="2.5"
 
-# Draw a line, erasing to end to overwrite old content
+# Draw a line at row, erasing remainder
 draw_line() {
     local row=$1 content=$2
     printf "\033[%d;1H%b${ERASE_LINE}" "$row" "$content"
 }
 
-# Clear remaining rows from a starting row
+# Clear rows from start to end of screen
 clear_from() {
     local start=$1
     for (( r=start; r<=ROWS; r++ )); do
         printf "\033[%d;1H${ERASE_LINE}" "$r"
     done
+}
+
+# Get current time as float (seconds since epoch)
+now_ts() {
+    date +%s.%N 2>/dev/null || date +%s
 }
 
 while true; do
@@ -58,23 +60,21 @@ while true; do
     user_text=""
     response_text=""
     tool_use=""
+    state_ts=""
     if [[ -f "$STATE_FILE" ]]; then
         raw=$(cat "$STATE_FILE" 2>/dev/null)
         cur_state=$(echo "$raw" | grep -oP '"state": "\K[^"]+' 2>/dev/null)
         user_text=$(echo "$raw" | grep -oP '"user_text": "\K[^"]+' 2>/dev/null)
         response_text=$(echo "$raw" | grep -oP '"response_text": "\K[^"]+' 2>/dev/null)
         tool_use=$(echo "$raw" | grep -oP '"tool_use": "\K[^"]+' 2>/dev/null)
+        state_ts=$(echo "$raw" | grep -oP '"ts": \K[0-9.]+' 2>/dev/null)
     fi
 
     frame=$(( (frame + 1) % 120 ))
 
-    # Reset scroll when response changes or state changes away from speaking
-    if [[ "$cur_state" == "SPEAKING" && "$response_text" != "$last_response" ]]; then
-        scroll_offset=0
-        last_response="$response_text"
-    elif [[ "$cur_state" != "SPEAKING" && "$last_state" == "SPEAKING" ]]; then
-        scroll_offset=0
-        last_response=""
+    # Track when speaking starts for word reveal timing
+    if [[ "$cur_state" == "SPEAKING" && "$last_state" != "SPEAKING" ]]; then
+        speak_start_ts=$(now_ts)
     fi
     last_state="$cur_state"
 
@@ -97,8 +97,9 @@ while true; do
             if [[ -n "$user_text" ]]; then
                 draw_line $((row++)) "${YELLOW}${BOLD} 󰗊 You said:${RESET}"
                 while IFS= read -r line; do
+                    (( row > ROWS )) && break
                     draw_line $((row++)) "  ${line}"
-                done <<< "$(wrap_text "$user_text")"
+                done <<< "$(echo "$user_text" | fold -s -w "$TEXT_WIDTH")"
             else
                 draw_line $((row++)) "${YELLOW}${BOLD} 󰗊 Transcribing ${spin_chars[$idx]}${RESET}"
             fi
@@ -107,7 +108,6 @@ while true; do
             think_frames=("   " ".  " ".. " "..." ".. " ".  ")
             idx=$(( frame / 3 % ${#think_frames[@]} ))
             if [[ -n "$tool_use" ]]; then
-                # Show tool usage with spinning icon
                 spin_chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
                 sidx=$(( frame % ${#spin_chars[@]} ))
                 draw_line $((row++)) "${BLUE}${BOLD} 󰊄 ${tool_use} ${spin_chars[$sidx]}${RESET}"
@@ -116,12 +116,13 @@ while true; do
             fi
             if [[ -n "$user_text" ]]; then
                 while IFS= read -r line; do
+                    (( row > ROWS )) && break
                     draw_line $((row++)) " ${DIM}${line}${RESET}"
-                done <<< "$(wrap_text "$user_text")"
+                done <<< "$(echo "$user_text" | fold -s -w "$TEXT_WIDTH")"
             fi
             ;;
         SPEAKING)
-            # Wave animation on first line
+            # Wave animation header
             wave=()
             for i in {0..14}; do
                 v=$(( (frame * 7 + i * 13) % 17 ))
@@ -135,29 +136,30 @@ while true; do
             done
             draw_line $((row++)) "${CYAN}${BOLD} 󰔊 Speaking${RESET}  ${CYAN}${wave[*]}${RESET}"
 
-            # Show response text with auto-scroll
-            if [[ -n "$response_text" ]]; then
-                # Wrap text into lines array
-                mapfile -t wrapped_lines <<< "$(wrap_text "$response_text")"
-                total_lines=${#wrapped_lines[@]}
+            # Word-by-word reveal synced to TTS speed
+            if [[ -n "$response_text" && -n "$speak_start_ts" ]]; then
+                now=$(now_ts)
+                elapsed=$(echo "$now - $speak_start_ts" | bc 2>/dev/null || echo "0")
+                # Number of words to show based on elapsed time
+                words_to_show=$(echo "$elapsed * $WPS" | bc 2>/dev/null | cut -d. -f1)
+                [[ -z "$words_to_show" || "$words_to_show" == "" ]] && words_to_show=0
 
-                # Auto-scroll: advance every ~8 frames (~0.6s per line)
-                if (( total_lines > TEXT_ROWS )); then
-                    max_scroll=$(( total_lines - TEXT_ROWS ))
-                    scroll_offset=$(( (frame / 8) % (max_scroll + TEXT_ROWS + 5) ))
-                    # Clamp
-                    (( scroll_offset > max_scroll )) && scroll_offset=$max_scroll
+                # Split response into words, take first N
+                read -ra all_words <<< "$response_text"
+                total_words=${#all_words[@]}
+
+                if (( words_to_show >= total_words )); then
+                    # Show all text
+                    visible_text="$response_text"
+                else
+                    visible_text="${all_words[*]:0:$words_to_show}"
                 fi
 
-                # Draw visible lines
-                for (( i=scroll_offset; i < scroll_offset + TEXT_ROWS && i < total_lines; i++ )); do
-                    draw_line $((row++)) "  ${wrapped_lines[$i]}"
-                done
-
-                # Scroll indicator
-                if (( total_lines > TEXT_ROWS )); then
-                    pos=$(( scroll_offset * 100 / (total_lines - TEXT_ROWS) ))
-                    draw_line $((row++)) "${DIM}  ── ${pos}% ──${RESET}"
+                if [[ -n "$visible_text" ]]; then
+                    while IFS= read -r line; do
+                        (( row > ROWS )) && break
+                        draw_line $((row++)) "  ${line}"
+                    done <<< "$(echo "$visible_text" | fold -s -w "$TEXT_WIDTH")"
                 fi
             fi
             ;;
@@ -173,7 +175,7 @@ while true; do
             ;;
     esac
 
-    # Clear any leftover lines below current content
+    # Clear leftover lines
     clear_from $row
 
     sleep 0.08
