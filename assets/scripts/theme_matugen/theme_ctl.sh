@@ -709,6 +709,7 @@ Commands:
               --defaults           Reset all settings to defaults
               --no-wall            Prevent wallpaper change
   random    Cycle to next wallpaper and apply theme.
+              --index <0|1|2|3|pick> Override source color index for this wallpaper
   refresh   Regenerate colors for current wallpaper.
   apply     Alias of refresh.
   get       Show current configuration.
@@ -853,9 +854,42 @@ cmd_set() {
 }
 
 random_command() {
+    local do_pick=0
+    while (( $# > 0 )); do
+        case "$1" in
+            --index)
+                [[ -n "${2:-}" ]] || die "--index requires a value"
+                if [[ "$2" == "pick" ]]; then
+                    do_pick=1
+                else
+                    SOURCE_COLOR_INDEX="$2"
+                fi
+                shift 2
+                ;;
+            *) die "Unknown option for random: $1" ;;
+        esac
+    done
+
     move_directories "$THEME_MODE"
     release_lock
-    apply_random_wallpaper
+
+    # Apply wallpaper first, then optionally pick palette
+    local wallpaper wallpaper_id
+    select_next_wallpaper wallpaper wallpaper_id || die "No wallpapers found in ${ACTIVE_THEME_DIR} or ${WALLPAPER_ROOT}"
+    log "Selected: ${wallpaper##*/}"
+
+    ensure_swww_running
+    swww img "$wallpaper" \
+        --transition-type grow \
+        --transition-duration 2 \
+        --transition-fps 60 || die "Failed to apply wallpaper with swww"
+
+    if (( do_pick )); then
+        pick_color_index "$wallpaper"
+    fi
+
+    generate_colors "$wallpaper"
+    update_wallpaper_tracker "$wallpaper_id"
 }
 
 # --- MAIN ---
@@ -873,10 +907,11 @@ case "${1:-}" in
         cmd_set "$@"
         ;;
     random)
+        shift
         check_deps
         acquire_lock
         init_state
-        random_command
+        random_command "$@"
         ;;
     refresh|apply)
         check_deps
