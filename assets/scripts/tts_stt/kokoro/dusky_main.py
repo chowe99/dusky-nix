@@ -377,9 +377,19 @@ class AudioPlaybackThread(threading.Thread):
                     self.audio_queue.task_done()
                     continue
 
-                samples, sr, stream_id = item
+                # Unpack: 3-tuple (legacy) or 4-tuple with progress callback
+                if len(item) == 4:
+                    samples, sr, stream_id, progress_cb = item
+                else:
+                    samples, sr, stream_id = item
+                    progress_cb = None
                 if samples.dtype != np.float32: samples = samples.astype(np.float32)
                 raw_bytes = samples.tobytes()
+
+                # Update progress now that this chunk is actually playing
+                if progress_cb:
+                    try: progress_cb()
+                    except Exception: pass
 
                 try:
                     proc = self._prepare_mpv_for_chunk(stream_id, sample_rate=sr)
@@ -695,18 +705,19 @@ class DuskyDaemon:
                 if audio is None: continue
                 final_sr = sr
                 all_audio.append(audio)
-                # Update progress — this sentence is about to play
-                try:
-                    progress_file.write_text(json.dumps({
-                        "sentences": sentences,
-                        "current": i + 1,
-                        "total": len(sentences),
-                    }))
-                except OSError:
-                    pass
+                # Progress callback — called by playback thread when this chunk starts playing
+                sent_idx = i + 1
+                def make_progress_cb(idx):
+                    def cb():
+                        progress_file.write_text(json.dumps({
+                            "sentences": sentences,
+                            "current": idx,
+                            "total": len(sentences),
+                        }))
+                    return cb
                 while not self._should_stop():
                     try:
-                        self.audio_queue.put((audio, sr, current_stream_id), timeout=0.2)
+                        self.audio_queue.put((audio, sr, current_stream_id, make_progress_cb(sent_idx)), timeout=0.2)
                         break
                     except queue.Full: continue
 

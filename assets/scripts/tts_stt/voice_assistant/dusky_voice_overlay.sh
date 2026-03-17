@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # Voice assistant overlay — shows animated state in a fixed-size terminal
-# Spawned by the voice assistant daemon on wake, killed on idle
-# Uses buffer-based rendering to avoid flicker
+# Uses scroll region: row 1 = fixed header, rows 2+ = scrolling text area
 
 STATE_FILE="/tmp/dusky_voice_state.json"
 TTS_PROGRESS="/tmp/dusky_tts_progress.json"
 
-# Colors (ANSI)
+# Colors
 DIM='\033[2m'
 BOLD='\033[1m'
 CYAN='\033[36m'
@@ -16,20 +15,55 @@ MAGENTA='\033[35m'
 BLUE='\033[34m'
 RESET='\033[0m'
 
-# Alternate screen buffer (no scroll history) + hide cursor
-printf '\033[?1049h\033[?25l'
+# Alternate screen, hide cursor
+printf '\033[?1049h\033[?25l\033[2J'
 trap 'printf "\033[?25h\033[?1049l"; exit 0' EXIT INT TERM
 
 frame=0
+prev_state=""
+printed_sentences=0  # how many sentences we've already printed to the text area
+
+# Write header at row 1 (fixed, outside scroll region)
+draw_header() {
+    printf '\033[1;1H\033[K%b' "$1"
+}
+
+# Set up scroll region (rows 2 to bottom) and move cursor there
+setup_scroll_region() {
+    local rows
+    rows=$(tput lines 2>/dev/null || echo 20)
+    printf '\033[2;%dr' "$rows"
+}
+
+# Print text into scroll region (appends, terminal handles scrolling)
+print_text() {
+    local cols
+    cols=$(tput cols 2>/dev/null || echo 50)
+    local width=$(( cols - 4 ))
+    (( width < 10 )) && width=10
+    # Move to bottom of scroll region and print — terminal scrolls up naturally
+    printf '\033[999;1H'
+    echo "$1" | fold -s -w "$width" | while IFS= read -r line; do
+        printf '  %s\n' "$line"
+    done
+}
+
+# Clear text area and reset printed count
+clear_text_area() {
+    local rows
+    rows=$(tput lines 2>/dev/null || echo 20)
+    # Clear scroll region
+    for (( r=2; r<=rows; r++ )); do
+        printf '\033[%d;1H\033[K' "$r"
+    done
+    printf '\033[2;1H'
+    printed_sentences=0
+}
+
+setup_scroll_region
 
 while true; do
-    # Terminal dimensions (re-check each frame)
-    COLS=$(tput cols 2>/dev/null || echo 50)
-    ROWS=$(tput lines 2>/dev/null || echo 20)
-    TEXT_WIDTH=$(( COLS - 4 ))
-    (( TEXT_WIDTH < 10 )) && TEXT_WIDTH=10
-
-    # Read state file using jq for proper JSON parsing (single jq call)
+    # Read state
     cur_state=""
     user_text=""
     response_text=""
@@ -40,45 +74,45 @@ while true; do
         ) || true
     fi
 
-    # Read TTS progress (single jq call)
+    # Read TTS progress
     tts_current=0
     tts_total=0
-    tts_sentences=()
     if [[ -f "$TTS_PROGRESS" ]]; then
         IFS=$'\x1e' read -r tts_current tts_total < <(
             jq -rj '[.current // 0, .total // 0] | join("\u001e")' "$TTS_PROGRESS" 2>/dev/null
         ) || true
-        if (( tts_total > 0 && tts_current > 0 )); then
-            mapfile -t tts_sentences < <(jq -r ".sentences[0:${tts_current}][]" "$TTS_PROGRESS" 2>/dev/null)
-        fi
     fi
 
     frame=$(( (frame + 1) % 10000 ))
 
-    # Build frame into array of lines
-    lines=()
+    # On state change, clear text area
+    if [[ "$cur_state" != "$prev_state" ]]; then
+        clear_text_area
+        setup_scroll_region
+        prev_state="$cur_state"
+    fi
 
     case "$cur_state" in
         WAKE_DETECTED)
-            lines+=("$(printf "${CYAN}${BOLD} 󰍬 Hey!${RESET}")")
-            lines+=("$(printf "${DIM}  Preparing...${RESET}")")
+            draw_header "${CYAN}${BOLD} 󰍬 Hey! ${DIM}Preparing...${RESET}"
             ;;
         RECORDING)
             mic_frames=("●      " "●●     " "●●●    " "●●●●   " "●●●●●  " " ●●●●● " "  ●●●●●" "   ●●●●" "    ●●●" "     ●●" "      ●" "       ")
             idx=$(( frame % ${#mic_frames[@]} ))
-            lines+=("$(printf "${GREEN}${BOLD} 󰍬 Listening${RESET}")")
-            lines+=("$(printf "  ${GREEN}%s${RESET}" "${mic_frames[$idx]}")")
+            draw_header "${GREEN}${BOLD} 󰍬 Listening  ${mic_frames[$idx]}${RESET}"
             ;;
         TRANSCRIBING)
             spin_chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
             idx=$(( frame % ${#spin_chars[@]} ))
             if [[ -n "$user_text" ]]; then
-                lines+=("$(printf "${YELLOW}${BOLD} 󰗊 You said:${RESET}")")
-                while IFS= read -r wline; do
-                    lines+=("$(printf "  %s" "$wline")")
-                done <<< "$(echo "$user_text" | fold -s -w "$TEXT_WIDTH")"
+                draw_header "${YELLOW}${BOLD} 󰗊 You said:${RESET}"
+                # Print user text once on state entry
+                if (( printed_sentences == 0 )); then
+                    print_text "$user_text"
+                    printed_sentences=1
+                fi
             else
-                lines+=("$(printf "${YELLOW}${BOLD} 󰗊 Transcribing %s${RESET}" "${spin_chars[$idx]}")")
+                draw_header "${YELLOW}${BOLD} 󰗊 Transcribing ${spin_chars[$idx]}${RESET}"
             fi
             ;;
         THINKING)
@@ -87,18 +121,18 @@ while true; do
             if [[ -n "$tool_use" ]]; then
                 spin_chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
                 sidx=$(( frame % ${#spin_chars[@]} ))
-                lines+=("$(printf "${BLUE}${BOLD} 󰊄 %s %s${RESET}" "$tool_use" "${spin_chars[$sidx]}")")
+                draw_header "${BLUE}${BOLD} 󰊄 ${tool_use} ${spin_chars[$sidx]}${RESET}"
             else
-                lines+=("$(printf "${MAGENTA}${BOLD} 󰧑 Thinking%s${RESET}" "${think_frames[$idx]}")")
+                draw_header "${MAGENTA}${BOLD} 󰧑 Thinking${think_frames[$idx]}${RESET}"
             fi
-            if [[ -n "$user_text" ]]; then
-                while IFS= read -r wline; do
-                    lines+=("$(printf " ${DIM}%s${RESET}" "$wline")")
-                done <<< "$(echo "$user_text" | fold -s -w "$TEXT_WIDTH")"
+            # Print user text once
+            if [[ -n "$user_text" ]] && (( printed_sentences == 0 )); then
+                print_text "${DIM}${user_text}${RESET}"
+                printed_sentences=1
             fi
             ;;
         SPEAKING)
-            # Wave animation header
+            # Animated wave header
             wave=()
             for i in {0..14}; do
                 v=$(( (frame * 7 + i * 13) % 17 ))
@@ -110,50 +144,30 @@ while true; do
                 fi
                 wave+=("$h")
             done
-            lines+=("$(printf "${CYAN}${BOLD} 󰔊 Speaking${RESET}  ${CYAN}%s${RESET}" "${wave[*]}")")
+            draw_header "${CYAN}${BOLD} 󰔊 Speaking${RESET}  ${CYAN}${wave[*]}${RESET}"
 
-            # Show response text synced to TTS sentence progress
-            if [[ ${#tts_sentences[@]} -gt 0 ]]; then
-                # Join revealed sentences
-                visible_text="${tts_sentences[*]}"
-                while IFS= read -r wline; do
-                    lines+=("$(printf "  %s" "$wline")")
-                done <<< "$(echo "$visible_text" | fold -s -w "$TEXT_WIDTH")"
-            elif [[ -n "$response_text" ]]; then
-                # No progress yet — show preview
-                read -ra words <<< "$response_text"
-                preview="${words[*]:0:3}..."
-                lines+=("$(printf "  ${DIM}%s${RESET}" "$preview")")
+            # Print NEW sentences as they become available (incremental)
+            if (( tts_current > printed_sentences && tts_total > 0 )); then
+                # Get sentences from printed_sentences to tts_current
+                mapfile -t new_sents < <(
+                    jq -r ".sentences[${printed_sentences}:${tts_current}][]" "$TTS_PROGRESS" 2>/dev/null
+                )
+                for sent in "${new_sents[@]}"; do
+                    [[ -z "$sent" ]] && continue
+                    print_text "$sent"
+                done
+                printed_sentences=$tts_current
             fi
             ;;
         LISTENING_FOLLOWUP)
             mic_frames=("●      " "●●     " "●●●    " "●●●●   " "●●●●●  " " ●●●●● " "  ●●●●●" "   ●●●●" "    ●●●" "     ●●" "      ●" "       ")
             idx=$(( frame % ${#mic_frames[@]} ))
-            lines+=("$(printf "${GREEN}${BOLD} 󰍬 Follow-up?${RESET}")")
-            lines+=("$(printf "  ${GREEN}%s${RESET}" "${mic_frames[$idx]}")")
+            draw_header "${GREEN}${BOLD} 󰍬 Follow-up?  ${mic_frames[$idx]}${RESET}"
             ;;
         *)
-            lines+=("$(printf "${DIM} 󰍬 Dusky Voice${RESET}")")
-            lines+=("$(printf "${DIM}  Ready${RESET}")")
+            draw_header "${DIM} 󰍬 Dusky Voice — Ready${RESET}"
             ;;
     esac
-
-    # Determine which lines to show (scroll if needed)
-    total=${#lines[@]}
-    if (( total > ROWS )); then
-        # Show the tail — auto-scroll to latest content
-        start=$(( total - ROWS ))
-    else
-        start=0
-    fi
-
-    # Render frame: clear + home, draw visible lines, clear rest
-    buf="\033[2J\033[H"
-    r=1
-    for (( i=start; i<total && r<=ROWS; i++, r++ )); do
-        buf+="\033[${r};1H${lines[$i]}\033[K"
-    done
-    printf "%b" "$buf"
 
     sleep 0.08
 done
