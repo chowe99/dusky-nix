@@ -40,8 +40,8 @@ readonly LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/theme_ctl.lock"
 readonly FLOCK_TIMEOUT_SEC=30
 
 readonly DEFAULT_MODE="dark"
-readonly DEFAULT_TYPE="scheme-tonal-spot"
-readonly DEFAULT_CONTRAST="0"
+readonly DEFAULT_TYPE="scheme-fidelity"
+readonly DEFAULT_CONTRAST="0.5"
 
 readonly DAEMON_POLL_INTERVAL=0.1
 readonly DAEMON_POLL_LIMIT=50
