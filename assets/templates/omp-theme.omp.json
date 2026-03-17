@@ -101,8 +101,8 @@
           "type": "path"
         },
         {
-          "foreground": "p:success",
-          "foreground_templates": ["{{ "{{" }} if gt .Code 0 {{ "}}" }}p:error{{ "{{" }} end {{ "}}" }}"],
+          "foreground": "#a9ffb4",
+          "foreground_templates": ["{{ "{{" }} if gt .Code 0 {{ "}}" }}#ff5555{{ "{{" }} end {{ "}}" }}"],
           "options": {
             "always_enabled": true
           },
