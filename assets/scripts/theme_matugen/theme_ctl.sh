@@ -90,7 +90,7 @@ ensure_dir() {
 
 process_running() {
     local proc_name="$1"
-    pgrep -xu "$UID" "$proc_name" >/dev/null 2>&1
+    pgrep -u "$UID" -f "(^|/)${proc_name}(\\s|$)" >/dev/null 2>&1
 }
 
 check_deps() {
@@ -362,9 +362,9 @@ ensure_swww_running() {
     fi
 
     if command -v uwsm-app >/dev/null 2>&1; then
-        uwsm-app -- swww-daemon --format xrgb >/dev/null 2>&1 &
+        uwsm-app -- swww-daemon >/dev/null 2>&1 &
     else
-        swww-daemon --format xrgb >/dev/null 2>&1 &
+        swww-daemon >/dev/null 2>&1 &
     fi
 
     wait_for_process "swww-daemon" || die "swww-daemon failed to start"
