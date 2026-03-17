@@ -170,46 +170,41 @@ class WakeWordThread(threading.Thread):
             logger.info(f"Wake word model loaded: {WAKE_WORD}")
         return self._oww_model
 
-    def _find_echo_cancel_device(self):
-        """Find the PipeWire echo-cancelled source device index for sounddevice."""
-        import sounddevice as sd
+    def _set_echo_cancel_default(self):
+        """If PipeWire echo-cancel source exists, set it as default so all apps use it."""
         try:
-            for i, dev in enumerate(sd.query_devices()):
-                if "echo-cancel" in dev["name"].lower() and dev["max_input_channels"] > 0:
-                    logger.info(f"Using echo-cancelled source: {dev['name']} (index {i})")
-                    return i
+            result = subprocess.run(
+                ["wpctl", "status"], capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.splitlines():
+                if "echo-cancel-source" in line.lower():
+                    # Extract node ID from wpctl status line like "  74. echo-cancel-source"
+                    node_id = line.strip().split(".")[0].strip().lstrip("*").strip()
+                    subprocess.run(["wpctl", "set-default", node_id], check=True, timeout=5)
+                    logger.info(f"Set echo-cancel-source (node {node_id}) as default input")
+                    return True
         except Exception as e:
-            logger.warning(f"Error searching for echo-cancel device: {e}")
-        logger.info("Echo-cancel source not found, using default mic")
-        return None
+            logger.warning(f"Could not set echo-cancel as default: {e}")
+        logger.info("Echo-cancel source not found, using existing default mic")
+        return False
 
     def run(self):
         import sounddevice as sd
         import numpy as np
 
-        device = self._find_echo_cancel_device()
-        # Query the device's native sample rate — PortAudio may reject non-native rates
-        dev_info = sd.query_devices(device, 'input') if device is not None else sd.query_devices(kind='input')
-        native_rate = int(dev_info['default_samplerate'])
-        need_resample = native_rate != SAMPLE_RATE
+        # Set echo-cancel as PipeWire default if available — PipeWire handles
+        # resampling transparently, avoiding PortAudio/filter-node crashes
+        self._set_echo_cancel_default()
 
-        if need_resample:
-            resample_ratio = native_rate // SAMPLE_RATE  # e.g. 48000/16000 = 3
-            logger.info(f"Device native rate {native_rate}Hz, will decimate by {resample_ratio}x to {SAMPLE_RATE}Hz")
-            # Read enough native samples so that after decimation we get 1280 (80ms at 16kHz)
-            native_chunk = 1280 * resample_ratio
-        else:
-            native_chunk = 1280  # 80ms at 16kHz
-            resample_ratio = 1
+        chunk_size = 1280  # 80ms at 16kHz (openwakeword expects this)
         stream = sd.InputStream(
-            samplerate=native_rate,
+            samplerate=SAMPLE_RATE,
             channels=CHANNELS,
             dtype='int16',
-            blocksize=native_chunk,
-            device=device,
+            blocksize=chunk_size,
         )
         stream.start()
-        logger.info("Wake word listener started")
+        logger.info("Wake word listener started (default device, %dHz)", SAMPLE_RATE)
 
         try:
             while self.active:
@@ -217,13 +212,9 @@ class WakeWordThread(threading.Thread):
                     time.sleep(0.1)
                     continue
 
-                audio_data, overflowed = stream.read(native_chunk)
+                audio_data, overflowed = stream.read(chunk_size)
                 if overflowed:
                     continue
-
-                if need_resample:
-                    # Simple decimation — take every Nth sample
-                    audio_data = audio_data[::resample_ratio]
 
                 try:
                     model = self._get_model()
