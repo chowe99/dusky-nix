@@ -357,7 +357,7 @@ bm_lewis"
     # --- Voice Assistant daemon launcher ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-voice-assistant-daemon";
-      runtimeInputs = [ voice-python pkgs.pipewire pkgs.mpv pkgs.libnotify pkgs.sox pkgs.procps ];
+      runtimeInputs = [ voice-python pkgs.pipewire pkgs.mpv pkgs.libnotify pkgs.sox pkgs.procps pkgs.kitty pkgs.cava pkgs.python3 pkgs.wireplumber ];
       text = ''exec ${voice-python}/bin/python3 ${patched}/tts_stt/voice_assistant/dusky_voice_assistant.py --daemon "$@"'';
     })
 

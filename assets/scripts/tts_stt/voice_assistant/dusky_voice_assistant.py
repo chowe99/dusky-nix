@@ -52,6 +52,10 @@ READY_FILE = Path("/tmp/dusky_voice_assistant.ready")
 KOKORO_FIFO = Path("/tmp/dusky_kokoro.fifo")
 KOKORO_PID_FILE = Path("/tmp/dusky_kokoro.pid")
 
+# Overlay
+STATE_FILE = Path("/tmp/dusky_voice_state.json")
+OVERLAY_SCRIPT = Path(__file__).parent / "dusky_voice_overlay.sh"
+
 IDLE_TIMEOUT = 30.0  # Longer than STT — voice assistant is more interactive
 WAKE_THRESHOLD = 0.5  # openwakeword confidence threshold
 
@@ -354,6 +358,8 @@ class DuskyVoiceAssistant:
         self.command_queue = queue.Queue(maxsize=10)
         self.wake_event = threading.Event()
         self.listening_enabled = True
+        self._overlay_proc = None
+        self._last_user_text = ""
 
         logger.info(f"Dusky Voice Assistant {VERSION} Initializing...")
         logger.info(f"Wake word: {WAKE_WORD}, LLM: {LLM_COMMAND}, Follow-up: {FOLLOWUP_TIMEOUT}s")
@@ -401,6 +407,65 @@ class DuskyVoiceAssistant:
             del self.stt_model
             self.stt_model = None
             gc.collect()
+
+    # --- State & Overlay ---
+
+    def set_state(self, new_state, user_text=None):
+        """Update state and write to state file for the overlay."""
+        self.state = new_state
+        if user_text is not None:
+            self._last_user_text = user_text
+        try:
+            STATE_FILE.write_text(json.dumps({
+                "state": new_state,
+                "user_text": self._last_user_text,
+                "ts": time.time(),
+            }))
+        except OSError:
+            pass
+
+    def show_overlay(self):
+        """Spawn the overlay terminal window."""
+        if self._overlay_proc and self._overlay_proc.poll() is None:
+            return  # Already running
+        overlay_script = OVERLAY_SCRIPT
+        if not overlay_script.exists():
+            logger.warning(f"Overlay script not found: {overlay_script}")
+            return
+        try:
+            self._overlay_proc = subprocess.Popen(
+                ["kitty", "--class", "dusky-voice-overlay",
+                 "--title", "Dusky Voice",
+                 "-o", "confirm_os_window_close=0",
+                 "-o", "remember_window_size=no",
+                 "-o", "initial_window_width=280",
+                 "-o", "initial_window_height=80",
+                 "-o", "background_opacity=0.7",
+                 "-o", "hide_window_decorations=yes",
+                 "-o", "font_size=11",
+                 "bash", str(overlay_script)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            logger.info(f"Overlay started (PID: {self._overlay_proc.pid})")
+        except Exception as e:
+            logger.warning(f"Failed to start overlay: {e}")
+
+    def hide_overlay(self):
+        """Kill the overlay terminal window."""
+        if self._overlay_proc:
+            try:
+                self._overlay_proc.terminate()
+                self._overlay_proc.wait(timeout=2)
+            except (subprocess.TimeoutExpired, OSError):
+                try:
+                    self._overlay_proc.kill()
+                except OSError:
+                    pass
+            self._overlay_proc = None
+        try:
+            STATE_FILE.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     # --- Transcription ---
 
@@ -619,9 +684,8 @@ class DuskyVoiceAssistant:
     def handle_conversation_turn(self):
         """Handle a single conversation turn: record → transcribe → LLM → speak."""
         # Record speech
-        self.state = State.RECORDING
+        self.set_state(State.RECORDING)
         audio_path = AUDIO_DIR / f"voice_{int(time.time())}.wav"
-        notify("Voice Assistant", "Listening...")
 
         has_speech = record_until_silence(audio_path)
 
@@ -634,7 +698,7 @@ class DuskyVoiceAssistant:
             return False
 
         # Transcribe
-        self.state = State.TRANSCRIBING
+        self.set_state(State.TRANSCRIBING)
         logger.info("Transcribing...")
         text = self.transcribe(audio_path)
 
@@ -645,22 +709,20 @@ class DuskyVoiceAssistant:
 
         if not text:
             logger.info("Transcription returned empty")
-            notify("Voice Assistant", "Didn't catch that")
             return False
 
         logger.info(f"User said: {text}")
-        notify("Voice Assistant", f"You: {text}")
+        self.set_state(State.TRANSCRIBING, user_text=text)
 
         # Add to conversation
         self.conversation.append({"role": "user", "text": text})
 
         # Query LLM
-        self.state = State.THINKING
+        self.set_state(State.THINKING, user_text=text)
         logger.info("Thinking...")
         response = self.query_llm(text)
 
         if not response:
-            notify("Voice Assistant", "Couldn't get a response", critical=True)
             return False
 
         logger.info(f"Response: {response[:100]}...")
@@ -671,7 +733,7 @@ class DuskyVoiceAssistant:
             self.conversation.pop(0)
 
         # Speak response
-        self.state = State.SPEAKING
+        self.set_state(State.SPEAKING)
         self.speak(response)
         self.wait_for_speech_done()
 
@@ -708,9 +770,10 @@ class DuskyVoiceAssistant:
                         break
 
                     # Wake word detected — start conversation
-                    self.state = State.WAKE_DETECTED
+                    self.set_state(State.WAKE_DETECTED)
                     logger.info("Wake detected — starting conversation")
                     self.wake_thread.paused = True  # Pause wake detection during conversation
+                    self.show_overlay()
 
                     self.play_chime()
 
@@ -725,9 +788,8 @@ class DuskyVoiceAssistant:
                             break
 
                         # Listen for follow-up
-                        self.state = State.LISTENING_FOLLOWUP
+                        self.set_state(State.LISTENING_FOLLOWUP)
                         logger.info(f"Listening for follow-up ({FOLLOWUP_TIMEOUT}s timeout)...")
-                        notify("Voice Assistant", "Listening for follow-up...")
 
                         # Record with shorter timeout for follow-up
                         followup_audio = AUDIO_DIR / f"followup_{int(time.time())}.wav"
@@ -793,7 +855,7 @@ class DuskyVoiceAssistant:
                             break
 
                         # Transcribe follow-up
-                        self.state = State.TRANSCRIBING
+                        self.set_state(State.TRANSCRIBING)
                         text = self.transcribe(followup_audio)
                         try:
                             followup_audio.unlink(missing_ok=True)
@@ -805,12 +867,12 @@ class DuskyVoiceAssistant:
                             break
 
                         logger.info(f"Follow-up: {text}")
-                        notify("Voice Assistant", f"You: {text}")
+                        self.set_state(State.TRANSCRIBING, user_text=text)
 
                         # Add to conversation and get response
                         self.conversation.append({"role": "user", "text": text})
 
-                        self.state = State.THINKING
+                        self.set_state(State.THINKING, user_text=text)
                         response = self.query_llm(text)
 
                         if not response:
@@ -822,13 +884,15 @@ class DuskyVoiceAssistant:
                         while len(self.conversation) > MAX_TURNS * 2:
                             self.conversation.pop(0)
 
-                        self.state = State.SPEAKING
+                        self.set_state(State.SPEAKING)
                         self.speak(response)
                         self.wait_for_speech_done()
 
                     # Re-enable wake word detection
                     self.wake_thread.paused = not self.listening_enabled
-                    self.state = State.IDLE
+                    self.hide_overlay()
+                    self.set_state(State.IDLE)
+                    self._last_user_text = ""
                     logger.info("Conversation ended, returning to idle")
 
                 else:
@@ -845,9 +909,10 @@ class DuskyVoiceAssistant:
     def cleanup(self):
         logger.info("Shutting down...")
         self.running = False
+        self.hide_overlay()
         self.wake_thread.active = False
         self.fifo_reader.active = False
-        for p in (FIFO_PATH, PID_FILE, READY_FILE):
+        for p in (FIFO_PATH, PID_FILE, READY_FILE, STATE_FILE):
             try:
                 p.unlink(missing_ok=True)
             except Exception:

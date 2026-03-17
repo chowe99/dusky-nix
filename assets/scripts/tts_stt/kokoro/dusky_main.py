@@ -275,8 +275,7 @@ class AudioPlaybackThread(threading.Thread):
     def _spawn_mpv(self, sample_rate=None):
         sr = sample_rate or SAMPLE_RATE
         cmd = [
-            "mpv", "--no-terminal", "--force-window", "--title=Kokoro TTS",
-            "--x11-name=kokoro", "--wayland-app-id=kokoro", "--geometry=400x100",
+            "mpv", "--no-terminal", "--no-video",
             "--keep-open=no",
             f"--speed={MPV_SPEED}",
             "--demuxer=rawaudio", f"--demuxer-rawaudio-rate={sr}",
