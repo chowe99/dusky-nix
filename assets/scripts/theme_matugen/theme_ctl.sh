@@ -802,6 +802,9 @@ cmd_set() {
         do_refresh=1
     fi
 
+    # "pick" is interactive — always refresh so the user gets prompted
+    [[ "$desired_index" == "pick" ]] && do_refresh=1
+
     if [[ "$mode_request_kind" == "explicit" && "$desired_mode" == "$THEME_MODE" ]]; then
         same_mode_requested=1
     fi
