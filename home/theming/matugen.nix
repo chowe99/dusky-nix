@@ -20,8 +20,9 @@ in
     recursive = true;
   };
 
-  # Deploy dusky-nix-specific templates (not in upstream dusky)
+  # Deploy dusky-nix-specific templates (override upstream with more vibrant variants)
   xdg.configFile."matugen/templates/omp-theme.omp.json".source = ../../assets/templates/omp-theme.omp.json;
+  xdg.configFile."matugen/templates/btop.theme".source = ../../assets/templates/btop.theme;
 
   home.packages = [ pkgs.matugen pkgs.oh-my-posh ];
 

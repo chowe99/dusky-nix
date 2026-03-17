@@ -41,8 +41,8 @@ readonly LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/theme_ctl.lock"
 readonly FLOCK_TIMEOUT_SEC=30
 
 readonly DEFAULT_MODE="dark"
-readonly DEFAULT_TYPE="scheme-fidelity"
-readonly DEFAULT_CONTRAST="0.5"
+readonly DEFAULT_TYPE="scheme-vibrant"
+readonly DEFAULT_CONTRAST="1.0"
 readonly DEFAULT_COLOR_INDEX="0"
 readonly DEFAULT_BASE16="disable"
 readonly DEFAULT_LIGHTNESS_DARK="0"
