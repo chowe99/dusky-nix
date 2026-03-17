@@ -518,7 +518,7 @@ class DuskyVoiceAssistant:
                  "-o", "confirm_os_window_close=0",
                  "-o", "remember_window_size=no",
                  "-o", "initial_window_width=500",
-                 "-o", "initial_window_height=400",
+                 "-o", "initial_window_height=200",
                  "-o", "background_opacity=0.7",
                  "-o", "hide_window_decorations=yes",
                  "-o", "font_size=11",
@@ -766,7 +766,12 @@ class DuskyVoiceAssistant:
                 notify("Voice Assistant", "LLM error", critical=True)
                 return None
 
-            response = response_text.strip()
+            # Clean up response: collapse newlines into spaces, strip prefix
+            response = response_text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+            # Collapse multiple spaces
+            while "  " in response:
+                response = response.replace("  ", " ")
+            response = response.strip()
             if response.lower().startswith("dusky:"):
                 response = response[6:].strip()
 
