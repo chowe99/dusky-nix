@@ -557,6 +557,37 @@ update_wallpaper_tracker() {
 
 # --- WALLPAPER / MATUGEN APPLICATION ---
 
+pick_color_index() {
+    local img="$1"
+    local -a base_cmd chosen
+    local i hex preview
+
+    base_cmd=(matugen --mode "$THEME_MODE" --dry-run -j hex)
+    [[ "$MATUGEN_TYPE" != "disable" ]] && base_cmd+=(--type "$MATUGEN_TYPE")
+    [[ "$MATUGEN_CONTRAST" != "disable" ]] && base_cmd+=(--contrast "$MATUGEN_CONTRAST")
+
+    printf '\n\033[1m  Source colors extracted from wallpaper:\033[0m\n\n'
+    for i in 0 1 2 3; do
+        hex=$("${base_cmd[@]}" image --source-color-index "$i" "$img" 2>/dev/null \
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['colors']['primary']['default']['hex'])" 2>/dev/null) || hex="?"
+        if [[ "$hex" != "?" ]]; then
+            # Print color swatch using truecolor
+            local r=$((16#${hex:1:2})) g=$((16#${hex:3:2})) b=$((16#${hex:5:2}))
+            printf '    \033[48;2;%d;%d;%dm    \033[0m  [%d] primary=%s\n' "$r" "$g" "$b" "$i" "$hex"
+        else
+            printf '    ----  [%d] (extraction failed)\n' "$i"
+        fi
+    done
+
+    printf '\n'
+    read -rp "  Select index [0-3]: " chosen < /dev/tty
+    [[ "$chosen" =~ ^[0-3]$ ]] || { warn "Invalid choice, using 0"; chosen=0; }
+
+    SOURCE_COLOR_INDEX="$chosen"
+    write_state "$THEME_MODE" "$MATUGEN_TYPE" "$MATUGEN_CONTRAST" "$SOURCE_COLOR_INDEX" "$BASE16_BACKEND" "$LIGHTNESS_DARK"
+    log "Selected index: $chosen"
+}
+
 generate_colors() {
     local img="$1"
     local -a cmd
@@ -564,6 +595,10 @@ generate_colors() {
     [[ -f "$img" ]] || die "Image file does not exist: $img"
 
     ensure_swaync_running
+
+    if [[ "$SOURCE_COLOR_INDEX" == "pick" ]]; then
+        pick_color_index "$img"
+    fi
 
     log "Matugen: Mode=[${THEME_MODE}] Type=[${MATUGEN_TYPE}] Contrast=[${MATUGEN_CONTRAST}] Index=[${SOURCE_COLOR_INDEX}] Base16=[${BASE16_BACKEND}] Lightness=[${LIGHTNESS_DARK}]"
 
@@ -574,7 +609,7 @@ generate_colors() {
     [[ "$MATUGEN_CONTRAST" != "disable" ]] && cmd+=(--contrast "$MATUGEN_CONTRAST")
 
     cmd+=(image "$img")
-    [[ "$SOURCE_COLOR_INDEX" != "pick" ]] && cmd+=(--source-color-index "$SOURCE_COLOR_INDEX")
+    cmd+=(--source-color-index "$SOURCE_COLOR_INDEX")
     [[ "$LIGHTNESS_DARK" != "0" && "$LIGHTNESS_DARK" != "disable" ]] && cmd+=(--lightness-dark "$LIGHTNESS_DARK")
 
     "${cmd[@]}" || die "Matugen generation failed"
