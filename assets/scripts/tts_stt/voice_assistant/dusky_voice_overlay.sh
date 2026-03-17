@@ -67,6 +67,12 @@ while true; do
         tts_total=$(echo "$tts_raw" | grep -oP '"total": \K[0-9]+' 2>/dev/null || echo 0)
     fi
 
+    # Re-check terminal size each frame (window may resize)
+    COLS=$(tput cols 2>/dev/null || echo 50)
+    ROWS=$(tput lines 2>/dev/null || echo 12)
+    TEXT_WIDTH=$(( COLS - 4 ))
+    (( TEXT_WIDTH < 10 )) && TEXT_WIDTH=10
+
     frame=$(( (frame + 1) % 10000 ))
     last_state="$cur_state"
 
