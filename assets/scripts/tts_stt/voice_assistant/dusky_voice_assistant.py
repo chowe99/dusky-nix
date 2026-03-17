@@ -175,25 +175,65 @@ class WakeWordThread(threading.Thread):
         return self._oww_model
 
     def _set_echo_cancel_default(self):
-        """If PipeWire echo-cancel source exists, set it as default so all apps use it."""
+        """If PipeWire echo-cancel source exists, set it as default and fix playback link."""
+        import re as _re
         try:
             result = subprocess.run(
                 ["wpctl", "status"], capture_output=True, text=True, timeout=5
             )
+            found = False
             for line in result.stdout.splitlines():
                 if "echo-cancel-source" in line.lower():
-                    # Extract node ID from wpctl status line like "│      74. echo-cancel-source"
-                    import re as _re
                     m = _re.search(r'(\d+)\.\s+echo-cancel-source', line, _re.IGNORECASE)
                     if not m:
                         continue
                     node_id = m.group(1)
                     subprocess.run(["wpctl", "set-default", node_id], check=True, timeout=5)
                     logger.info(f"Set echo-cancel-source (node {node_id}) as default input")
-                    return True
+                    found = True
+                    break
+            if not found:
+                logger.info("Echo-cancel source not found, using existing default mic")
+                return False
+
+            # Fix echo-cancel playback: link speaker monitor → echo-cancel-sink
+            # so it can cancel played audio without injecting into the output path
+            result = subprocess.run(
+                ["pw-link", "-ol"], capture_output=True, text=True, timeout=5
+            )
+            links = result.stdout
+            # Find the default sink name
+            sink_result = subprocess.run(
+                ["pw-link", "-ol"], capture_output=True, text=True, timeout=5
+            )
+            # Check if echo-cancel-playback is already linked to speaker output (bad)
+            # and remove that link, then link speaker monitor to echo-cancel-sink instead
+            if "echo-cancel-playback:output_MONO" in links:
+                for line in links.splitlines():
+                    if line.strip().startswith("|->") and "playback_F" in line:
+                        target = line.strip().lstrip("|-> ").strip()
+                        subprocess.run(
+                            ["pw-link", "-d", "echo-cancel-playback:output_MONO", target],
+                            check=False, timeout=5
+                        )
+                        logger.info(f"Disconnected echo-cancel-playback from {target}")
+
+            # Link speaker monitor to echo-cancel-sink so it knows what audio to cancel
+            sink_monitor = None
+            for line in links.splitlines():
+                if "alsa_output" in line and "monitor_FL" in line and not line.strip().startswith("|"):
+                    sink_monitor = line.strip()
+                    break
+            if sink_monitor:
+                subprocess.run(
+                    ["pw-link", sink_monitor, "echo-cancel-sink:playback_MONO"],
+                    check=False, timeout=5
+                )
+                logger.info(f"Linked {sink_monitor} → echo-cancel-sink for echo cancellation")
+
+            return True
         except Exception as e:
             logger.warning(f"Could not set echo-cancel as default: {e}")
-        logger.info("Echo-cancel source not found, using existing default mic")
         return False
 
     def run(self):
@@ -584,9 +624,9 @@ class DuskyVoiceAssistant:
             logger.error("TTS FIFO write timed out")
 
     def _is_mpv_playing(self):
-        """Check if Kokoro's MPV process is running."""
+        """Check if Kokoro's MPV process is running (TTS playback)."""
         result = subprocess.run(
-            ["pgrep", "-fi", "mpv.*kokoro"],
+            ["pgrep", "-f", "mpv.*demuxer-rawaudio"],
             capture_output=True, check=False,
         )
         return result.returncode == 0
