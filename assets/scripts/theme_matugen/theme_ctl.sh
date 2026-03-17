@@ -569,7 +569,7 @@ pick_color_index() {
     printf '\n\033[1m  Source colors extracted from wallpaper:\033[0m\n\n'
     for i in 0 1 2 3; do
         hex=$("${base_cmd[@]}" image --source-color-index "$i" "$img" 2>/dev/null \
-            | python3 -c "import json,sys; print(json.load(sys.stdin)['colors']['primary']['default']['hex'])" 2>/dev/null) || hex="?"
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['colors']['primary']['default']['color'])" 2>/dev/null) || hex="?"
         if [[ "$hex" != "?" ]]; then
             # Print color swatch using truecolor
             local r=$((16#${hex:1:2})) g=$((16#${hex:3:2})) b=$((16#${hex:5:2}))
