@@ -21,19 +21,13 @@ trap 'printf "\033[?25h"; exit 0' EXIT INT TERM
 frame=0
 
 while true; do
-    # Read state file — single-line JSON, extract with parameter expansion
+    # Read state file
     cur_state=""
     user_text=""
     if [[ -f "$STATE_FILE" ]]; then
-        raw=$(<"$STATE_FILE" 2>/dev/null)
-        # Extract "state": "VALUE"
-        if [[ "$raw" =~ \"state\":\ *\"([^\"]+)\" ]]; then
-            cur_state="${BASH_REMATCH[1]}"
-        fi
-        # Extract "user_text": "VALUE"
-        if [[ "$raw" =~ \"user_text\":\ *\"([^\"]+)\" ]]; then
-            user_text="${BASH_REMATCH[1]}"
-        fi
+        raw=$(cat "$STATE_FILE" 2>/dev/null)
+        cur_state=$(echo "$raw" | grep -oP '"state": "\K[^"]+' 2>/dev/null)
+        user_text=$(echo "$raw" | grep -oP '"user_text": "\K[^"]+' 2>/dev/null)
     fi
 
     frame=$(( (frame + 1) % 120 ))

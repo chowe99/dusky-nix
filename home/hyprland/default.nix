@@ -65,7 +65,7 @@ in
   xdg.configFile."hypr/source/keybinds.conf".source = lib.mkDefault ./source/keybinds.conf;
   xdg.configFile."hypr/source/monitors.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/monitors.conf";
   xdg.configFile."hypr/source/permissions.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/permissions.conf";
-  xdg.configFile."hypr/source/window_rules.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/window_rules.conf";
+  xdg.configFile."hypr/source/window_rules.conf".source = lib.mkDefault ./source/window_rules.conf;
   xdg.configFile."hypr/source/workspace_rules.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/workspace_rules.conf";
 
   # Deploy animation presets

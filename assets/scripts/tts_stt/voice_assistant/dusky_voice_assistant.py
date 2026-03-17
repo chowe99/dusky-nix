@@ -182,8 +182,12 @@ class WakeWordThread(threading.Thread):
             )
             for line in result.stdout.splitlines():
                 if "echo-cancel-source" in line.lower():
-                    # Extract node ID from wpctl status line like "  74. echo-cancel-source"
-                    node_id = line.strip().split(".")[0].strip().lstrip("*").strip()
+                    # Extract node ID from wpctl status line like "│      74. echo-cancel-source"
+                    import re as _re
+                    m = _re.search(r'(\d+)\.\s+echo-cancel-source', line, _re.IGNORECASE)
+                    if not m:
+                        continue
+                    node_id = m.group(1)
                     subprocess.run(["wpctl", "set-default", node_id], check=True, timeout=5)
                     logger.info(f"Set echo-cancel-source (node {node_id}) as default input")
                     return True
