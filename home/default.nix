@@ -76,7 +76,6 @@
     adw-gtk3
 
     # Misc
-    tesseract
     wtype
   ];
 
