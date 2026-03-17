@@ -22,18 +22,17 @@ trap 'printf "\033[?25h"; exit 0' EXIT INT TERM
 
 frame=0
 last_state=""
-speak_start_ts=""
+speak_frame=0
 
 # Terminal dimensions
 COLS=$(tput cols 2>/dev/null || echo 50)
 ROWS=$(tput lines 2>/dev/null || echo 12)
 TEXT_WIDTH=$(( COLS - 4 ))
 (( TEXT_WIDTH < 10 )) && TEXT_WIDTH=10
-TEXT_ROWS=$(( ROWS - 3 ))
-(( TEXT_ROWS < 2 )) && TEXT_ROWS=2
 
-# Words per second for TTS sync (~150 WPM = 2.5 WPS)
-WPS="2.5"
+# Frames per word for TTS sync
+# At 80ms per frame, ~2.5 words/sec = 1 word every 5 frames
+FRAMES_PER_WORD=5
 
 # Draw a line at row, erasing remainder
 draw_line() {
@@ -49,32 +48,27 @@ clear_from() {
     done
 }
 
-# Get current time as float (seconds since epoch)
-now_ts() {
-    date +%s.%N 2>/dev/null || date +%s
-}
-
 while true; do
     # Read state file
     cur_state=""
     user_text=""
     response_text=""
     tool_use=""
-    state_ts=""
     if [[ -f "$STATE_FILE" ]]; then
         raw=$(cat "$STATE_FILE" 2>/dev/null)
         cur_state=$(echo "$raw" | grep -oP '"state": "\K[^"]+' 2>/dev/null)
         user_text=$(echo "$raw" | grep -oP '"user_text": "\K[^"]+' 2>/dev/null)
         response_text=$(echo "$raw" | grep -oP '"response_text": "\K[^"]+' 2>/dev/null)
         tool_use=$(echo "$raw" | grep -oP '"tool_use": "\K[^"]+' 2>/dev/null)
-        state_ts=$(echo "$raw" | grep -oP '"ts": \K[0-9.]+' 2>/dev/null)
     fi
 
-    frame=$(( (frame + 1) % 120 ))
+    frame=$(( (frame + 1) % 10000 ))
 
     # Track when speaking starts for word reveal timing
     if [[ "$cur_state" == "SPEAKING" && "$last_state" != "SPEAKING" ]]; then
-        speak_start_ts=$(now_ts)
+        speak_frame=0
+    elif [[ "$cur_state" == "SPEAKING" ]]; then
+        speak_frame=$(( speak_frame + 1 ))
     fi
     last_state="$cur_state"
 
@@ -137,24 +131,21 @@ while true; do
             draw_line $((row++)) "${CYAN}${BOLD} 󰔊 Speaking${RESET}  ${CYAN}${wave[*]}${RESET}"
 
             # Word-by-word reveal synced to TTS speed
-            if [[ -n "$response_text" && -n "$speak_start_ts" ]]; then
-                now=$(now_ts)
-                elapsed=$(echo "$now - $speak_start_ts" | bc 2>/dev/null || echo "0")
-                # Number of words to show based on elapsed time
-                words_to_show=$(echo "$elapsed * $WPS" | bc 2>/dev/null | cut -d. -f1)
-                [[ -z "$words_to_show" || "$words_to_show" == "" ]] && words_to_show=0
+            if [[ -n "$response_text" ]]; then
+                # How many words to reveal based on frames elapsed
+                words_to_show=$(( speak_frame / FRAMES_PER_WORD + 1 ))
 
-                # Split response into words, take first N
+                # Split response into words
                 read -ra all_words <<< "$response_text"
                 total_words=${#all_words[@]}
 
-                if (( words_to_show >= total_words )); then
-                    # Show all text
-                    visible_text="$response_text"
-                else
-                    visible_text="${all_words[*]:0:$words_to_show}"
-                fi
+                # Cap at total words
+                (( words_to_show > total_words )) && words_to_show=$total_words
 
+                # Build visible text from first N words
+                visible_text="${all_words[*]:0:$words_to_show}"
+
+                # Wrap and display
                 if [[ -n "$visible_text" ]]; then
                     while IFS= read -r line; do
                         (( row > ROWS )) && break
