@@ -54,6 +54,7 @@ KOKORO_PID_FILE = Path("/tmp/dusky_kokoro.pid")
 
 # Overlay
 STATE_FILE = Path("/tmp/dusky_voice_state.json")
+TTS_PROGRESS_FILE = Path("/tmp/dusky_tts_progress.json")
 OVERLAY_SCRIPT = Path(__file__).parent / "dusky_voice_overlay.sh"
 
 # Persistent memory & session
@@ -486,6 +487,11 @@ class DuskyVoiceAssistant:
         if new_state in (State.IDLE, State.RECORDING, State.WAKE_DETECTED, State.LISTENING_FOLLOWUP):
             self._last_response_text = ""
             self._last_tool_use = ""
+            # Clear stale TTS progress so overlay doesn't show old text
+            try:
+                TTS_PROGRESS_FILE.unlink(missing_ok=True)
+            except OSError:
+                pass
         try:
             STATE_FILE.write_text(json.dumps({
                 "state": new_state,
@@ -1212,7 +1218,7 @@ class DuskyVoiceAssistant:
         self.hide_overlay()
         self.wake_thread.active = False
         self.fifo_reader.active = False
-        for p in (FIFO_PATH, PID_FILE, READY_FILE, STATE_FILE):
+        for p in (FIFO_PATH, PID_FILE, READY_FILE, STATE_FILE, TTS_PROGRESS_FILE):
             try:
                 p.unlink(missing_ok=True)
             except Exception:
