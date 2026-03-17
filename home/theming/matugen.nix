@@ -2,15 +2,24 @@
 
 let
   matugenSrc = "${dusky}/.config/matugen";
+
+  # Merge upstream templates with our overrides (ours win on conflict)
+  mergedTemplates = pkgs.runCommand "matugen-templates-merged" {} ''
+    mkdir -p $out
+    cp -a ${matugenSrc}/templates/* $out/
+    # Override with dusky-nix vibrant variants
+    cp -f ${../../assets/templates/btop.theme} $out/btop.theme
+    cp -f ${../../assets/templates/omp-theme.omp.json} $out/omp-theme.omp.json
+  '';
 in
 {
   # Deploy matugen config.toml with patched post_hooks
   # Post hooks use packaged script names on $PATH instead of ~/user_scripts/...
   xdg.configFile."matugen/config.toml".source = ./matugen-config.toml;
 
-  # Deploy all templates
+  # Deploy merged templates (upstream + dusky-nix overrides)
   xdg.configFile."matugen/templates" = {
-    source = "${matugenSrc}/templates";
+    source = mergedTemplates;
     recursive = true;
   };
 
@@ -19,10 +28,6 @@ in
     source = "${matugenSrc}/presets";
     recursive = true;
   };
-
-  # Deploy dusky-nix-specific templates (override upstream with more vibrant variants)
-  xdg.configFile."matugen/templates/omp-theme.omp.json".source = ../../assets/templates/omp-theme.omp.json;
-  xdg.configFile."matugen/templates/btop.theme".source = ../../assets/templates/btop.theme;
 
   home.packages = [ pkgs.matugen pkgs.oh-my-posh ];
 
