@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
-# Interrupt TTS playback — kills MPV and sends INTERRUPT to daemon FIFO
+# Interrupt voice assistant — first press stops TTS, second press stops recording
 PID_FILE="/tmp/dusky_voice_assistant.pid"
 FIFO_PATH="/tmp/dusky_voice_assistant.fifo"
 
-# Kill MPV TTS immediately for instant silence
-pkill -f "mpv.*demuxer-rawaudio" 2>/dev/null || true
+# First: try to kill TTS playback
+if pgrep -f "mpv.*demuxer-rawaudio" >/dev/null 2>&1; then
+    pkill -f "mpv.*demuxer-rawaudio" 2>/dev/null
+    exit 0
+fi
+
+# Second: no TTS running, kill recording and end conversation
+pkill -f "pw-record.*voice" 2>/dev/null || true
+pkill -f "pw-record.*followup" 2>/dev/null || true
 
 is_running() {
   [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null

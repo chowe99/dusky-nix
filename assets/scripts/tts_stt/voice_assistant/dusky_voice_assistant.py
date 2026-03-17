@@ -417,6 +417,7 @@ class DuskyVoiceAssistant:
         self._last_response_text = ""
         self._last_tool_use = ""
         self._compacted_summary = ""
+        self._interrupted = False
 
         logger.info(f"Dusky Voice Assistant {VERSION} Initializing...")
         logger.info(f"Wake word: {WAKE_WORD}, LLM: {LLM_COMMAND}, Follow-up: {FOLLOWUP_TIMEOUT}s")
@@ -877,12 +878,17 @@ class DuskyVoiceAssistant:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-    def interrupt_speech(self):
-        """Stop TTS playback immediately."""
-        # Kill any running MPV TTS processes
+    def interrupt(self):
+        """Stop everything — TTS playback, recording, and end conversation."""
+        # Kill TTS playback
         subprocess.run(["pkill", "-f", "mpv.*demuxer-rawaudio"], check=False,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        logger.info("Speech interrupted")
+        # Kill any active recording
+        subprocess.run(["pkill", "-f", "pw-record.*voice"], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Signal conversation to end
+        self._interrupted = True
+        logger.info("Interrupted (TTS + recording killed)")
 
     # --- Wake Word Callback ---
 
@@ -923,7 +929,7 @@ class DuskyVoiceAssistant:
                     # Manual activation (skip wake word)
                     self.wake_event.set()
                 elif cmd == "INTERRUPT":
-                    self.interrupt_speech()
+                    self.interrupt()
 
                 self.command_queue.task_done()
         except queue.Empty:
@@ -1048,16 +1054,17 @@ class DuskyVoiceAssistant:
                     self._load_session()
                     self.show_overlay()
 
+                    self._interrupted = False
                     self.play_chime()
 
                     # Conversation loop with follow-up
-                    while self.running:
+                    while self.running and not self._interrupted:
                         if not self.process_commands():
                             break
 
                         success = self.handle_conversation_turn()
 
-                        if not success:
+                        if not success or self._interrupted:
                             break
 
                         # Listen for follow-up

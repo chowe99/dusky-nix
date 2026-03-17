@@ -4,6 +4,7 @@
 # Uses cursor repositioning instead of screen clear to avoid flicker
 
 STATE_FILE="/tmp/dusky_voice_state.json"
+TTS_PROGRESS="/tmp/dusky_tts_progress.json"
 
 # Colors (ANSI)
 DIM='\033[2m'
@@ -22,17 +23,12 @@ trap 'printf "\033[?25h"; exit 0' EXIT INT TERM
 
 frame=0
 last_state=""
-speak_frame=0
 
 # Terminal dimensions
 COLS=$(tput cols 2>/dev/null || echo 50)
 ROWS=$(tput lines 2>/dev/null || echo 12)
 TEXT_WIDTH=$(( COLS - 4 ))
 (( TEXT_WIDTH < 10 )) && TEXT_WIDTH=10
-
-# Frames per word for TTS sync
-# At 80ms per frame, ~2.5 words/sec = 1 word every 5 frames
-FRAMES_PER_WORD=5
 
 # Draw a line at row, erasing remainder
 draw_line() {
@@ -62,14 +58,16 @@ while true; do
         tool_use=$(echo "$raw" | grep -oP '"tool_use": "\K[^"]+' 2>/dev/null)
     fi
 
-    frame=$(( (frame + 1) % 10000 ))
-
-    # Track when speaking starts for word reveal timing
-    if [[ "$cur_state" == "SPEAKING" && "$last_state" != "SPEAKING" ]]; then
-        speak_frame=0
-    elif [[ "$cur_state" == "SPEAKING" ]]; then
-        speak_frame=$(( speak_frame + 1 ))
+    # Read TTS progress (sentence-level sync from Kokoro)
+    tts_current=0
+    tts_total=0
+    if [[ -f "$TTS_PROGRESS" ]]; then
+        tts_raw=$(cat "$TTS_PROGRESS" 2>/dev/null)
+        tts_current=$(echo "$tts_raw" | grep -oP '"current": \K[0-9]+' 2>/dev/null || echo 0)
+        tts_total=$(echo "$tts_raw" | grep -oP '"total": \K[0-9]+' 2>/dev/null || echo 0)
     fi
+
+    frame=$(( (frame + 1) % 10000 ))
     last_state="$cur_state"
 
     row=1
@@ -130,27 +128,36 @@ while true; do
             done
             draw_line $((row++)) "${CYAN}${BOLD} 󰔊 Speaking${RESET}  ${CYAN}${wave[*]}${RESET}"
 
-            # Word-by-word reveal synced to TTS speed
+            # Show response text synced to TTS sentence progress
             if [[ -n "$response_text" ]]; then
-                # How many words to reveal based on frames elapsed
-                words_to_show=$(( speak_frame / FRAMES_PER_WORD + 1 ))
+                if (( tts_total > 0 && tts_current > 0 )); then
+                    # Extract sentences from TTS progress file and show up to current
+                    # Parse sentences array — each entry between quotes after "sentences": [
+                    visible_text=""
+                    count=0
+                    # Read sentences from progress JSON
+                    while IFS= read -r sent; do
+                        [[ -z "$sent" ]] && continue
+                        count=$(( count + 1 ))
+                        (( count > tts_current )) && break
+                        if [[ -n "$visible_text" ]]; then
+                            visible_text="$visible_text $sent"
+                        else
+                            visible_text="$sent"
+                        fi
+                    done <<< "$(echo "$tts_raw" | grep -oP '"sentences": \[\K[^\]]+' 2>/dev/null | tr ',' '\n' | sed 's/^ *"//;s/" *$//')"
 
-                # Split response into words
-                read -ra all_words <<< "$response_text"
-                total_words=${#all_words[@]}
-
-                # Cap at total words
-                (( words_to_show > total_words )) && words_to_show=$total_words
-
-                # Build visible text from first N words
-                visible_text="${all_words[*]:0:$words_to_show}"
-
-                # Wrap and display
-                if [[ -n "$visible_text" ]]; then
-                    while IFS= read -r line; do
-                        (( row > ROWS )) && break
-                        draw_line $((row++)) "  ${line}"
-                    done <<< "$(echo "$visible_text" | fold -s -w "$TEXT_WIDTH")"
+                    if [[ -n "$visible_text" ]]; then
+                        while IFS= read -r line; do
+                            (( row > ROWS )) && break
+                            draw_line $((row++)) "  ${line}"
+                        done <<< "$(echo "$visible_text" | fold -s -w "$TEXT_WIDTH")"
+                    fi
+                else
+                    # No progress yet — show first few words as preview
+                    read -ra words <<< "$response_text"
+                    preview="${words[*]:0:3}..."
+                    draw_line $((row++)) "  ${DIM}${preview}${RESET}"
                 fi
             fi
             ;;

@@ -15,6 +15,7 @@ import traceback
 import shutil
 import sys
 import uuid
+import json
 from pathlib import Path
 import logging
 
@@ -676,6 +677,17 @@ class DuskyDaemon:
             all_audio = []
             final_sr = SAMPLE_RATE
 
+            # Write TTS progress for voice assistant overlay sync
+            progress_file = Path("/tmp/dusky_tts_progress.json")
+            try:
+                progress_file.write_text(json.dumps({
+                    "sentences": sentences,
+                    "current": 0,
+                    "total": len(sentences),
+                }))
+            except OSError:
+                pass
+
             for i, sentence in enumerate(sentences):
                 if self._should_stop(): break
                 logger.debug(f"  Sentence {i+1}/{len(sentences)}: {sentence[:60]}...")
@@ -683,6 +695,15 @@ class DuskyDaemon:
                 if audio is None: continue
                 final_sr = sr
                 all_audio.append(audio)
+                # Update progress — this sentence is about to play
+                try:
+                    progress_file.write_text(json.dumps({
+                        "sentences": sentences,
+                        "current": i + 1,
+                        "total": len(sentences),
+                    }))
+                except OSError:
+                    pass
                 while not self._should_stop():
                     try:
                         self.audio_queue.put((audio, sr, current_stream_id), timeout=0.2)
