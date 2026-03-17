@@ -216,7 +216,7 @@ read_state() {
             ;;
     esac
 
-    if ! [[ "$SOURCE_COLOR_INDEX" =~ ^[0-9]+$ ]]; then
+    if [[ "$SOURCE_COLOR_INDEX" != "pick" ]] && ! [[ "$SOURCE_COLOR_INDEX" =~ ^[0-9]+$ ]]; then
         warn "Invalid SOURCE_COLOR_INDEX. Resetting to ${DEFAULT_COLOR_INDEX}."
         SOURCE_COLOR_INDEX="$DEFAULT_COLOR_INDEX"
         STATE_NEEDS_REWRITE=1
@@ -574,7 +574,7 @@ generate_colors() {
     [[ "$MATUGEN_CONTRAST" != "disable" ]] && cmd+=(--contrast "$MATUGEN_CONTRAST")
 
     cmd+=(image "$img")
-    cmd+=(--source-color-index "$SOURCE_COLOR_INDEX")
+    [[ "$SOURCE_COLOR_INDEX" != "pick" ]] && cmd+=(--source-color-index "$SOURCE_COLOR_INDEX")
     [[ "$LIGHTNESS_DARK" != "0" && "$LIGHTNESS_DARK" != "disable" ]] && cmd+=(--lightness-dark "$LIGHTNESS_DARK")
 
     "${cmd[@]}" || die "Matugen generation failed"
@@ -660,7 +660,7 @@ Commands:
               --mode <light|dark>
               --type <scheme-*|disable>
               --contrast <num|disable>
-              --index <0|1|2|3>    Set Matugen source color extraction index
+              --index <0|1|2|3|pick> Set source color index (pick = interactive chooser)
               --base16 <wal|disable> Set Base16 backend generation
               --lightness <num|disable> Dark theme lightness (-inf to 1, 0=standard)
               --defaults           Reset all settings to defaults
@@ -722,8 +722,8 @@ cmd_set() {
                 shift 2
                 ;;
             --index)
-                [[ -n "${2:-}" ]] || die "--index requires a value (e.g., 0, 1, 2)"
-                [[ "$2" =~ ^[0-9]+$ ]] || die "--index must be a positive integer"
+                [[ -n "${2:-}" ]] || die "--index requires a value (e.g., 0, 1, 2, pick)"
+                [[ "$2" == "pick" || "$2" =~ ^[0-9]+$ ]] || die "--index must be a positive integer or 'pick'"
                 desired_index="$2"
                 shift 2
                 ;;
