@@ -24,7 +24,16 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-wallpaper";
       runtimeInputs = with pkgs; [ rofi swww matugen coreutils findutils gawk imagemagick util-linux ];
-      text = builtins.readFile "${scriptDir}/rofi_wallpaper_selctor.sh";
+      text = builtins.replaceStrings
+        [
+          ''readonly THEME_CTL="''${HOME}/user_scripts/theme_matugen/theme_ctl.sh"''
+          ''[[ ! -x "$THEME_CTL" ]]''
+        ]
+        [
+          ''readonly THEME_CTL="dusky-theme-ctl"''
+          ''! command -v "$THEME_CTL" >/dev/null 2>&1''
+        ]
+        (builtins.readFile "${scriptDir}/rofi_wallpaper_selctor.sh");
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-theme";
