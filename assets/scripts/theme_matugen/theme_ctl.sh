@@ -45,6 +45,7 @@ readonly DEFAULT_TYPE="scheme-fidelity"
 readonly DEFAULT_CONTRAST="0.5"
 readonly DEFAULT_COLOR_INDEX="0"
 readonly DEFAULT_BASE16="disable"
+readonly DEFAULT_LIGHTNESS_DARK="0"
 
 readonly DAEMON_POLL_INTERVAL=0.1
 readonly DAEMON_POLL_LIMIT=50
@@ -55,6 +56,7 @@ MATUGEN_TYPE=""
 MATUGEN_CONTRAST=""
 SOURCE_COLOR_INDEX=""
 BASE16_BACKEND=""
+LIGHTNESS_DARK=""
 STATE_NEEDS_REWRITE=0
 LOCK_FD=""
 
@@ -150,6 +152,7 @@ read_state() {
     MATUGEN_CONTRAST="$DEFAULT_CONTRAST"
     SOURCE_COLOR_INDEX="$DEFAULT_COLOR_INDEX"
     BASE16_BACKEND="$DEFAULT_BASE16"
+    LIGHTNESS_DARK="$DEFAULT_LIGHTNESS_DARK"
     STATE_NEEDS_REWRITE=0
 
     local -i saw_mode=0
@@ -157,6 +160,7 @@ read_state() {
     local -i saw_contrast=0
     local -i saw_index=0
     local -i saw_base16=0
+    local -i saw_lightness=0
     local key value
 
     [[ -f "$STATE_FILE" ]] || {
@@ -196,6 +200,10 @@ read_state() {
                 BASE16_BACKEND="$value"
                 saw_base16=1
                 ;;
+            LIGHTNESS_DARK)
+                LIGHTNESS_DARK="$value"
+                saw_lightness=1
+                ;;
         esac
     done < "$STATE_FILE"
 
@@ -229,10 +237,16 @@ read_state() {
         STATE_NEEDS_REWRITE=1
     fi
 
+    if [[ -z "$LIGHTNESS_DARK" ]]; then
+        LIGHTNESS_DARK="$DEFAULT_LIGHTNESS_DARK"
+        STATE_NEEDS_REWRITE=1
+    fi
+
     (( saw_mode )) || STATE_NEEDS_REWRITE=1
     (( saw_type )) || STATE_NEEDS_REWRITE=1
     (( saw_contrast )) || STATE_NEEDS_REWRITE=1
     (( saw_index )) || STATE_NEEDS_REWRITE=1
+    (( saw_lightness )) || STATE_NEEDS_REWRITE=1
     (( saw_base16 )) || STATE_NEEDS_REWRITE=1
 }
 
@@ -242,12 +256,14 @@ write_state() {
     local contrast="$3"
     local index="$4"
     local base16="$5"
+    local lightness="${6:-$LIGHTNESS_DARK}"
 
     local -i wrote_mode=0
     local -i wrote_type=0
     local -i wrote_contrast=0
     local -i wrote_index=0
     local -i wrote_base16=0
+    local -i wrote_lightness=0
     local -i had_content=0
     local line
 
@@ -290,6 +306,12 @@ write_state() {
                         wrote_base16=1
                     fi
                     ;;
+                LIGHTNESS_DARK=*)
+                    if (( ! wrote_lightness )); then
+                        printf 'LIGHTNESS_DARK=%s\n' "$lightness"
+                        wrote_lightness=1
+                    fi
+                    ;;
                 *)
                     printf '%s\n' "$line"
                     ;;
@@ -306,6 +328,7 @@ write_state() {
     (( wrote_contrast )) || printf 'MATUGEN_CONTRAST=%s\n' "$contrast" >> "$_TEMP_FILE"
     (( wrote_index )) || printf 'SOURCE_COLOR_INDEX=%s\n' "$index" >> "$_TEMP_FILE"
     (( wrote_base16 )) || printf 'BASE16_BACKEND=%s\n' "$base16" >> "$_TEMP_FILE"
+    (( wrote_lightness )) || printf 'LIGHTNESS_DARK=%s\n' "$lightness" >> "$_TEMP_FILE"
 
     mv -fT -- "$_TEMP_FILE" "$STATE_FILE"
     _TEMP_FILE=""
@@ -317,6 +340,7 @@ write_state() {
     MATUGEN_CONTRAST="$contrast"
     SOURCE_COLOR_INDEX="$index"
     BASE16_BACKEND="$base16"
+    LIGHTNESS_DARK="$lightness"
     STATE_NEEDS_REWRITE=0
 }
 
@@ -326,9 +350,9 @@ init_state() {
 
     if [[ ! -s "$STATE_FILE" ]]; then
         log "Initializing new state file at ${STATE_FILE}..."
-        write_state "$THEME_MODE" "$MATUGEN_TYPE" "$MATUGEN_CONTRAST" "$SOURCE_COLOR_INDEX" "$BASE16_BACKEND"
+        write_state "$THEME_MODE" "$MATUGEN_TYPE" "$MATUGEN_CONTRAST" "$SOURCE_COLOR_INDEX" "$BASE16_BACKEND" "$LIGHTNESS_DARK"
     elif (( STATE_NEEDS_REWRITE )); then
-        write_state "$THEME_MODE" "$MATUGEN_TYPE" "$MATUGEN_CONTRAST" "$SOURCE_COLOR_INDEX" "$BASE16_BACKEND"
+        write_state "$THEME_MODE" "$MATUGEN_TYPE" "$MATUGEN_CONTRAST" "$SOURCE_COLOR_INDEX" "$BASE16_BACKEND" "$LIGHTNESS_DARK"
     else
         write_public_state "$THEME_MODE"
     fi
@@ -541,16 +565,17 @@ generate_colors() {
 
     ensure_swaync_running
 
-    log "Matugen: Mode=[${THEME_MODE}] Type=[${MATUGEN_TYPE}] Contrast=[${MATUGEN_CONTRAST}] Index=[${SOURCE_COLOR_INDEX}] Base16=[${BASE16_BACKEND}]"
+    log "Matugen: Mode=[${THEME_MODE}] Type=[${MATUGEN_TYPE}] Contrast=[${MATUGEN_CONTRAST}] Index=[${SOURCE_COLOR_INDEX}] Base16=[${BASE16_BACKEND}] Lightness=[${LIGHTNESS_DARK}]"
 
     cmd=(matugen)
     [[ "$BASE16_BACKEND" != "disable" ]] && cmd+=(--base16-backend "$BASE16_BACKEND")
     cmd+=(--mode "$THEME_MODE")
     [[ "$MATUGEN_TYPE" != "disable" ]] && cmd+=(--type "$MATUGEN_TYPE")
     [[ "$MATUGEN_CONTRAST" != "disable" ]] && cmd+=(--contrast "$MATUGEN_CONTRAST")
-    
+
     cmd+=(image "$img")
     cmd+=(--source-color-index "$SOURCE_COLOR_INDEX")
+    [[ "$LIGHTNESS_DARK" != "0" && "$LIGHTNESS_DARK" != "disable" ]] && cmd+=(--lightness-dark "$LIGHTNESS_DARK")
 
     "${cmd[@]}" || die "Matugen generation failed"
 
@@ -637,6 +662,7 @@ Commands:
               --contrast <num|disable>
               --index <0|1|2|3>    Set Matugen source color extraction index
               --base16 <wal|disable> Set Base16 backend generation
+              --lightness <num|disable> Dark theme lightness (-inf to 1, 0=standard)
               --defaults           Reset all settings to defaults
               --no-wall            Prevent wallpaper change
   random    Cycle to next wallpaper and apply theme.
@@ -668,7 +694,8 @@ cmd_set() {
     local desired_contrast="$MATUGEN_CONTRAST"
     local desired_index="$SOURCE_COLOR_INDEX"
     local desired_base16="$BASE16_BACKEND"
-    
+    local desired_lightness="$LIGHTNESS_DARK"
+
     local mode_request_kind=""
     local -i do_refresh=0
     local -i mode_changed=0
@@ -705,12 +732,18 @@ cmd_set() {
                 desired_base16="$2"
                 shift 2
                 ;;
+            --lightness)
+                [[ -n "${2:-}" ]] || die "--lightness requires a value (e.g., 0.5, 0, disable)"
+                desired_lightness="$2"
+                shift 2
+                ;;
             --defaults)
                 desired_mode="$DEFAULT_MODE"
                 desired_type="$DEFAULT_TYPE"
                 desired_contrast="$DEFAULT_CONTRAST"
                 desired_index="$DEFAULT_COLOR_INDEX"
                 desired_base16="$DEFAULT_BASE16"
+                desired_lightness="$DEFAULT_LIGHTNESS_DARK"
                 mode_request_kind="defaults"
                 shift
                 ;;
@@ -730,7 +763,7 @@ cmd_set() {
 
     [[ "$desired_mode" != "$THEME_MODE" ]] && mode_changed=1
     
-    if [[ "$desired_type" != "$MATUGEN_TYPE" || "$desired_contrast" != "$MATUGEN_CONTRAST" || "$desired_index" != "$SOURCE_COLOR_INDEX" || "$desired_base16" != "$BASE16_BACKEND" ]]; then
+    if [[ "$desired_type" != "$MATUGEN_TYPE" || "$desired_contrast" != "$MATUGEN_CONTRAST" || "$desired_index" != "$SOURCE_COLOR_INDEX" || "$desired_base16" != "$BASE16_BACKEND" || "$desired_lightness" != "$LIGHTNESS_DARK" ]]; then
         do_refresh=1
     fi
 
@@ -739,7 +772,7 @@ cmd_set() {
     fi
 
     if (( mode_changed || do_refresh )); then
-        write_state "$desired_mode" "$desired_type" "$desired_contrast" "$desired_index" "$desired_base16"
+        write_state "$desired_mode" "$desired_type" "$desired_contrast" "$desired_index" "$desired_base16" "$desired_lightness"
     fi
 
     if (( ! skip_wall )) && (( mode_changed || same_mode_requested )); then
