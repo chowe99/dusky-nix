@@ -386,6 +386,9 @@ class AudioPlaybackThread(threading.Thread):
                 if samples.dtype != np.float32: samples = samples.astype(np.float32)
                 raw_bytes = samples.tobytes()
 
+                # Calculate chunk duration for playback pacing
+                chunk_duration = len(samples) / sr if sr > 0 else 0
+
                 # Update progress now that this chunk is actually playing
                 if progress_cb:
                     try: progress_cb()
@@ -398,6 +401,14 @@ class AudioPlaybackThread(threading.Thread):
                         self._drain_queue()
                         continue
                     if not self._timed_write(proc, raw_bytes): raise BrokenPipeError("Write failed")
+                    # Wait for this chunk's audio to finish playing before
+                    # picking up the next one — paces progress with speech
+                    if chunk_duration > 0:
+                        wait_end = time.time() + chunk_duration
+                        while time.time() < wait_end:
+                            if self.stop_event.is_set():
+                                break
+                            time.sleep(min(0.1, wait_end - time.time()))
                 except (BrokenPipeError, OSError):
                     logger.warning("MPV Connection Broken. Stopping.")
                     with self._lock:
