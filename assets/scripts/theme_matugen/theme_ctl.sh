@@ -41,8 +41,8 @@ readonly LOCK_FILE="${XDG_RUNTIME_DIR:-/tmp}/theme_ctl.lock"
 readonly FLOCK_TIMEOUT_SEC=30
 
 readonly DEFAULT_MODE="dark"
-readonly DEFAULT_TYPE="scheme-tonal-spot"
-readonly DEFAULT_CONTRAST="0"
+readonly DEFAULT_TYPE="scheme-fidelity"
+readonly DEFAULT_CONTRAST="0.5"
 readonly DEFAULT_COLOR_INDEX="0"
 readonly DEFAULT_BASE16="disable"
 
@@ -95,7 +95,7 @@ ensure_dir() {
 
 process_running() {
     local proc_name="$1"
-    pgrep -xu "$UID" "$proc_name" >/dev/null 2>&1
+    pgrep -u "$(id -u)" -f "(^|/)${proc_name}( |$)" >/dev/null 2>&1
 }
 
 check_deps() {
@@ -412,9 +412,9 @@ ensure_swww_running() {
     fi
 
     if command -v uwsm-app >/dev/null 2>&1; then
-        uwsm-app -- swww-daemon --format xrgb >/dev/null 2>&1 &
+        uwsm-app -- swww-daemon >/dev/null 2>&1 &
     else
-        swww-daemon --format xrgb >/dev/null 2>&1 &
+        swww-daemon >/dev/null 2>&1 &
     fi
 
     wait_for_process "swww-daemon" || die "swww-daemon failed to start"
