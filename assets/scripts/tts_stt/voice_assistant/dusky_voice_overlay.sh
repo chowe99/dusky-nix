@@ -16,9 +16,9 @@ MAGENTA='\033[35m'
 BLUE='\033[34m'
 RESET='\033[0m'
 
-# Hide cursor, clear screen once on start
-printf '\033[?25l\033[2J'
-trap 'printf "\033[?25h"; exit 0' EXIT INT TERM
+# Alternate screen buffer (no scroll history) + hide cursor
+printf '\033[?1049h\033[?25l'
+trap 'printf "\033[?25h\033[?1049l"; exit 0' EXIT INT TERM
 
 frame=0
 
@@ -147,15 +147,11 @@ while true; do
         start=0
     fi
 
-    # Render frame: home cursor, draw visible lines, clear rest
-    buf=""
+    # Render frame: clear + home, draw visible lines, clear rest
+    buf="\033[2J\033[H"
     r=1
     for (( i=start; i<total && r<=ROWS; i++, r++ )); do
         buf+="\033[${r};1H${lines[$i]}\033[K"
-    done
-    # Clear remaining rows
-    for (( ; r<=ROWS; r++ )); do
-        buf+="\033[${r};1H\033[K"
     done
     printf "%b" "$buf"
 
