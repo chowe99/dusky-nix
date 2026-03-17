@@ -26,7 +26,7 @@ in
   home.packages = [ pkgs.matugen pkgs.oh-my-posh ];
 
   # Oh My Posh — use matugen-generated theme, fallback to built-in
-  programs.zsh.initExtra = lib.mkBefore ''
+  programs.zsh.initContent = lib.mkBefore ''
     _omp_theme="$HOME/.config/matugen/generated/omp-theme.omp.json"
     if [[ ! -f "$_omp_theme" ]]; then
       _omp_theme="${pkgs.oh-my-posh}/share/oh-my-posh/themes/1_shell.omp.json"
