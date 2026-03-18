@@ -458,7 +458,7 @@ class DuskyVoiceAssistant:
         if tool_use is not None:
             self._last_tool_use = tool_use
         # Clear tool/response on non-thinking/speaking states
-        if new_state in (State.IDLE, State.RECORDING, State.WAKE_DETECTED, State.LISTENING_FOLLOWUP):
+        if new_state in (State.IDLE, State.RECORDING, State.WAKE_DETECTED, State.LISTENING_FOLLOWUP, State.THINKING, State.TRANSCRIBING):
             self._last_response_text = ""
             self._last_tool_use = ""
             # Clear stale TTS progress so overlay doesn't show old text
