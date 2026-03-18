@@ -24,7 +24,7 @@ VERSION = "1.0 (Voice Assistant + Wake Word)"
 # Environment-configurable settings
 WAKE_WORD = os.environ.get("DUSKY_WAKE_WORD", "hey_jarvis")
 VOICE_MODE = os.environ.get("DUSKY_VOICE_MODE", "local")
-FOLLOWUP_TIMEOUT = float(os.environ.get("DUSKY_FOLLOWUP_TIMEOUT", "8"))
+FOLLOWUP_TIMEOUT = float(os.environ.get("DUSKY_FOLLOWUP_TIMEOUT", "15"))
 MAX_TURNS = int(os.environ.get("DUSKY_MAX_TURNS", "20"))
 LLM_COMMAND = os.environ.get("DUSKY_LLM_COMMAND", "claude")
 CHIME_SOUND = os.environ.get("DUSKY_CHIME_SOUND", "")
@@ -34,7 +34,7 @@ STT_QUANTIZATION = os.environ.get("DUSKY_STT_QUANTIZATION", "int8")
 # Silence detection
 SILENCE_THRESHOLD = 500  # RMS threshold for silence (fallback, adaptive is used)
 SILENCE_DURATION = 2.0   # Seconds of silence to stop recording
-SPEECH_BONUS = 5.0       # Extra seconds added to timeout each time speech is detected
+SPEECH_BONUS = 7.0       # Extra seconds added to timeout each time speech is detected
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
@@ -1069,15 +1069,16 @@ class DuskyVoiceAssistant:
                             stderr=subprocess.DEVNULL,
                         )
 
-                        # Wait for speech or timeout (adaptive threshold)
+                        # Wait for speech or timeout (adaptive threshold + speech bonus)
                         followup_start = time.time()
+                        followup_deadline = followup_start + FOLLOWUP_TIMEOUT
                         has_followup_speech = False
                         silence_since = time.time()
                         fu_noise_samples = []
                         fu_noise_floor = None
                         fu_threshold = SILENCE_THRESHOLD
 
-                        while time.time() - followup_start < FOLLOWUP_TIMEOUT:
+                        while time.time() < followup_deadline:
                             if not self.running or self._interrupted:
                                 break
 
@@ -1097,6 +1098,7 @@ class DuskyVoiceAssistant:
                                 else:
                                     if rms > fu_threshold:
                                         has_followup_speech = True
+                                        followup_deadline = max(followup_deadline, time.time() + SPEECH_BONUS)
                                         silence_since = time.time()
                                     elif has_followup_speech and time.time() - silence_since >= SILENCE_DURATION:
                                         break
