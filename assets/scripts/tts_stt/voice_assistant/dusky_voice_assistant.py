@@ -274,8 +274,28 @@ class FifoReader(threading.Thread):
 # ==============================================================================
 # AUDIO RECORDING WITH SILENCE DETECTION
 # ==============================================================================
+def _read_rms(path, offset=0):
+    """Read RMS from a WAV file being written by pw-record."""
+    try:
+        file_size = path.stat().st_size
+        if file_size <= 44:
+            return None
+        with open(path, 'rb') as f:
+            f.seek(max(44, file_size - SAMPLE_RATE * 2))  # Last ~1s
+            raw = f.read()
+        if len(raw) < 2:
+            return None
+        samples = struct.unpack(f'<{len(raw)//2}h', raw)
+        return (sum(s*s for s in samples) / len(samples)) ** 0.5
+    except (OSError, struct.error):
+        return None
+
+
 def record_until_silence(output_path, timeout=30):
     """Record from mic via pw-record, stop after silence or timeout.
+
+    Uses adaptive noise floor: calibrates from the first ~0.5s of audio,
+    then considers speech as anything >3x the noise floor RMS.
 
     Returns True if speech was captured, False if only silence.
     """
@@ -295,7 +315,11 @@ def record_until_silence(output_path, timeout=30):
     silence_start = None
     has_speech = False
 
-    # Monitor audio levels by reading the file as it grows
+    # Adaptive noise floor calibration
+    noise_samples = []
+    noise_floor = None
+    speech_threshold = SILENCE_THRESHOLD  # fallback
+
     # Give pw-record a moment to start writing
     time.sleep(0.3)
 
@@ -306,29 +330,34 @@ def record_until_silence(output_path, timeout=30):
                 logger.info("Recording timeout reached")
                 break
 
-            # Read the latest audio data from the file to check levels
-            try:
-                if output_path.exists():
-                    file_size = output_path.stat().st_size
-                    if file_size > 44:  # WAV header
-                        with open(output_path, 'rb') as f:
-                            f.seek(max(44, file_size - SAMPLE_RATE * 2))  # Last ~1s
-                            raw = f.read()
-                        if len(raw) >= 2:
-                            samples = struct.unpack(f'<{len(raw)//2}h', raw)
-                            rms = (sum(s*s for s in samples) / len(samples)) ** 0.5
+            if not output_path.exists():
+                time.sleep(0.1)
+                continue
 
-                            if rms > SILENCE_THRESHOLD:
-                                has_speech = True
-                                silence_start = None
-                            elif has_speech:
-                                if silence_start is None:
-                                    silence_start = time.time()
-                                elif time.time() - silence_start >= SILENCE_DURATION:
-                                    logger.info("Silence detected, stopping recording")
-                                    break
-            except (OSError, struct.error):
-                pass
+            rms = _read_rms(output_path)
+            if rms is None:
+                time.sleep(0.1)
+                continue
+
+            # Calibrate noise floor from first 0.8s
+            if noise_floor is None:
+                noise_samples.append(rms)
+                if elapsed >= 0.8:
+                    noise_floor = sum(noise_samples) / len(noise_samples)
+                    speech_threshold = max(noise_floor * 3, SILENCE_THRESHOLD)
+                    logger.info(f"Noise floor: {noise_floor:.0f}, speech threshold: {speech_threshold:.0f}")
+                time.sleep(0.1)
+                continue
+
+            if rms > speech_threshold:
+                has_speech = True
+                silence_start = None
+            elif has_speech:
+                if silence_start is None:
+                    silence_start = time.time()
+                elif time.time() - silence_start >= SILENCE_DURATION:
+                    logger.info("Silence detected, stopping recording")
+                    break
 
             time.sleep(0.2)
     finally:
@@ -1034,10 +1063,13 @@ class DuskyVoiceAssistant:
                             stderr=subprocess.DEVNULL,
                         )
 
-                        # Wait for speech or timeout
+                        # Wait for speech or timeout (adaptive threshold)
                         followup_start = time.time()
                         has_followup_speech = False
                         silence_since = time.time()
+                        fu_noise_samples = []
+                        fu_noise_floor = None
+                        fu_threshold = SILENCE_THRESHOLD
 
                         while time.time() - followup_start < FOLLOWUP_TIMEOUT:
                             if not self.running or self._interrupted:
@@ -1047,24 +1079,21 @@ class DuskyVoiceAssistant:
                             if not self.process_commands():
                                 break
 
-                            try:
-                                if followup_audio.exists():
-                                    file_size = followup_audio.stat().st_size
-                                    if file_size > 44:
-                                        with open(followup_audio, 'rb') as f:
-                                            f.seek(max(44, file_size - SAMPLE_RATE * 2))
-                                            raw = f.read()
-                                        if len(raw) >= 2:
-                                            samples = struct.unpack(f'<{len(raw)//2}h', raw)
-                                            rms = (sum(s*s for s in samples) / len(samples)) ** 0.5
-
-                                            if rms > SILENCE_THRESHOLD:
-                                                has_followup_speech = True
-                                                silence_since = time.time()
-                                            elif has_followup_speech and time.time() - silence_since >= SILENCE_DURATION:
-                                                break
-                            except (OSError, struct.error):
-                                pass
+                            rms = _read_rms(followup_audio)
+                            if rms is not None:
+                                # Calibrate noise floor from first 0.8s
+                                elapsed_fu = time.time() - followup_start
+                                if fu_noise_floor is None:
+                                    fu_noise_samples.append(rms)
+                                    if elapsed_fu >= 0.8 and fu_noise_samples:
+                                        fu_noise_floor = sum(fu_noise_samples) / len(fu_noise_samples)
+                                        fu_threshold = max(fu_noise_floor * 3, SILENCE_THRESHOLD)
+                                else:
+                                    if rms > fu_threshold:
+                                        has_followup_speech = True
+                                        silence_since = time.time()
+                                    elif has_followup_speech and time.time() - silence_since >= SILENCE_DURATION:
+                                        break
 
                             time.sleep(0.2)
 
