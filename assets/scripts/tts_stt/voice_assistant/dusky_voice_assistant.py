@@ -185,34 +185,13 @@ class WakeWordThread(threading.Thread):
             logger.info(f"Wake word model loaded: {WAKE_WORD}")
         return self._oww_model
 
-    def _set_echo_cancel_default(self):
-        """If PipeWire echo-cancel source exists, set it as default input."""
-        import re as _re
-        try:
-            result = subprocess.run(
-                ["wpctl", "status"], capture_output=True, text=True, timeout=5
-            )
-            for line in result.stdout.splitlines():
-                if "echo-cancel-source" in line.lower():
-                    m = _re.search(r'(\d+)\.\s+echo-cancel-source', line, _re.IGNORECASE)
-                    if m:
-                        node_id = m.group(1)
-                        subprocess.run(["wpctl", "set-default", node_id], check=True, timeout=5)
-                        logger.info(f"Set echo-cancel-source (node {node_id}) as default input")
-                        return True
-            logger.info("Echo-cancel source not found, using existing default mic")
-        except Exception as e:
-            logger.warning(f"Could not set echo-cancel as default: {e}")
-        return False
-
     def run(self):
         import sounddevice as sd
         import numpy as np
 
-        # Set echo-cancel as PipeWire default if available — PipeWire handles
-        # resampling transparently, avoiding PortAudio/filter-node crashes
-        self._set_echo_cancel_default()
-
+        # Wake word uses the raw hardware mic (default device) — echo-cancel
+        # filtering is too aggressive and suppresses wake word detection.
+        # Speech recording uses echo-cancel source via pw-record --target.
         chunk_size = 1280  # 80ms at 16kHz (openwakeword expects this)
         stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
@@ -221,7 +200,7 @@ class WakeWordThread(threading.Thread):
             blocksize=chunk_size,
         )
         stream.start()
-        logger.info("Wake word listener started (default device, %dHz)", SAMPLE_RATE)
+        logger.info("Wake word listener started (raw mic, %dHz)", SAMPLE_RATE)
 
         try:
             while self.active:
