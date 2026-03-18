@@ -37,9 +37,11 @@ SILENCE_DURATION = 2.0   # Seconds of silence to stop recording
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
-# Audio source — use PipeWire echo-cancelled source to filter out TTS playback
-# Falls back to default source if echo-cancel module isn't available
-AUDIO_SOURCE = os.environ.get("DUSKY_AUDIO_SOURCE", "echo-cancel-source")
+# Audio source for speech recording. Default to system default mic since the
+# PipeWire echo-cancel module has routing issues (feedback loops). The voice
+# assistant already waits for TTS to finish before recording, so AEC isn't
+# critical. Override with DUSKY_AUDIO_SOURCE env var if a working AEC is set up.
+AUDIO_SOURCE = os.environ.get("DUSKY_AUDIO_SOURCE", "@DEFAULT_AUDIO_SOURCE@")
 
 # File paths
 ZRAM_MOUNT = Path("/mnt/zram1")
@@ -1024,7 +1026,7 @@ class DuskyVoiceAssistant:
 
                         # Use pw-record with a timeout
                         proc = subprocess.Popen(
-                            ["pw-record", "--target", "@DEFAULT_AUDIO_SOURCE@",
+                            ["pw-record", "--target", AUDIO_SOURCE,
                              "--rate", str(SAMPLE_RATE), "--channels", str(CHANNELS),
                              "--format=s16", str(followup_audio)],
                             stdin=subprocess.DEVNULL,

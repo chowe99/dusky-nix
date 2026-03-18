@@ -286,7 +286,7 @@ class AudioPlaybackThread(threading.Thread):
         ]
         mpv_env = os.environ.copy()
         # Clean env to prevent MPV from inheriting CUDA/ROCm libs if not needed
-        mpv_env.pop("LD_LIBRARY_PATH", None) 
+        mpv_env.pop("LD_LIBRARY_PATH", None)
 
         try:
             proc = subprocess.Popen(
