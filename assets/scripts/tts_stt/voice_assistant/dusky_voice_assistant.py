@@ -32,8 +32,9 @@ STT_MODEL_NAME = os.environ.get("DUSKY_STT_MODEL", "nemo-parakeet-tdt-0.6b-v2")
 STT_QUANTIZATION = os.environ.get("DUSKY_STT_QUANTIZATION", "int8")
 
 # Silence detection
-SILENCE_THRESHOLD = 500  # RMS threshold for silence
+SILENCE_THRESHOLD = 500  # RMS threshold for silence (fallback, adaptive is used)
 SILENCE_DURATION = 2.0   # Seconds of silence to stop recording
+SPEECH_BONUS = 5.0       # Extra seconds added to timeout each time speech is detected
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
@@ -312,6 +313,7 @@ def record_until_silence(output_path, timeout=30):
 
     logger.info("Recording started...")
     start_time = time.time()
+    deadline = start_time + timeout
     silence_start = None
     has_speech = False
 
@@ -325,8 +327,7 @@ def record_until_silence(output_path, timeout=30):
 
     try:
         while proc.poll() is None:
-            elapsed = time.time() - start_time
-            if elapsed > timeout:
+            if time.time() > deadline:
                 logger.info("Recording timeout reached")
                 break
 
@@ -339,6 +340,8 @@ def record_until_silence(output_path, timeout=30):
                 time.sleep(0.1)
                 continue
 
+            elapsed = time.time() - start_time
+
             # Calibrate noise floor from first 0.8s
             if noise_floor is None:
                 noise_samples.append(rms)
@@ -350,7 +353,10 @@ def record_until_silence(output_path, timeout=30):
                 continue
 
             if rms > speech_threshold:
-                has_speech = True
+                if not has_speech:
+                    has_speech = True
+                # Extend deadline so pauses/stutters don't cut off the user
+                deadline = max(deadline, time.time() + SPEECH_BONUS)
                 silence_start = None
             elif has_speech:
                 if silence_start is None:
