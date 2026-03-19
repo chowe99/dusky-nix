@@ -44,5 +44,6 @@
       default = "firefox";
       description = "Default web browser.";
     };
+
   };
 }

@@ -154,6 +154,11 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ curl unzip coreutils ];
       text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/150_wallpapers_download.sh";
     })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-walls-download";
+      runtimeInputs = with pkgs; [ git coreutils findutils ];
+      text = builtins.readFile "${patched}/walls/dusky_walls_download.sh";
+    })
 
     # --- Portable Arch Setup Scripts (work on NixOS without modification) ---
     (pkgs.writeShellApplication { checkPhase = "";
