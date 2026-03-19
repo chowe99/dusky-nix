@@ -65,7 +65,6 @@
 
     # Network
     speedtest-cli
-    wifitui
 
     # Development
     python3
