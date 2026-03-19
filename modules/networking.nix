@@ -21,5 +21,6 @@
     networkmanagerapplet
     iw
     wirelesstools
+    wifitui
   ];
 }
