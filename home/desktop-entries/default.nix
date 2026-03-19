@@ -1,6 +1,10 @@
 { config, pkgs, lib, ... }:
 
 {
+  home.packages = with pkgs; [
+    wifitui
+  ];
+
   xdg.desktopEntries = {
     # --- System Monitors ---
     btop = {
