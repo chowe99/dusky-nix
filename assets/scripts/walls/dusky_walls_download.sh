@@ -14,16 +14,9 @@ readonly WALLS_DIR="${TARGET_PARENT}/wallpapers/walls"
 readonly API_BASE="https://api.github.com/repos/${REPO}"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 
-# --- Terminal Setup (graceful degradation) -----------------------------------
-if [[ -t 1 ]]; then
-    readonly RST=$'\033[0m' BOLD=$'\033[1m'
-    readonly RED=$'\033[31m' GRN=$'\033[32m' YEL=$'\033[33m' BLU=$'\033[34m'
-    readonly CLR=$'\033[K'
-    readonly IS_TTY=1
-else
-    readonly RST='' BOLD='' RED='' GRN='' YEL='' BLU='' CLR=''
-    readonly IS_TTY=0
-fi
+# --- Terminal Setup ----------------------------------------------------------
+readonly RST=$'\033[0m' BOLD=$'\033[1m'
+readonly RED=$'\033[31m' GRN=$'\033[32m' YEL=$'\033[33m' BLU=$'\033[34m'
 
 # --- Logging -----------------------------------------------------------------
 log_info()  { printf '%s[INFO]%s %s\n' "${BLU}" "${RST}" "$*"; }
@@ -35,15 +28,13 @@ log_error() { printf '%s[ERR ]%s %s\n' "${RED}" "${RST}" "$*" >&2; }
 check_deps() {
     local -a missing=()
     local dep
-    for dep in curl jq; do
+    for dep in curl jq gum; do
         command -v "${dep}" &>/dev/null || missing+=("${dep}")
     done
-
     if (( ${#missing[@]} > 0 )); then
         log_error "Missing dependencies: ${missing[*]}"
         return 1
     fi
-    return 0
 }
 
 # --- Fetch category list from GitHub API -------------------------------------
@@ -53,7 +44,6 @@ fetch_categories() {
         -H "Accept: application/vnd.github+json") \
         || { log_error "Failed to fetch repo tree from GitHub API."; return 1; }
 
-    # Extract directory names (exclude files like README, .gitignore, etc.)
     echo "$tree_json" | jq -r '.tree[] | select(.type == "tree") | .path' | sort
 }
 
@@ -72,26 +62,24 @@ fetch_category_files() {
 download_category() {
     local category="$1"
     local dest="${WALLS_DIR}/${category}"
-    local -i total=0 downloaded=0 skipped=0 failed=0
+    local -i downloaded=0 skipped=0 failed=0
 
     mkdir -p "$dest"
 
-    # Get file list
     local files
     files=$(fetch_category_files "$category") || return 1
+    local -i total
     total=$(echo "$files" | wc -l)
 
     while IFS= read -r filename; do
         [[ -z "$filename" ]] && continue
         local filepath="${dest}/${filename}"
 
-        # Skip if already downloaded
         if [[ -f "$filepath" ]]; then
             (( skipped++ ))
             continue
         fi
 
-        # Download with encoded URL (spaces → %20)
         local encoded_category encoded_filename
         encoded_category=$(printf '%s' "$category" | sed 's/ /%20/g')
         encoded_filename=$(printf '%s' "$filename" | sed 's/ /%20/g')
@@ -103,41 +91,32 @@ download_category() {
             (( failed++ ))
             rm -f "$filepath"
         fi
-
-        # Progress indicator
-        if (( IS_TTY )); then
-            local done_count=$((downloaded + skipped + failed))
-            printf '\r   %s: %d/%d (new: %d, cached: %d, fail: %d)%s' \
-                "$category" "$done_count" "$total" "$downloaded" "$skipped" "$failed" "${CLR}"
-        fi
     done <<< "$files"
 
-    if (( IS_TTY )); then
-        printf '\r'
-    fi
-
     if (( failed > 0 )); then
-        log_warn "${category}: ${downloaded} downloaded, ${skipped} cached, ${failed} failed (${total} total)"
+        log_warn "${category}: ${downloaded} new, ${skipped} cached, ${failed} failed"
     else
-        log_ok "${category}: ${downloaded} downloaded, ${skipped} cached (${total} total)"
+        log_ok "${category}: ${downloaded} new, ${skipped} cached"
     fi
 }
 
 # --- Main Entry Point --------------------------------------------------------
 main() {
-    printf '%s:: dharmx/walls Wallpaper Installer%s\n' "${BOLD}" "${RST}"
-    printf '   Source: github.com/%s\n\n' "${REPO}"
-
-    if [[ ! -t 0 ]]; then
-        log_error "Interactive terminal required."
-        return 1
-    fi
+    gum style --bold --foreground 212 --border rounded --border-foreground 240 \
+        --padding "0 2" --margin "1 0" \
+        "dharmx/walls Wallpaper Installer" \
+        "github.com/${REPO}"
 
     check_deps
 
-    log_info "Fetching category list..."
+    # Fetch categories
     local categories_raw
-    categories_raw=$(fetch_categories) || return 1
+    categories_raw=$(gum spin --spinner dot --title "Fetching categories..." \
+        --show-output -- bash -c "
+            curl -sf '${API_BASE}/git/trees/${BRANCH}' \
+                -H 'Accept: application/vnd.github+json' \
+            | jq -r '.tree[] | select(.type == \"tree\") | .path' | sort
+        ") || { log_error "Failed to fetch categories."; return 1; }
 
     local -a categories=()
     while IFS= read -r cat; do
@@ -149,83 +128,79 @@ main() {
         return 1
     fi
 
-    printf '   Found %d categories:\n' "${#categories[@]}"
-    local -i i=1
+    # Build display labels — mark already-downloaded categories
+    local -a labels=()
+    local -a preselected=()
     for cat in "${categories[@]}"; do
-        # Mark already-downloaded categories
-        local marker="  "
-        [[ -d "${WALLS_DIR}/${cat}" ]] && marker="${GRN}*${RST} "
-        printf '   %s%2d) %s\n' "$marker" "$i" "$cat"
-        (( i++ ))
+        if [[ -d "${WALLS_DIR}/${cat}" ]]; then
+            labels+=("${cat} ✓")
+            preselected+=("${cat} ✓")
+        else
+            labels+=("$cat")
+        fi
     done
 
-    printf '\n   %s* = already downloaded%s\n' "${GRN}" "${RST}"
-    printf '\n   Options:\n'
-    printf '     a) Download ALL categories\n'
-    printf '     1,3,5 or 1-10) Download specific categories\n'
-    printf '     q) Quit\n\n'
+    printf '\n'
+    gum style --faint "Use ↑/↓ to navigate, space to select, a to toggle all, enter to confirm"
+    gum style --faint "✓ = already downloaded (will skip existing files)"
+    printf '\n'
 
-    local response
-    read -r -p "   > " response
+    # Multi-select with gum
+    local selected_raw
+    local -a gum_args=(
+        gum choose --no-limit
+        --header "Select categories to download:"
+        --cursor-prefix "[ ] "
+        --selected-prefix "[✕] "
+        --unselected-prefix "[ ] "
+        --height 20
+    )
 
-    case "${response,,}" in
-        q|quit|n|no|"")
-            log_info "Aborted by user."
-            return 0 ;;
-    esac
+    # Pre-select already downloaded categories
+    for pre in "${preselected[@]}"; do
+        gum_args+=(--selected "$pre")
+    done
 
-    # Parse selection
+    selected_raw=$("${gum_args[@]}" "${labels[@]}") || {
+        log_info "Aborted."
+        return 0
+    }
+
+    # Strip the ✓ suffix to get clean category names
     local -a selected=()
-
-    if [[ "${response,,}" == "a" || "${response,,}" == "all" ]]; then
-        selected=("${categories[@]}")
-    else
-        # Parse comma-separated values and ranges like "1,3,5-10,12"
-        IFS=',' read -ra parts <<< "$response"
-        for part in "${parts[@]}"; do
-            part=$(echo "$part" | tr -d ' ')
-            if [[ "$part" =~ ^([0-9]+)-([0-9]+)$ ]]; then
-                local start="${BASH_REMATCH[1]}" end="${BASH_REMATCH[2]}"
-                for (( j=start; j<=end; j++ )); do
-                    if (( j >= 1 && j <= ${#categories[@]} )); then
-                        selected+=("${categories[$((j-1))]}")
-                    fi
-                done
-            elif [[ "$part" =~ ^[0-9]+$ ]]; then
-                if (( part >= 1 && part <= ${#categories[@]} )); then
-                    selected+=("${categories[$((part-1))]}")
-                fi
-            else
-                log_warn "Ignoring invalid selection: $part"
-            fi
-        done
-    fi
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        line="${line% ✓}"
+        selected+=("$line")
+    done <<< "$selected_raw"
 
     if (( ${#selected[@]} == 0 )); then
-        log_error "No valid categories selected."
-        return 1
+        log_info "No categories selected."
+        return 0
     fi
 
     printf '\n'
-    log_info "Downloading ${#selected[@]} categories to ${WALLS_DIR/#"${HOME}"/\~}"
+    gum style --bold --foreground 39 "Downloading ${#selected[@]} categories"
     mkdir -p "$WALLS_DIR"
 
     local -i cat_done=0
     for cat in "${selected[@]}"; do
         (( cat_done++ ))
-        log_info "[${cat_done}/${#selected[@]}] ${cat}"
+        printf '\n'
+        gum style --foreground 245 "[${cat_done}/${#selected[@]}] ${cat}"
         download_category "$cat"
     done
 
     printf '\n'
-    log_ok "Done!"
-
-    local size
+    local size count
     size=$(du -sh "${WALLS_DIR}" 2>/dev/null | cut -f1)
-    local count
     count=$(find "${WALLS_DIR}" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.gif' \) 2>/dev/null | wc -l)
-    log_info "Total: ${count} wallpapers (${size}) in ${WALLS_DIR/#"${HOME}"/\~}"
-    return 0
+
+    gum style --bold --foreground 82 --border rounded --border-foreground 240 \
+        --padding "0 2" \
+        "Download complete!" \
+        "${count} wallpapers (${size})" \
+        "${WALLS_DIR/#"${HOME}"/\~}"
 }
 
 main "$@"
