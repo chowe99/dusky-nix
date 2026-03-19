@@ -168,6 +168,32 @@ pkgs.stdenv.mkDerivation {
 
     # Replace hardcoded $HOME/user_scripts/ paths with Nix-packaged binary names
     ${sedCommands}
+
+    # Inject dharmx/walls download button after the existing wallpaper download button
+    local yaml="$out/lib/dusky-control-center/dusky_config.yaml"
+    local line_num
+    line_num=$(grep -n 'dusky-wallpaper-download' "$yaml" | tail -1 | cut -d: -f1)
+    if [[ -n "$line_num" ]]; then
+      local insert_after
+      insert_after=$(tail -n +"$line_num" "$yaml" | grep -n 'terminal: false' | head -1 | cut -d: -f1)
+      insert_after=$((line_num + insert_after - 1))
+      local snippet
+      snippet=$(mktemp)
+      cat > "$snippet" << 'WALLS_EOF'
+    - type: button
+      properties:
+        title: "dharmx/walls Collection"
+        description: "Download ~56 themed wallpaper categories via git"
+        icon: image-x-generic-symbolic
+        button_text: "Download"
+      on_press:
+        type: exec
+        command: kitty --class dusky_walls_download --hold sh -c "dusky-walls-download"
+        terminal: false
+WALLS_EOF
+      sed -i "''${insert_after}r $snippet" "$yaml"
+      rm -f "$snippet"
+    fi
   '';
 
   postFixup = ''
