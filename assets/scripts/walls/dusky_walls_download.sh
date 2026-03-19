@@ -14,6 +14,9 @@ readonly WALLS_DIR="${TARGET_PARENT}/wallpapers/walls"
 readonly API_BASE="https://api.github.com/repos/${REPO}"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 
+# Directories to exclude from category listing
+readonly EXCLUDED_DIRS=".github"
+
 # --- Terminal Setup ----------------------------------------------------------
 readonly RST=$'\033[0m' BOLD=$'\033[1m'
 readonly RED=$'\033[31m' GRN=$'\033[32m' YEL=$'\033[33m' BLU=$'\033[34m'
@@ -37,16 +40,6 @@ check_deps() {
     fi
 }
 
-# --- Fetch category list from GitHub API -------------------------------------
-fetch_categories() {
-    local tree_json
-    tree_json=$(curl -sf "${API_BASE}/git/trees/${BRANCH}" \
-        -H "Accept: application/vnd.github+json") \
-        || { log_error "Failed to fetch repo tree from GitHub API."; return 1; }
-
-    echo "$tree_json" | jq -r '.tree[] | select(.type == "tree") | .path' | sort
-}
-
 # --- Fetch file list for a category ------------------------------------------
 fetch_category_files() {
     local category="$1"
@@ -62,13 +55,13 @@ fetch_category_files() {
 download_category() {
     local category="$1"
     local dest="${WALLS_DIR}/${category}"
-    local -i downloaded=0 skipped=0 failed=0
+    local downloaded=0 skipped=0 failed=0
 
     mkdir -p "$dest"
 
     local files
     files=$(fetch_category_files "$category") || return 1
-    local -i total
+    local total
     total=$(echo "$files" | wc -l)
 
     while IFS= read -r filename; do
@@ -76,7 +69,7 @@ download_category() {
         local filepath="${dest}/${filename}"
 
         if [[ -f "$filepath" ]]; then
-            (( skipped++ ))
+            skipped=$((skipped + 1))
             continue
         fi
 
@@ -86,9 +79,9 @@ download_category() {
 
         if curl -sfL --http1.1 --retry 2 --retry-delay 3 --connect-timeout 15 \
                 -o "$filepath" "${RAW_BASE}/${encoded_category}/${encoded_filename}"; then
-            (( downloaded++ ))
+            downloaded=$((downloaded + 1))
         else
-            (( failed++ ))
+            failed=$((failed + 1))
             rm -f "$filepath"
         fi
     done <<< "$files"
@@ -120,7 +113,12 @@ main() {
 
     local -a categories=()
     while IFS= read -r cat; do
-        [[ -n "$cat" ]] && categories+=("$cat")
+        [[ -z "$cat" ]] && continue
+        # Skip excluded directories
+        for excl in ${EXCLUDED_DIRS}; do
+            [[ "$cat" == "$excl" ]] && continue 2
+        done
+        categories+=("$cat")
     done <<< "$categories_raw"
 
     if (( ${#categories[@]} == 0 )); then
@@ -130,11 +128,19 @@ main() {
 
     # Build display labels — mark already-downloaded categories
     local -a labels=()
-    local -a preselected=()
+    local -a gum_args=(
+        gum choose --no-limit
+        --header "Select categories to download:"
+        --cursor-prefix "[ ] "
+        --selected-prefix "[✕] "
+        --unselected-prefix "[ ] "
+        --height 20
+    )
+
     for cat in "${categories[@]}"; do
         if [[ -d "${WALLS_DIR}/${cat}" ]]; then
             labels+=("${cat} ✓")
-            preselected+=("${cat} ✓")
+            gum_args+=(--selected "${cat} ✓")
         else
             labels+=("$cat")
         fi
@@ -145,22 +151,7 @@ main() {
     gum style --faint "✓ = already downloaded (will skip existing files)"
     printf '\n'
 
-    # Multi-select with gum
     local selected_raw
-    local -a gum_args=(
-        gum choose --no-limit
-        --header "Select categories to download:"
-        --cursor-prefix "[ ] "
-        --selected-prefix "[✕] "
-        --unselected-prefix "[ ] "
-        --height 20
-    )
-
-    # Pre-select already downloaded categories
-    for pre in "${preselected[@]}"; do
-        gum_args+=(--selected "$pre")
-    done
-
     selected_raw=$("${gum_args[@]}" "${labels[@]}") || {
         log_info "Aborted."
         return 0
@@ -183,12 +174,12 @@ main() {
     gum style --bold --foreground 39 "Downloading ${#selected[@]} categories"
     mkdir -p "$WALLS_DIR"
 
-    local -i cat_done=0
+    local cat_done=0
     for cat in "${selected[@]}"; do
-        (( cat_done++ ))
+        cat_done=$((cat_done + 1))
         printf '\n'
         gum style --foreground 245 "[${cat_done}/${#selected[@]}] ${cat}"
-        download_category "$cat"
+        download_category "$cat" || log_warn "Failed to download ${cat}, continuing..."
     done
 
     printf '\n'
