@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Downloads dharmx/walls wallpaper collection via git clone (shallow)
+# Downloads dharmx/walls wallpaper collection and installs to ~/Pictures/wallpapers/walls
 # Source: https://github.com/dharmx/walls
 
 set -euo pipefail
 
 # --- Configuration -----------------------------------------------------------
-readonly REPO_URL="https://github.com/dharmx/walls.git"
+readonly ZIP_URL="https://github.com/dharmx/walls/archive/refs/heads/master.zip"
 readonly TARGET_PARENT="${HOME:?HOME not set}/Pictures"
 readonly WALLS_DIR="${TARGET_PARENT}/wallpapers/walls"
+readonly CACHE_DIR="${TARGET_PARENT}/.dharmx-walls-cache"
+readonly CACHE_FILE="${CACHE_DIR}/dharmx-walls.zip"
 
 # --- Terminal Setup (graceful degradation) -----------------------------------
 if [[ -t 1 ]]; then
@@ -62,6 +64,9 @@ cleanup() {
     fi
     if (( exit_code != 0 && exit_code != 130 )); then
         log_error "Script failed (exit ${exit_code})."
+        if [[ -f "${CACHE_FILE}" ]]; then
+            log_warn "Partial download preserved at: ${CACHE_FILE}"
+        fi
     fi
 }
 trap cleanup EXIT
@@ -70,7 +75,7 @@ trap cleanup EXIT
 check_deps() {
     local -a missing=()
     local dep
-    for dep in git; do
+    for dep in curl unzip; do
         command -v "${dep}" &>/dev/null || missing+=("${dep}")
     done
 
@@ -81,88 +86,121 @@ check_deps() {
     return 0
 }
 
-# --- Size Report -------------------------------------------------------------
-report_size() {
-    if [[ -d "$WALLS_DIR" ]]; then
-        local size
-        size=$(du -sh "$WALLS_DIR" 2>/dev/null | cut -f1)
-        log_info "Collection size: ${size}"
-    fi
-}
-
-# --- Count Wallpapers --------------------------------------------------------
-count_wallpapers() {
-    local count=0
-    if [[ -d "$WALLS_DIR" ]]; then
-        count=$(find "$WALLS_DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.gif' \) 2>/dev/null | wc -l)
-    fi
-    echo "$count"
-}
-
-# --- List Categories ---------------------------------------------------------
-list_categories() {
-    if [[ -d "$WALLS_DIR" ]]; then
-        local -a cats=()
-        while IFS= read -r d; do
-            [[ -d "$d" ]] && cats+=("$(basename "$d")")
-        done < <(find "$WALLS_DIR" -mindepth 1 -maxdepth 1 -type d | sort)
-        if (( ${#cats[@]} > 0 )); then
-            log_info "Categories (${#cats[@]}): ${cats[*]}"
+# --- Download ----------------------------------------------------------------
+download_archive() {
+    # Validate existing cache before re-downloading
+    if [[ -f "${CACHE_FILE}" ]]; then
+        status_begin "Verifying existing cache"
+        if unzip -tq "${CACHE_FILE}" &>/dev/null; then
+            status_end 0
+            log_ok "Valid archive found. Skipping download."
+            return 0
         fi
+        status_end 1
+        log_warn "Existing cache is invalid. Re-downloading..."
+        rm -f -- "${CACHE_FILE}"
     fi
+
+    log_info "Downloading dharmx/walls collection..."
+
+    if ! curl -fL --retry 3 --retry-delay 5 --connect-timeout 30 \
+              -o "${CACHE_FILE}" "${ZIP_URL}"; then
+        log_error "Download failed."
+        rm -f -- "${CACHE_FILE}"
+        return 1
+    fi
+    log_ok "Download complete."
+
+    # Verify integrity of the fresh download
+    status_begin "Verifying download integrity"
+    if ! unzip -tq "${CACHE_FILE}" &>/dev/null; then
+        status_end 1
+        log_error "Download corrupted. Please check your connection."
+        rm -f -- "${CACHE_FILE}"
+        return 1
+    fi
+    status_end 0
+    return 0
+}
+
+# --- Archive Extraction ------------------------------------------------------
+extract_archive() {
+    status_begin "Extracting wallpapers"
+    if ! unzip -qo "${CACHE_FILE}" -d "${CACHE_DIR}"; then
+        status_end 1
+        log_error "Extraction failed."
+        return 1
+    fi
+    status_end 0
+    return 0
+}
+
+# --- Locate Extracted Directory ----------------------------------------------
+find_extracted_root() {
+    local -a candidates=()
+
+    shopt -s nullglob
+    candidates=("${CACHE_DIR}"/walls-*/)
+    shopt -u nullglob
+
+    if (( ${#candidates[@]} == 0 )); then
+        log_error "Extracted folder not found in ${CACHE_DIR}."
+        return 1
+    fi
+    printf '%s' "${candidates[0]%/}"
+}
+
+# --- Install Wallpapers ------------------------------------------------------
+install_wallpapers() {
+    local -r src="$1"
+
+    status_begin "Installing wallpapers"
+
+    # Remove old installation if present
+    if [[ -d "${WALLS_DIR}" ]]; then
+        rm -rf -- "${WALLS_DIR}"
+    fi
+
+    # Move extracted contents into place
+    mv -- "$src" "${WALLS_DIR}"
+    status_end 0
+
+    # Count and report
+    local count=0
+    count=$(find "${WALLS_DIR}" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.gif' \) 2>/dev/null | wc -l)
+    log_ok "Installed ${count} wallpapers"
+
+    # List categories
+    local -a cats=()
+    while IFS= read -r d; do
+        [[ -d "$d" ]] && cats+=("$(basename "$d")")
+    done < <(find "${WALLS_DIR}" -mindepth 1 -maxdepth 1 -type d | sort)
+    if (( ${#cats[@]} > 0 )); then
+        log_info "Categories (${#cats[@]}): ${cats[*]}"
+    fi
+
+    return 0
 }
 
 # --- Main Entry Point --------------------------------------------------------
 main() {
     printf '%s:: dharmx/walls Wallpaper Installer%s\n' "${BOLD}" "${RST}"
 
-    check_deps
-
-    # Update existing clone
-    if [[ -d "${WALLS_DIR}/.git" ]]; then
-        printf '   Collection already installed at: %s\n' "${WALLS_DIR}"
-        report_size
-
-        local response
-        if [[ -t 0 ]]; then
-            read -r -p "   Update to latest? [y/N] > " response
-        else
-            log_error "Interactive terminal required."
-            return 1
-        fi
-
-        case "${response,,}" in
-            y|yes) ;;
-            *)     log_info "Aborted by user."; return 0 ;;
-        esac
-
-        status_begin "Pulling latest changes"
-        if git -C "$WALLS_DIR" pull --ff-only 2>/dev/null; then
-            status_end 0
-        else
-            status_end 1
-            log_warn "Fast-forward pull failed. Resetting to upstream..."
-            status_begin "Resetting to origin/master"
-            git -C "$WALLS_DIR" fetch origin
-            git -C "$WALLS_DIR" reset --hard origin/master 2>/dev/null \
-              || git -C "$WALLS_DIR" reset --hard origin/main
-            status_end $?
-        fi
-
-        log_ok "Update complete."
-        log_info "Wallpapers: $(count_wallpapers)"
-        report_size
-        return 0
-    fi
-
-    # Fresh install
-    printf '   Download dharmx/walls wallpaper collection?\n'
-    printf '   ~56 themed categories (abstract, anime, mountain, pixel, etc.)\n'
-    printf '   Destination: %s\n' "${WALLS_DIR}"
-
     if [[ ! -t 0 ]]; then
         log_error "Interactive terminal required."
         return 1
+    fi
+
+    # Check if already installed
+    if [[ -d "${WALLS_DIR}" ]]; then
+        local size
+        size=$(du -sh "${WALLS_DIR}" 2>/dev/null | cut -f1)
+        printf '   Collection already installed at: %s (%s)\n' "${WALLS_DIR}" "${size}"
+        printf '   Re-download and replace?\n'
+    else
+        printf '   Download dharmx/walls wallpaper collection?\n'
+        printf '   ~56 themed categories (abstract, anime, mountain, pixel, etc.)\n'
+        printf '   Destination: %s\n' "${WALLS_DIR}"
     fi
 
     local response
@@ -172,21 +210,24 @@ main() {
         *)     log_info "Aborted by user."; return 0 ;;
     esac
 
-    mkdir -p "$(dirname "$WALLS_DIR")"
+    check_deps
+    mkdir -p -- "${TARGET_PARENT}" "${WALLS_DIR%/*}" "${CACHE_DIR}"
 
-    status_begin "Cloning dharmx/walls (shallow)"
-    if ! git clone --depth 1 "$REPO_URL" "$WALLS_DIR"; then
-        status_end 1
-        log_error "Clone failed. Check your network connection."
-        return 1
-    fi
-    status_end 0
+    download_archive
+    extract_archive
+
+    local extracted_root
+    extracted_root=$(find_extracted_root)
+    install_wallpapers "${extracted_root}"
+
+    rm -rf -- "${CACHE_DIR}"
 
     log_ok "Installation complete."
     log_info "Location: ${WALLS_DIR/#"${HOME}"/\~}"
-    log_info "Wallpapers: $(count_wallpapers)"
-    list_categories
-    report_size
+
+    local size
+    size=$(du -sh "${WALLS_DIR}" 2>/dev/null | cut -f1)
+    log_info "Total size: ${size}"
     return 0
 }
 

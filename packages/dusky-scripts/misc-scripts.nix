@@ -156,7 +156,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-walls-download";
-      runtimeInputs = with pkgs; [ git coreutils findutils ];
+      runtimeInputs = with pkgs; [ curl unzip coreutils findutils ];
       text = builtins.readFile "${patched}/walls/dusky_walls_download.sh";
     })
 
