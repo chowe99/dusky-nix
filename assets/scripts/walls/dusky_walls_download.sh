@@ -103,7 +103,7 @@ download_archive() {
 
     log_info "Downloading dharmx/walls collection..."
 
-    if ! curl -fL --retry 3 --retry-delay 5 --connect-timeout 30 \
+    if ! curl -fL --http1.1 --retry 3 --retry-delay 5 --connect-timeout 30 \
               -o "${CACHE_FILE}" "${ZIP_URL}"; then
         log_error "Download failed."
         rm -f -- "${CACHE_FILE}"
