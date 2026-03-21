@@ -28,6 +28,7 @@
     ./apps/zed.nix
     ./apps/fastfetch.nix
     ./apps/waypaper.nix
+    ./apps/blanket.nix
     ./desktop-entries
     ./services
     ./documents
@@ -74,9 +75,6 @@
     matugen
     papirus-icon-theme
     adw-gtk3
-
-    # Ambient sound
-    blanket
 
     # Misc
     wtype

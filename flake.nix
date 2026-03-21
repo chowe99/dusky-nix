@@ -71,6 +71,7 @@
             ./home/apps/yazi.nix ./home/apps/zathura.nix ./home/apps/btop.nix
             ./home/apps/cava.nix ./home/apps/mpv.nix ./home/apps/zellij.nix
             ./home/apps/zed.nix ./home/apps/fastfetch.nix ./home/apps/waypaper.nix
+            ./home/apps/blanket.nix
           ];
         };
         desktop-entries = ./home/desktop-entries;
