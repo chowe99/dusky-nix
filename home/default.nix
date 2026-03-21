@@ -75,6 +75,9 @@
     papirus-icon-theme
     adw-gtk3
 
+    # Ambient sound
+    blanket
+
     # Misc
     wtype
   ];

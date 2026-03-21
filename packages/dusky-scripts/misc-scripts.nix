@@ -232,6 +232,59 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh";
     })
 
+    # --- SwayNC ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-swaync-side";
+      runtimeInputs = with pkgs; [ jq gawk swaynotificationcenter coreutils ];
+      text = builtins.readFile "${upstream}/swaync/dusky_swaync_side.sh";
+    })
+
+    # --- Neovim ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-neovim-manager";
+      runtimeInputs = with pkgs; [ neovim git coreutils ];
+      text = builtins.readFile "${upstream}/nvim/dusky_neovim_manager.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-reset-neovim";
+      runtimeInputs = with pkgs; [ coreutils ];
+      text = builtins.readFile "${upstream}/nvim/reset/01_reset_neovim.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-neovim-plugins";
+      runtimeInputs = with pkgs; [ neovim git iputils coreutils ];
+      text = builtins.readFile "${upstream}/nvim/reset/02_cli_plugins_download.sh";
+    })
+
+    # --- GTK ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-gsettings";
+      runtimeInputs = with pkgs; [ glib coreutils ];
+      text = builtins.readFile "${upstream}/gtk/dusky_gsettings.sh";
+    })
+
+    # --- Portable Arch Setup Scripts (additional) ---
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-swaync-dgpu-fix";
+      runtimeInputs = with pkgs; [ systemd coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/240_swaync_dgpu_fix.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-desktop-apps-fix";
+      runtimeInputs = with pkgs; [ gnused coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-firefox-matugen";
+      runtimeInputs = with pkgs; [ matugen coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/400_firefox_matugen_pywalfox.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-battery-notify";
+      runtimeInputs = with pkgs; [ systemd coreutils ];
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/135_battery_notify_service.sh";
+    })
+
     # --- Wayclick ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-wayclick";

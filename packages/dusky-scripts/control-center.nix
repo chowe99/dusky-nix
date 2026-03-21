@@ -123,16 +123,60 @@ let
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh" "dusky-github-backup-new"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh" "dusky-github-backup-sync"]
 
-    # NOTE: The following scripts are referenced in dusky_config.yaml but do NOT
-    # have Nix packages yet. They remain as hardcoded paths until packaged:
-    #   - $HOME/user_scripts/swaync/dusky_swaync_side.sh
-    #   - $HOME/user_scripts/nvim/dusky_neovim_manager.sh
-    #   - $HOME/user_scripts/nvim/reset/01_reset_neovim.sh
-    #   - $HOME/user_scripts/nvim/reset/02_cli_plugins_download.sh
-    #   - $HOME/user_scripts/gtk/dusky_gsettings.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/* (remaining Arch-only: pacman/paru/AUR scripts)
-    #   - $HOME/user_scripts/update_dusky/* (Arch-specific)
-    #   - $HOME/user_scripts/ftp/* (no Nix equivalent)
+    # SwayNC
+    ["\\$HOME/user_scripts/swaync/dusky_swaync_side.sh"                 "dusky-swaync-side"]
+
+    # Neovim
+    ["\\$HOME/user_scripts/nvim/dusky_neovim_manager.sh"                "dusky-neovim-manager"]
+    ["\\$HOME/user_scripts/nvim/reset/01_reset_neovim.sh"               "dusky-reset-neovim"]
+    ["\\$HOME/user_scripts/nvim/reset/02_cli_plugins_download.sh"       "dusky-neovim-plugins"]
+
+    # GTK
+    ["\\$HOME/user_scripts/gtk/dusky_gsettings.sh"                      "dusky-gsettings"]
+
+    # Drives (additional)
+    ["\\$HOME/user_scripts/drives/btrfs_zstd_compression_stats.sh"      "dusky-btrfs-stats"]
+    ["\\$HOME/user_scripts/drives/ntfs_fix.sh"                          "dusky-ntfs-fix"]
+
+    # Networking (additional)
+    ["\\$HOME/user_scripts/networking/arp_scan.sh"                      "dusky-arp-scan"]
+
+    # Portable Arch Setup Scripts (additional — work on NixOS)
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/240_swaync_dgpu_fix.sh"          "dusky-swaync-dgpu-fix"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh" "dusky-desktop-apps-fix"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/400_firefox_matugen_pywalfox.sh"  "dusky-firefox-matugen"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh"    "dusky-battery-notify"]
+
+    # NOTE: The following scripts are Arch-only (use pacman/paru/AUR) and remain
+    # as hardcoded paths. They will only work on Arch-based systems:
+    #   - $HOME/user_scripts/update_dusky/* (Arch system updater)
+    #   - $HOME/user_scripts/ftp/* (vsftpd config, no Nix equivalent)
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/080_aur_paru_fallback_yay.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/085_warp.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/090_paru_packages_optional.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/055_pacman_reflector.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/205_zram_configuration.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/210_zram_optimize_swappiness.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/260_spotify.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/285_tty_autologin.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/300_git_config.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/335_preload_config.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/380_nvidia_open_source.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/385_waydroid_setup.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/405_spicetify_matugen_setup.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/465_sddm_setup.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/470_vesktop_matugen.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/035_configure_uwsm_gpu.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/ORCHESTRA.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/deploy_dotfiles.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/send_logs.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/365_cache_purge.sh
+    #   - $HOME/user_scripts/networking/01_tailscale_setup.sh (Arch-specific)
+    #   - $HOME/user_scripts/networking/02_openssh_setup.sh (Arch-specific)
+    #   - $HOME/user_scripts/networking/uninstall_tailscale.sh (Arch-specific)
+    #   - $HOME/user_scripts/ftp/change_ftp_directory_server.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/250_ftp_arch.sh
+    #   - $HOME/user_scripts/arch_setup_scripts/scripts/005_hypr_custom_config_setup.sh
   ];
 
   # Build a chain of sed commands from the substitution list

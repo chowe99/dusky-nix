@@ -16,5 +16,15 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ coreutils procps ];
       text = builtins.readFile "${scriptDir}/io_monitor.sh";
     })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-btrfs-stats";
+      runtimeInputs = with pkgs; [ compsize btrfs-progs util-linux gawk gnugrep coreutils ];
+      text = builtins.readFile "${scriptDir}/btrfs_zstd_compression_stats.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-ntfs-fix";
+      runtimeInputs = with pkgs; [ ntfs3g cryptsetup util-linux coreutils ];
+      text = builtins.readFile "${scriptDir}/ntfs_fix.sh";
+    })
   ];
 }

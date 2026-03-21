@@ -16,5 +16,10 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ coreutils ];
       text = builtins.readFile "${scriptDir}/networking/warp_toggle.sh";
     })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-arp-scan";
+      runtimeInputs = with pkgs; [ arp-scan coreutils gnugrep gawk ];
+      text = builtins.readFile "${scriptDir}/networking/arp_scan.sh";
+    })
   ];
 }
