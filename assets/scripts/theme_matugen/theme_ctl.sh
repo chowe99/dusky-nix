@@ -104,7 +104,7 @@ check_deps() {
     local cmd
     local -a missing=()
 
-    for cmd in swww swww-daemon matugen flock find sort pgrep; do
+    for cmd in awww awww-daemon matugen flock find sort pgrep; do
         command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
     done
 
@@ -419,29 +419,29 @@ wait_for_process() {
     return 0
 }
 
-ensure_swww_running() {
-    process_running "swww-daemon" && return 0
+ensure_awww_running() {
+    process_running "awww-daemon" && return 0
 
-    log "Starting swww-daemon..."
+    log "Starting awww-daemon..."
 
-    if command -v systemctl >/dev/null 2>&1 && systemctl --user cat swww.service >/dev/null 2>&1; then
-        if systemctl --user start swww.service >/dev/null 2>&1; then
-            if wait_for_process "swww-daemon"; then
+    if command -v systemctl >/dev/null 2>&1 && systemctl --user cat awww.service >/dev/null 2>&1; then
+        if systemctl --user start awww.service >/dev/null 2>&1; then
+            if wait_for_process "awww-daemon"; then
                 return 0
             fi
-            warn "swww.service started, but swww-daemon did not appear in time. Falling back to direct launch."
+            warn "awww.service started, but awww-daemon did not appear in time. Falling back to direct launch."
         else
-            warn "Failed to start swww.service. Falling back to direct launch."
+            warn "Failed to start awww.service. Falling back to direct launch."
         fi
     fi
 
     if command -v uwsm-app >/dev/null 2>&1; then
-        uwsm-app -- swww-daemon >/dev/null 2>&1 &
+        uwsm-app -- awww-daemon >/dev/null 2>&1 &
     else
-        swww-daemon >/dev/null 2>&1 &
+        awww-daemon >/dev/null 2>&1 &
     fi
 
-    wait_for_process "swww-daemon" || die "swww-daemon failed to start"
+    wait_for_process "awww-daemon" || die "awww-daemon failed to start"
 }
 
 ensure_swaync_running() {
@@ -634,11 +634,11 @@ apply_random_wallpaper() {
 
     log "Selected: ${wallpaper##*/}"
 
-    ensure_swww_running
-    swww img "$wallpaper" \
+    ensure_awww_running
+    awww img "$wallpaper" \
         --transition-type grow \
         --transition-duration 2 \
-        --transition-fps 60 || die "Failed to apply wallpaper with swww"
+        --transition-fps 60 || die "Failed to apply wallpaper with awww"
 
     generate_colors "$wallpaper"
     update_wallpaper_tracker "$wallpaper_id"
@@ -648,9 +648,9 @@ regenerate_current() {
     local query_output line current_wallpaper="" resolved_wallpaper rel_path
     local primary_store secondary_store
 
-    ensure_swww_running
+    ensure_awww_running
 
-    query_output=$(swww query 2>&1) || die "swww query failed: $query_output"
+    query_output=$(awww query 2>&1) || die "awww query failed: $query_output"
 
     while IFS= read -r line; do
         [[ "$line" == *"currently displaying: image: "* ]] || continue
@@ -659,7 +659,7 @@ regenerate_current() {
     done <<< "$query_output"
 
     current_wallpaper=$(trim_trailing "$current_wallpaper")
-    [[ -n "$current_wallpaper" ]] || die "Could not determine current wallpaper from swww query"
+    [[ -n "$current_wallpaper" ]] || die "Could not determine current wallpaper from awww query"
 
     resolved_wallpaper="$current_wallpaper"
 
@@ -821,7 +821,7 @@ cmd_set() {
     # If user requested --index pick, resolve it interactively before writing state
     if [[ "$desired_index" == "pick" ]]; then
         local pick_wall
-        pick_wall=$(swww query 2>/dev/null | sed -n 's/.*currently displaying: image: //p' | head -1)
+        pick_wall=$(awww query 2>/dev/null | sed -n 's/.*currently displaying: image: //p' | head -1)
         pick_wall=$(trim_trailing "$pick_wall")
         if [[ -n "$pick_wall" && -f "$pick_wall" ]]; then
             pick_color_index "$pick_wall"
@@ -878,11 +878,11 @@ random_command() {
     select_next_wallpaper wallpaper wallpaper_id || die "No wallpapers found in ${ACTIVE_THEME_DIR} or ${WALLPAPER_ROOT}"
     log "Selected: ${wallpaper##*/}"
 
-    ensure_swww_running
-    swww img "$wallpaper" \
+    ensure_awww_running
+    awww img "$wallpaper" \
         --transition-type grow \
         --transition-duration 2 \
-        --transition-fps 60 || die "Failed to apply wallpaper with swww"
+        --transition-fps 60 || die "Failed to apply wallpaper with awww"
 
     if (( do_pick )); then
         pick_color_index "$wallpaper"

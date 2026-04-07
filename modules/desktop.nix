@@ -62,7 +62,7 @@ in
     hyprpolkitagent
 
     # Wallpaper
-    swww
+    awww
 
     # Screenshot
     grim

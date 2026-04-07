@@ -47,7 +47,7 @@ trap '_cleanup' EXIT
 # 1. Processes (Raw Binaries)
 declare -ra DEFAULT_PROCESSES=(
     "hyprsunset"
-    "swww-daemon"
+    "awww-daemon"
     "waybar"
 )
 declare -ra OPTIONAL_PROCESSES=(

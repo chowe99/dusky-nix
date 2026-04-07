@@ -10,7 +10,7 @@ pkgs.symlinkJoin {
   paths = [
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-theme-ctl";
-      runtimeInputs = with pkgs; [ swww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas python3 ];
+      runtimeInputs = with pkgs; [ awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas python3 ];
       text = builtins.readFile "${scriptDir}/theme_ctl.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
@@ -30,7 +30,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-wallpaper-fetch";
-      runtimeInputs = with pkgs; [ curl jq coreutils swww matugen procps ];
+      runtimeInputs = with pkgs; [ curl jq coreutils awww matugen procps ];
       text = ''
         set -euo pipefail
 
@@ -138,13 +138,13 @@ pkgs.symlinkJoin {
 
         log "Applying: ''${WALLPAPER##*/}"
 
-        # Ensure swww is running
-        if ! pgrep -xu "$UID" swww-daemon >/dev/null 2>&1; then
-          swww-daemon --format xrgb >/dev/null 2>&1 &
+        # Ensure awww is running
+        if ! pgrep -xu "$UID" awww-daemon >/dev/null 2>&1; then
+          awww-daemon --format xrgb >/dev/null 2>&1 &
           sleep 1
         fi
 
-        swww img "$WALLPAPER" \
+        awww img "$WALLPAPER" \
           --transition-type grow \
           --transition-duration 2 \
           --transition-fps 60

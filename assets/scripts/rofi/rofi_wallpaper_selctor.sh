@@ -175,7 +175,7 @@ check_dependencies() {
   local -a missing=()
   local cmd
 
-  for cmd in rofi swww magick matugen uwsm-app setsid flock sha256sum find sort xargs cmp stat nproc gawk; do
+  for cmd in rofi awww magick matugen uwsm-app setsid flock sha256sum find sort xargs cmp stat nproc gawk; do
     command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
   done
 
@@ -622,11 +622,11 @@ cache_info_by_index() {
 }
 
 get_active_wallpaper_filename() {
-  local swww_out current_image
+  local awww_out current_image
 
-  if IFS= read -r swww_out < <(swww query 2>/dev/null); then
-    if [[ $swww_out == *image:* ]]; then
-      current_image=${swww_out##*image: }
+  if IFS= read -r awww_out < <(awww query 2>/dev/null); then
+    if [[ $awww_out == *image:* ]]; then
+      current_image=${awww_out##*image: }
       current_image="${current_image#"${current_image%%[![:space:]]*}"}"
       current_image="${current_image%"${current_image##*[![:space:]]}"}"
 
@@ -761,14 +761,14 @@ apply_selection() {
 
   log INFO "Applying wallpaper: $full_path"
 
-  if ! output=$(swww img "$full_path" \
+  if ! output=$(awww img "$full_path" \
     --transition-type grow \
     --transition-duration 2 \
     --transition-fps 60 2>&1); then
     die "Failed to set wallpaper." "$output"
   fi
 
-  [[ -n $output ]] && log_output INFO "swww: " "$output"
+  [[ -n $output ]] && log_output INFO "awww: " "$output"
 
   if ! output=$(setsid uwsm-app -- matugen "${MATUGEN_ARGS[@]}" image "$full_path" 2>&1); then
     die "Failed to apply Matugen theme." "$output"
