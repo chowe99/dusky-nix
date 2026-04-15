@@ -52,7 +52,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-shader";
-      runtimeInputs = with pkgs; [ rofi hyprland ];
+      runtimeInputs = with pkgs; [ rofi hyprland hyprshade util-linux ];
       text = builtins.readFile "${scriptDir}/shader_menu.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
