@@ -80,9 +80,16 @@ in
     recursive = true;
   };
 
-  # Deploy hyprlock themes
+  # Deploy hyprlock themes (patched: replace ~/user_scripts/ paths with Nix-packaged names)
   xdg.configFile."hypr/hyprlock_themes" = {
-    source = lib.mkDefault "${dusky}/.config/hypr/hyprlock_themes";
+    source = lib.mkDefault (pkgs.runCommand "dusky-hyprlock-themes-patched" {} ''
+      cp -r "${dusky}/.config/hypr/hyprlock_themes" $out
+      chmod -R u+w $out
+      find $out -name '*.conf' -exec sed -i \
+        -e 's|~/user_scripts/hyprlock/check_capslock.sh|dusky-hyprlock-capslock|g' \
+        -e 's|~/user_scripts/hyprlock/battery_status.sh|dusky-hyprlock-battery|g' \
+        {} +
+    '');
     recursive = true;
   };
 
