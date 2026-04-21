@@ -1,8 +1,8 @@
 { pkgs, dusky }:
 
 let
-  # Use patched scripts from dusky-nix (not upstream dusky)
-  scriptDir = ../../assets/scripts/theme_matugen;
+  # Source directly from upstream dusky (no local patches needed)
+  scriptDir = "${dusky}/user_scripts/theme_matugen";
   gtkDir = "${dusky}/user_scripts/gtk";
 in
 pkgs.symlinkJoin {
