@@ -43,7 +43,7 @@ pkgs.symlinkJoin {
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-waybar-update-counter";
-      runtimeInputs = with pkgs; [ jq coreutils iputils pacman-contrib ];
+      runtimeInputs = with pkgs; [ jq coreutils iputils ];
       text = builtins.readFile "${scriptDir}/update_counter.sh";
     })
   ];
