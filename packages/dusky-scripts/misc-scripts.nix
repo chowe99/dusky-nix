@@ -62,16 +62,11 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${upstream}/hyprlock/check_capslock.sh";
     })
 
-    # --- Wlogout / SwayOSD ---
+    # --- Wlogout ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-wlogout-scale";
       runtimeInputs = with pkgs; [ wlogout hyprland jq ];
       text = builtins.readFile "${upstream}/wlogout/wlogout_scale.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-restart-swayosd";
-      runtimeInputs = with pkgs; [ swayosd procps ];
-      text = builtins.readFile "${upstream}/swayosd/restart_swayosd.sh";
     })
 
     # --- Power / Performance ---
@@ -232,13 +227,6 @@ pkgs.symlinkJoin {
       text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh";
     })
 
-    # --- SwayNC ---
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-swaync-side";
-      runtimeInputs = with pkgs; [ jq gawk swaynotificationcenter coreutils ];
-      text = builtins.readFile "${upstream}/swaync/dusky_swaync_side.sh";
-    })
-
     # --- Neovim ---
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-neovim-manager";
@@ -264,11 +252,6 @@ pkgs.symlinkJoin {
     })
 
     # --- Portable Arch Setup Scripts (additional) ---
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-swaync-dgpu-fix";
-      runtimeInputs = with pkgs; [ systemd coreutils ];
-      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/240_swaync_dgpu_fix.sh";
-    })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-desktop-apps-fix";
       runtimeInputs = with pkgs; [ gnused coreutils ];

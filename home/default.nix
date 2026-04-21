@@ -14,8 +14,7 @@
     ./theming/qt.nix
     ./theming/fonts.nix
     ./waybar
-    ./notifications/swaync.nix
-    ./notifications/swayosd.nix
+    ./notifications/mako.nix
     ./apps/neovim.nix
     ./apps/rofi.nix
     ./apps/wlogout.nix

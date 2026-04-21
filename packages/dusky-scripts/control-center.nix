@@ -99,8 +99,10 @@ let
     # Screenshot
     ["\\$HOME/user_scripts/images/dusky_screenshot.sh"              "dusky-screenshot"]
 
-    # SwayOSD
-    ["\\$HOME/user_scripts/swayosd/restart_swayosd.sh"              "dusky-restart-swayosd"]
+    # Mako OSD / TUI
+    ["\\$HOME/user_scripts/mako_osd/mako_tui/tui_mako.sh"          "dusky-mako-tui"]
+    ["\\$HOME/user_scripts/mako_osd/osd_router.sh"                 "dusky-osd-router"]
+    ["\\$HOME/user_scripts/rofi/rofi_mako.sh"                      "dusky-rofi-mako"]
 
     # TTS/STT (launchers → packaged wrappers)
     ["\\$HOME/user_scripts/tts_stt/dusky_kokoro/kokoro_installer.sh"   "dusky-kokoro-tts"]
@@ -123,8 +125,9 @@ let
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh" "dusky-github-backup-new"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh" "dusky-github-backup-sync"]
 
-    # SwayNC
-    ["\\$HOME/user_scripts/swaync/dusky_swaync_side.sh"                 "dusky-swaync-side"]
+    # Waybar (additional)
+    ["\\$HOME/user_scripts/waybar/mako.sh"                              "dusky-waybar-mako"]
+    ["\\$HOME/user_scripts/waybar/update_counter.sh"                    "dusky-waybar-update-counter"]
 
     # Neovim
     ["\\$HOME/user_scripts/nvim/dusky_neovim_manager.sh"                "dusky-neovim-manager"]
@@ -142,7 +145,6 @@ let
     ["\\$HOME/user_scripts/networking/arp_scan.sh"                      "dusky-arp-scan"]
 
     # Portable Arch Setup Scripts (additional — work on NixOS)
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/240_swaync_dgpu_fix.sh"          "dusky-swaync-dgpu-fix"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh" "dusky-desktop-apps-fix"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/400_firefox_matugen_pywalfox.sh"  "dusky-firefox-matugen"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh"    "dusky-battery-notify"]

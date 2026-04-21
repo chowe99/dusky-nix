@@ -332,11 +332,18 @@
     };
 
     # --- Notifications ---
-    swaync = {
-      name = "Toggle Notification Center";
-      exec = "uwsm-app -- swaync-client -t";
+    mako_tui = {
+      name = "Mako Notification TUI";
+      exec = "uwsm-app -- kitty --class tui_mako.sh -e dusky-mako-tui";
       icon = "preferences-system-notifications";
-      comment = "Open/Close SwayNC";
+      comment = "Mako Notification Config Editor";
+      categories = [ "Settings" "Utility" ];
+    };
+    mako_history = {
+      name = "Notification History";
+      exec = "uwsm-app -- dusky-rofi-mako";
+      icon = "preferences-system-notifications";
+      comment = "Browse notification history via Rofi";
       categories = [ "Utility" ];
     };
 

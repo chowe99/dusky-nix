@@ -63,24 +63,18 @@ input_path  = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/matugen/generated/waybar-colors.css'
 post_hook   = 'pkill -SIGUSR2 waybar || true'
 
-[templates.swaync]
-input_path  = '~/.config/matugen/templates/colors.css'
-output_path = '~/.config/matugen/generated/swaync-colors.css'
+[templates.mako]
+input_path  = '~/.config/matugen/templates/mako'
+output_path = '~/.config/matugen/generated/mako-colors'
 post_hook   = '''
 bash -c '
 {
-  if command -v swaync-client >/dev/null 2>&1; then
-    swaync-client -R
-    swaync-client -rs
+  if command -v makoctl >/dev/null 2>&1; then
+    makoctl reload
   fi
 } >/dev/null 2>&1 </dev/null & disown
 '
 '''
-
-[templates.swayosd]
-input_path  = '~/.config/matugen/templates/swayosd-colors.css'
-output_path = '~/.config/matugen/generated/swayosd-colors.css'
-post_hook   = 'systemd-run --user --quiet bash -c "dusky-restart-swayosd"'
 
 [templates.wlogout]
 input_path  = '~/.config/matugen/templates/colors.css'

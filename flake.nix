@@ -64,7 +64,7 @@
         terminal = { ... }: { imports = [ ./home/terminal/kitty.nix ./home/terminal/alacritty.nix ]; };
         theming = { ... }: { imports = [ ./home/theming/matugen.nix ./home/theming/gtk.nix ./home/theming/qt.nix ./home/theming/fonts.nix ]; };
         waybar = ./home/waybar;
-        notifications = { ... }: { imports = [ ./home/notifications/swaync.nix ./home/notifications/swayosd.nix ]; };
+        notifications = { ... }: { imports = [ ./home/notifications/mako.nix ]; };
         apps = { ... }: {
           imports = [
             ./home/apps/neovim.nix ./home/apps/rofi.nix ./home/apps/wlogout.nix

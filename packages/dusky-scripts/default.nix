@@ -12,5 +12,6 @@
   dusky-slider-scripts = import ./slider-scripts.nix { inherit pkgs dusky; };
   dusky-control-center = import ./control-center.nix { inherit pkgs dusky; };
   dusky-network-scripts = import ./network-scripts.nix { inherit pkgs dusky; };
+  dusky-mako-scripts = import ./mako-scripts.nix { inherit pkgs dusky; };
   dusky-misc-scripts = import ./misc-scripts.nix { inherit pkgs dusky; };
 }

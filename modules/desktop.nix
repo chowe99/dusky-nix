@@ -70,9 +70,8 @@ in
     satty
 
     # Notification
-    swaynotificationcenter
+    mako
     libnotify
-    swayosd
 
     # App launcher
     rofi
@@ -92,7 +91,6 @@ in
     # Misc desktop utils
     pavucontrol
     blueman
-    networkmanagerapplet
     brightnessctl
     playerctl
     xhost

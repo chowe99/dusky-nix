@@ -60,5 +60,10 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ rofi hyprland ];
       text = builtins.readFile "${scriptDir}/hypr_anim.sh";
     })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-rofi-mako";
+      runtimeInputs = with pkgs; [ rofi mako jq libnotify coreutils hyprland gtk3 ];
+      text = builtins.readFile "${scriptDir}/rofi_mako.sh";
+    })
   ];
 }

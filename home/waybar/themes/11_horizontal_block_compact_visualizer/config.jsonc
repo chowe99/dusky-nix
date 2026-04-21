@@ -42,12 +42,12 @@
 
   "custom/launcher": {
     "format": "󰣇",
-    "on-click": "dusky-control-center",
+    "on-click": "python3 ~/user_scripts/dusky_system/control_center/dusky_control_center.py",
     "tooltip-format": "Control Center"
   },
 
   "clock": {
-    "format": "󰥔 {:%I:%M}",
+    "format": "{:%I:%M %p}",
     "format-alt": "󰃭 {:%A, %B %d}",
     "tooltip-format": "<tt><span size='12pt' font='JetBrainsMono Nerd Font'>{calendar}</span></tt>",
     "on-click-right": "uwsm-app -- gnome-clocks",
@@ -73,17 +73,16 @@
     "return-type": "json",
     "interval": 5,
     "signal": 9,
-    "on-click": "uwsm-app -- dusky-toggle-hypridle",
+    "on-click": "uwsm-app -- ~/user_scripts/waybar/toggle_hypridle.sh",
     "escape": true
   },
 
-  "custom/updates": {
-    "format": "󰏔 {}",
-    "exec": "checkupdates 2>/dev/null | wc -l || echo 0",
-    "interval": 3600,
-    "on-click": "kitty sh -c 'command -v yay >/dev/null && yay || paru'",
-    "tooltip-format": "System Updates"
-  },
+"custom/updates": {
+    "exec": "tail -F ~/.config/dusky/settings/waybar_update_counter_h 2>/dev/null",
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true
+},
 
   "custom/notification": {
     "format": "{icon}",
@@ -98,10 +97,11 @@
       "dnd-inhibited-none": "󰂛"
     },
     "return-type": "json",
-    "exec-if": "which swaync-client",
-    "exec": "swaync-client -swb",
-    "on-click": "swaync-client -t -sw",
-    "on-click-right": "swaync-client -d -sw",
+    "exec-if": "which makoctl",
+    "exec": "~/user_scripts/waybar/mako.sh",
+    "on-click": "~/user_scripts/rofi/rofi_mako.sh",
+    "on-click-right": "makoctl mode -t do-not-disturb && pkill -RTMIN+8 waybar",
+    "signal": 8,
     "escape": true,
     "tooltip-format": "Notifications\n\n LMB Toggle Panel\n RMB  Do Not Disturb"
   },
@@ -109,8 +109,8 @@
   "custom/theme-toggle": {
     "format": "",
     "tooltip-format": "Theme Controls\n\n LMB  Dark Mode\n RMB  Light Mode\n MMB  Wallpaper",
-    "on-click": "uwsm-app -- dusky-theme-ctl set --mode dark",
-    "on-click-right": "uwsm-app -- dusky-theme-ctl set --mode light",
+    "on-click": "uwsm-app -- ~/user_scripts/theme_matugen/theme_ctl.sh set --mode dark",
+    "on-click-right": "uwsm-app -- ~/user_scripts/theme_matugen/theme_ctl.sh set --mode light",
     "on-click-middle": "uwsm-app -- waypaper"
   },
 
@@ -164,7 +164,7 @@
 
   // --- CUSTOM NET SPEED ---
   "custom/net-speed": {
-    "exec": "dusky-waybar-network-meter --horizontal",
+    "exec": "$HOME/user_scripts/waybar/network/network_meter_calling.sh --horizontal",
     "return-type": "json",
     "format": "{}",
     "interval": 1,
@@ -211,9 +211,9 @@
     },
     "on-click": "uwsm-app -- pavucontrol",
     "on-click-right": "uwsm-app -- kitty --class cava -e cava",
-    "on-click-middle": "swayosd-client --output-volume mute-toggle",
-    "on-scroll-up": "swayosd-client --output-volume raise",
-    "on-scroll-down": "swayosd-client --output-volume lower",
+    "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+    "on-scroll-up": "pactl set-sink-volume @DEFAULT_SINK@ +5%",
+    "on-scroll-down": "pactl set-sink-volume @DEFAULT_SINK@ -5%",
     "tooltip-format": "{desc}\nVolume: {volume}%\n\nLMB: Pavucontrol\nRMB: Cava\nMMB: Mute Toggle\nScroll: Volume",
     "scroll-step": 5,
     "max-volume": 150
@@ -222,11 +222,11 @@
   "backlight": {
     "format": "{icon} {percent}",
     "tooltip-format": "Brightness: {percent}%\n\n LMB  Brightness\n RMB  Night Light\n MMB  Shaders",
-    "on-click": "uwsm-app -- dusky-sliders",
-    "on-click-right": "uwsm-app -- dusky-sliders",
-    "on-click-middle": "uwsm-app -- dusky-rofi-shader",
-    "on-scroll-up": "swayosd-client --brightness raise",
-    "on-scroll-down": "swayosd-client --brightness lower",
+    "on-click": "uwsm-app -- ~/user_scripts/sliders/dusky_sliders.py",
+    "on-click-right": "uwsm-app -- ~/user_scripts/sliders/dusky_sliders.py",
+    "on-click-middle": "uwsm-app -- ~/user_scripts/rofi/shader_menu.sh",
+    "on-scroll-up": "brightnessctl set +5%",
+    "on-scroll-down": "brightnessctl set 5%-",
     "format-icons": ["󰃞", "󰃟", "󰃠"]
   },
 
@@ -243,7 +243,7 @@
   "memory": {
     "interval": 2,
     "format": "󰘚 {percentage}%",
-    "on-click": "uwsm-app -- kitty --class io_monitor.sh -e dusky-io-monitor",
+    "on-click": "uwsm-app -- kitty --class io_monitor.sh -e $HOME/user_scripts/drives/io_monitor.sh",
     "states": {
       "warning": 70,
       "critical": 90
@@ -268,7 +268,7 @@
 
   "custom/power": {
     "format": "⏻",
-    "on-click": "uwsm-app -- dusky-wlogout-scale",
+    "on-click": "uwsm-app -- ~/user_scripts/wlogout/wlogout_scale.sh",
     "tooltip-format": "Power Menu"
   },
 
@@ -280,6 +280,6 @@
 
   "custom/cava": {
     "format": "{}",
-    "exec": "dusky-waybar-cava"
+    "exec": "$HOME/user_scripts/waybar/cava.sh"
   }
 }

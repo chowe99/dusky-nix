@@ -36,5 +36,15 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ python3 ];
       text = ''exec python3 ${scriptDir}/weather.py "$@"'';
     })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-waybar-mako";
+      runtimeInputs = with pkgs; [ mako jq coreutils ];
+      text = builtins.readFile "${scriptDir}/mako.sh";
+    })
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-waybar-update-counter";
+      runtimeInputs = with pkgs; [ jq coreutils iputils pacman-contrib ];
+      text = builtins.readFile "${scriptDir}/update_counter.sh";
+    })
   ];
 }

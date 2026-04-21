@@ -21,7 +21,7 @@
 
       "modules-left": ["custom/launcher", "custom/firefox", "custom/terminal", "custom/code", "custom/files", "group/mpris-drawer", "cava"],
       "modules-center": ["wlr/taskbar"],
-      "modules-right": ["group/group-tools", "group/pulseaudio", "backlight", "tray", "clock", "custom/notifs", "group/group-power"],
+      "modules-right": ["group/group-tools", "group/pulseaudio", "group/laptop", "tray", "clock", "custom/notifs", "group/group-power"],
 
 
       ///////////////////////////////////
@@ -36,7 +36,7 @@
           "format": "{icon}",
           "icon-size": 20,
           "tooltip-format": "{title:.50}",
-          "on-click": "minimize-raise",
+          "on-click": "minimize",
           "on-click-middle": "close",
           "on-click-right": "fullscreen"
       },
@@ -94,10 +94,43 @@
       {
           "device": "acpi_video0", // Assuming acpi_video0, adjust if needed
           "tooltip": false,
-          "format": "{percent}% {icon}",
+          "format": "{icon}  {percent}%",
           "format-icons": ["", ""],
           "on-scroll-up": "brightnessctl s +5%",
           "on-scroll-down": "brightnessctl s 5%-"
+      },
+
+      "battery":
+      {
+          "states": {
+              "good": 95,
+              "warning": 30,
+              "critical": 15
+          },
+          "format": "{icon} {capacity}%",
+          "format-charging": "󰂄 {capacity}%",
+          "format-plugged": "󰂄 {capacity}%",
+          "format-alt": "{icon} {capacity}%",
+          "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+          "tooltip-format": "<b>LMB</b>: Balanced | <b>MMB</b>: Performance | <b>RMB</b>: Power Saver\n\nTime until full: {time}",
+          "on-click": "~/user_scripts/tlpctl/tlpctl.sh set balanced",
+          "on-click-middle": "~/user_scripts/tlpctl/tlpctl.sh set performance",
+          "on-click-right": "~/user_scripts/tlpctl/tlpctl.sh set power-saver"
+      },
+
+      "group/laptop":
+      {
+          "orientation": "inherit",
+          "drawer": {
+              "transition-duration": 500,
+              "children-class": "other-apps",
+              "click-to-reveal": false,
+              "transition-left-to-right": false
+          },
+          "modules": [
+              "battery",
+              "backlight"
+          ]
       },
 
       "pulseaudio#output":
@@ -118,9 +151,9 @@
           },
           "on-click": "uwsm-app -- pavucontrol",
           "on-click-right": "uwsm-app -- kitty --class cava -e cava",
-          "on-click-middle": "swayosd-client --output-volume mute-toggle",
-          "on-scroll-up": "swayosd-client --output-volume raise",
-          "on-scroll-down": "swayosd-client --output-volume lower",
+          "on-click-middle": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+          "on-scroll-up": "pactl set-sink-volume @DEFAULT_SINK@ +5%",
+          "on-scroll-down": "pactl set-sink-volume @DEFAULT_SINK@ -5%",
           "scroll-step": 5,
           "max-volume": 150
       },
@@ -131,10 +164,10 @@
           "format-source": "󰍬 {volume}%",
           "format-source-muted": "󰍭 {volume}%",
           "on-click": "uwsm-app -- pavucontrol",
-          "on-click-right": "uwsm-app -- dusky-mic-switch",
-          "on-click-middle": "swayosd-client --input-volume mute-toggle",
-          "on-scroll-up": "swayosd-client --input-volume raise",
-          "on-scroll-down": "swayosd-client --input-volume lower",
+          "on-click-right": "uwsm-app -- ~/user_scripts/audio/mic_switch.sh",
+          "on-click-middle": "pactl set-source-mute @DEFAULT_SOURCE@ toggle",
+          "on-scroll-up": "pactl set-source-volume @DEFAULT_SOURCE@ +5%",
+          "on-scroll-down": "pactl set-source-volume @DEFAULT_SOURCE@ -5%",
           "tooltip-format": "<b>Input Device</b>: {desc}"
       },
 
@@ -275,7 +308,7 @@
           "format": "",
           "tooltip": true,
           "tooltip-format": "Task Manager",
-          "on-click": "uwsm-app -- kitty --hold --class performance.sh -e dusky-process-terminator"
+          "on-click": "uwsm-app -- kitty --hold --class performance.sh -e ~/user_scripts/performance/services_and_process_terminator.sh"
       },
 
       "custom/calculator":
@@ -283,7 +316,7 @@
           "format": "",
           "tooltip": true,
           "tooltip-format": "Calculator",
-          "on-click": "uwsm-app -- pkill rofi; dusky-rofi-calculator"
+          "on-click": "uwsm-app -- pkill rofi; ~/user_scripts/rofi/calculator.sh"
       },
 
       "custom/music":
@@ -308,8 +341,8 @@
           "format": "",
           "tooltip": true,
           "tooltip-format": "Screenshot",
-          "on-click": "uwsm-app -- dusky-screenshot --region --freeze --no-notify --smart",
-          "on-click-right": "uwsm-app -- dusky-screenshot --region --freeze --annotate --no-notify --tool arrow --smart"
+          "on-click": "uwsm-app -- ~/user_scripts/images/dusky_screenshot.sh --region --freeze --no-notify --smart",
+          "on-click-right": "uwsm-app -- ~/user_scripts/images/dusky_screenshot.sh --region --freeze --annotate --no-notify --tool arrow --smart"
       },
 
       "custom/clip":
@@ -317,7 +350,7 @@
           "format": "",
           "tooltip": true,
           "tooltip-format": "Clipboard",
-          "on-click": "uwsm-app -- pkill rofi; dusky-rofi-cliphist"
+          "on-click": "uwsm-app -- pkill rofi; rofi -modi 'clipboard:~/user_scripts/rofi/rofi_cliphist.sh' -show clipboard"
       },
 
       "custom/notifs":
@@ -334,10 +367,11 @@
               "dnd-inhibited-none": "󰂛 "
           },
           "return-type": "json",
-          "exec-if": "which swaync-client",
-          "exec": "swaync-client -swb",
-          "on-click": "swaync-client -t -sw",
-          "on-click-right": "swaync-client -d -sw",
+          "exec-if": "which makoctl",
+          "exec": "~/user_scripts/waybar/mako.sh",
+          "on-click": "~/user_scripts/rofi/rofi_mako.sh",
+          "on-click-right": "makoctl mode -t do-not-disturb && pkill -RTMIN+8 waybar",
+          "signal": 8,
           "escape": true,
           "tooltip-format": "Notifications\n\n LMB  Toggle Panel\n RMB  Do Not Disturb"
       },
@@ -384,7 +418,7 @@
       {
           "format": "",
           "tooltip": false,
-          "on-click": "uwsm-app -- dusky-spotify-toggle"
+          "on-click": "uwsm-app -- ~/user_scripts/spotify/spotify_toggle.sh"
       },
 
       "mpris":
@@ -433,6 +467,6 @@
           "format": " ",
           "tooltip": true,
           "tooltip-format": "Shutdown",
-          "on-click": "uwsm-app -- dusky-wlogout-scale"
+          "on-click": "uwsm-app -- ~/user_scripts/wlogout/wlogout_scale.sh"
       }
   }

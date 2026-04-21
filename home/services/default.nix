@@ -17,18 +17,34 @@
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # Swaync notification daemon
-  systemd.user.services.swaync = {
+  # Mako notification daemon
+  systemd.user.services.mako = {
     Unit = {
-      Description = "Sway Notification Center";
+      Description = "Mako notification daemon";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
     };
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.swaynotificationcenter}/bin/swaync";
+      ExecStart = "${pkgs.mako}/bin/mako";
       Restart = "on-failure";
       RestartSec = 1;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # Mako OSD daemon (hardware key events: caps lock, num lock, keyboard backlight)
+  systemd.user.services.dusky-mako-osd = {
+    Unit = {
+      Description = "Hardware Lock Key OSD Daemon";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" "mako.service" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "/etc/profiles/per-user/%u/bin/dusky-mako-osd-daemon";
+      Restart = "on-failure";
+      RestartSec = 2;
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
