@@ -1,10 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, dusky, ... }:
 
 let
-  # Patch waybar theme configs to replace hardcoded $HOME/user_scripts/ paths
-  # with Nix-packaged binary names (same substitutions as control-center.nix)
+  # Source waybar themes from upstream dusky, patch hardcoded paths at build time
   patchedThemes = pkgs.runCommand "dusky-waybar-themes-patched" {} ''
-    cp -r ${./themes} $out
+    cp -r ${dusky}/.config/waybar $out
     chmod -R u+w $out
 
     # Replace hardcoded paths with Nix-packaged binary names
