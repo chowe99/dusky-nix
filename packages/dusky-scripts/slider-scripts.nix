@@ -9,5 +9,5 @@ let
 in
 pkgs.writeScriptBin "dusky-sliders" ''
   #!${python}/bin/python3
-  ${builtins.readFile "${dusky}/user_scripts/sliders/dusky_sliders.py"}
+  ${builtins.readFile "${dusky}/user_scripts/dusky_system/quickpanal/simple_sliders/dusky_sliders_simple.py"}
 ''

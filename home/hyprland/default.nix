@@ -58,15 +58,15 @@ in
   # Deploy source/*.conf files
   # Unpatched configs reference dusky/ submodule directly (upstream updates flow through)
   # Patched configs (autostart, keybinds) live in this repo with dusky-* script name translations
-  xdg.configFile."hypr/source/appearance.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/appearance.conf";
+  xdg.configFile."hypr/source/appearance.conf".source = lib.mkDefault ./source/appearance.conf;
   xdg.configFile."hypr/source/autostart.conf".source = lib.mkDefault ./source/autostart.conf;
-  xdg.configFile."hypr/source/environment_variables.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/environment_variables.conf";
-  xdg.configFile."hypr/source/input.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/input.conf";
+  xdg.configFile."hypr/source/environment_variables.conf".source = lib.mkDefault ./source/environment_variables.conf;
+  xdg.configFile."hypr/source/input.conf".source = lib.mkDefault ./source/input.conf;
   xdg.configFile."hypr/source/keybinds.conf".source = lib.mkDefault ./source/keybinds.conf;
-  xdg.configFile."hypr/source/monitors.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/monitors.conf";
-  xdg.configFile."hypr/source/permissions.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/permissions.conf";
+  xdg.configFile."hypr/source/monitors.conf".source = lib.mkDefault ./source/monitors.conf;
+  xdg.configFile."hypr/source/permissions.conf".source = lib.mkDefault ./source/permissions.conf;
   xdg.configFile."hypr/source/window_rules.conf".source = lib.mkDefault ./source/window_rules.conf;
-  xdg.configFile."hypr/source/workspace_rules.conf".source = lib.mkDefault "${dusky}/.config/hypr/source/workspace_rules.conf";
+  xdg.configFile."hypr/source/workspace_rules.conf".source = lib.mkDefault ./source/workspace_rules.conf;
 
   # Deploy animation presets
   xdg.configFile."hypr/source/animations" = {

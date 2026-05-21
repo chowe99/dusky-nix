@@ -14,12 +14,11 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-power-saver";
       runtimeInputs = with pkgs; [ hyprland brightnessctl coreutils procps ];
-      text = builtins.readFile "${scriptDir}/power_saving/power_saver.sh";
+      text = builtins.readFile "${scriptDir}/power_saver.sh";
     })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-power-saver-off";
-      runtimeInputs = with pkgs; [ hyprland brightnessctl coreutils procps ];
-      text = builtins.readFile "${scriptDir}/power_saving_off/power_saver_off.sh";
-    })
+    (pkgs.writeShellScriptBin "dusky-power-saver-off" ''
+      export PATH="${pkgs.lib.makeBinPath (with pkgs; [ hyprland brightnessctl coreutils procps ])}:$PATH"
+      exec ${pkgs.bash}/bin/bash ${scriptDir}/power_saver.sh --disable "$@"
+    '')
   ];
 }

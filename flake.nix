@@ -11,7 +11,7 @@
 
     # Upstream dusky dotfiles — `nix flake update dusky-dotfiles` pulls changes
     dusky-dotfiles = {
-      url = "github:chowe99/dusky";
+      url = "github:dusklinux/dusky";
       flake = false;
     };
   };

@@ -17,28 +17,12 @@
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # Mako notification daemon
-  systemd.user.services.mako = {
-    Unit = {
-      Description = "Mako notification daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = "${pkgs.mako}/bin/mako";
-      Restart = "on-failure";
-      RestartSec = 1;
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
   # Mako OSD daemon (hardware key events: caps lock, num lock, keyboard backlight)
   systemd.user.services.dusky-mako-osd = {
     Unit = {
       Description = "Hardware Lock Key OSD Daemon";
       PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" "mako.service" ];
+      After = [ "graphical-session.target" ];
     };
     Service = {
       Type = "simple";

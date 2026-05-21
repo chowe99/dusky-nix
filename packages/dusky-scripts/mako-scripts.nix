@@ -15,20 +15,19 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-osd-router";
       runtimeInputs = with pkgs; [ wireplumber brightnessctl playerctl libnotify coreutils util-linux ];
-      text = builtins.readFile "${upstream}/mako_osd/osd_router.sh";
+      text = builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.sh";
     })
 
     # OSD Router Python daemon (caps lock, num lock, keyboard backlight events)
     (pkgs.writeScriptBin "dusky-mako-osd-daemon" ''
       #!${osd-python}/bin/python3
-      ${builtins.readFile "${upstream}/mako_osd/osd_router.py"}
+      ${builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.py"}
     '')
 
     # Mako TUI (terminal-based config editor)
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-mako-tui";
-      runtimeInputs = with pkgs; [ mako gawk coreutils ];
-      text = builtins.readFile "${upstream}/mako_osd/mako_tui/tui_mako.sh";
-    })
+    (pkgs.writeScriptBin "dusky-mako-tui" ''
+      #!${osd-python}/bin/python3
+      ${builtins.readFile "${upstream}/mako_osd/mako_tui/tui_mako.py"}
+    '')
   ];
 }

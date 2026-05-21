@@ -14,13 +14,13 @@ pkgs.symlinkJoin {
     (let python = pkgs.python3.withPackages (ps: with ps; [ ]); in
     pkgs.writeScriptBin "dusky-adjust-scale" ''
       #!${python}/bin/python3
-      ${builtins.readFile "${scriptDir}/adjust_scale.py"}
+      ${builtins.readFile "${scriptDir}/monitor/adjust_scale.py"}
     '')
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-screen-rotate";
-      runtimeInputs = with pkgs; [ hyprland jq ];
-      text = builtins.readFile "${scriptDir}/screen_rotate.sh";
-    })
+    (let python = pkgs.python3.withPackages (ps: with ps; [ ]); in
+    pkgs.writeScriptBin "dusky-screen-rotate" ''
+      #!${python}/bin/python3
+      ${builtins.readFile "${scriptDir}/monitor/screen_rotate.py"}
+    '')
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-blur-toggle";
       runtimeInputs = with pkgs; [ hyprland jq libnotify ];
@@ -34,32 +34,37 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-appearances";
       runtimeInputs = with pkgs; [ hyprland gum ];
-      text = builtins.readFile "${scriptDir}/dusky_appearances.sh";
+      text = builtins.replaceStrings [
+        ''    register 3 "Shadow Ignore Win"  "ignore_window|bool|shadow|||"          "true"
+''
+      ] [
+        ""
+      ] (builtins.readFile "${scriptDir}/old/dusky_appearances.sh");
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-input";
       runtimeInputs = with pkgs; [ hyprland gum ];
-      text = builtins.readFile "${scriptDir}/dusky_input.sh";
+      text = builtins.readFile "${scriptDir}/old/dusky_input.sh";
     })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-keybinds";
-      runtimeInputs = with pkgs; [ hyprland gum ];
-      text = builtins.readFile "${scriptDir}/dusky_keybinds.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-monitor";
-      runtimeInputs = with pkgs; [ hyprland gum jq ];
-      text = builtins.readFile "${scriptDir}/dusky_monitor.sh";
-    })
+    (let python = pkgs.python3.withPackages (ps: with ps; [ ]); in
+    pkgs.writeScriptBin "dusky-keybinds" ''
+      #!${python}/bin/python3
+      ${builtins.readFile "${scriptDir}/input/dusky_keybinds.py"}
+    '')
+    (let python = pkgs.python3.withPackages (ps: with ps; [ ]); in
+    pkgs.writeScriptBin "dusky-monitor" ''
+      #!${python}/bin/python3
+      ${builtins.readFile "${scriptDir}/monitor/monitor_wizard.py"}
+    '')
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-window-rules";
       runtimeInputs = with pkgs; [ hyprland gum ];
-      text = builtins.readFile "${scriptDir}/dusky_window_rules.sh";
+      text = builtins.readFile "${scriptDir}/old/dusky_window_rules.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-workspace-manager";
       runtimeInputs = with pkgs; [ hyprland gum jq ];
-      text = builtins.readFile "${scriptDir}/dusky_workspace_manager.sh";
+      text = builtins.readFile "${scriptDir}/old/dusky_workspace_manager.sh";
     })
   ];
 }

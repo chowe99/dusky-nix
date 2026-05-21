@@ -97,7 +97,7 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-service-toggle";
       runtimeInputs = with pkgs; [ systemd coreutils ];
-      text = builtins.readFile "${upstream}/services/dusky_service_toggle.sh";
+      text = builtins.readFile "${upstream}/services/dusky_service_manager.sh";
     })
 
     # --- Media ---

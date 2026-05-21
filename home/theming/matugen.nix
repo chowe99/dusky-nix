@@ -52,7 +52,7 @@ in
   # Generate default matugen colors on first activation if none exist
   home.activation.createMatugenGenerated = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p "$HOME/.config/matugen/generated"
-    if [ ! -f "$HOME/.config/matugen/generated/rofi-colors.rasi" ]; then
+    if [ ! -f "$HOME/.config/matugen/generated/rofi-colors.rasi" ] || [ ! -f "$HOME/.config/matugen/generated/mako-colors" ]; then
       run ${pkgs.matugen}/bin/matugen \
         -c "$HOME/.config/matugen/config.toml" \
         --mode dark \
