@@ -1,8 +1,11 @@
 { pkgs, dusky }:
 
-# Python GTK control center app
+# Python GTK control center app.
+# Upstream dusky_control_center.py hard-requires Python 3.14.3+
+# (sys.version_info < (3, 14, 3) → sys.exit). pkgs.python3 in current
+# nixpkgs is still 3.13, so pin to python314 explicitly.
 let
-  python = pkgs.python3.withPackages (ps: with ps; [
+  python = pkgs.python314.withPackages (ps: with ps; [
     pygobject3
     pycairo
     pyyaml

@@ -29,7 +29,22 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-multi-monitor-workspace";
       runtimeInputs = with pkgs; [ hyprland jq ];
-      text = builtins.readFile "${scriptDir}/multi_monitor_workspace.sh";
+      # Upstream rewrote the dispatcher calls for Hyprland 0.55+ Lua-mode configs:
+      #   hyprctl dispatch "hl.dsp.focus({ workspace = \"N\" })"
+      # That syntax is only valid when Hyprland is loaded with a .lua config.
+      # Our deployed config is the traditional hyprland.conf format, so the
+      # Lua dispatchers come back as "Invalid dispatcher" and SUPER+N does
+      # nothing. Substitute back to the classic dispatcher names.
+      text = builtins.replaceStrings [
+        ''hyprctl dispatch "hl.dsp.focus({ workspace = \"''${target_ws}\" })"''
+        ''hyprctl dispatch "hl.dsp.window.move({ workspace = \"''${target_ws}\" })"''
+        ''hyprctl dispatch \
+            "hl.dsp.window.move({ workspace = \"''${target_ws}\", follow = false })"''
+      ] [
+        ''hyprctl dispatch workspace "''${target_ws}"''
+        ''hyprctl dispatch movetoworkspace "''${target_ws}"''
+        ''hyprctl dispatch movetoworkspacesilent "''${target_ws}"''
+      ] (builtins.readFile "${scriptDir}/multi_monitor_workspace.sh");
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-appearances";

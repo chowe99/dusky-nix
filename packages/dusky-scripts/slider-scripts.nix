@@ -1,8 +1,11 @@
 { pkgs, dusky }:
 
-# Python GTK slider UIs
+# Python GTK slider UIs.
+# Upstream dusky_sliders_simple.py hard-requires Python 3.14.4+
+# (sys.version_info < (3, 14, 4) → sys.exit), same regression as
+# dusky_control_center.py — pin to python314.
 let
-  python = pkgs.python3.withPackages (ps: with ps; [
+  python = pkgs.python314.withPackages (ps: with ps; [
     pygobject3
     pycairo
   ]);
