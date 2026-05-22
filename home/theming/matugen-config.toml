@@ -64,8 +64,8 @@ output_path = '~/.config/matugen/generated/waybar-colors.css'
 post_hook   = 'pkill -SIGUSR2 waybar || true'
 
 [templates.mako]
-input_path  = '~/.config/matugen/templates/mako'
-output_path = '~/.config/matugen/generated/mako-colors'
+input_path  = '~/.config/matugen/templates/mako.ini'
+output_path = '~/.config/matugen/generated/mako-colors.ini'
 post_hook   = '''
 bash -c '
 {

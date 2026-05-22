@@ -34,6 +34,8 @@ let
       -e 's|\$HOME/user_scripts/drives/io_monitor.sh|dusky-io-monitor|g' \
       -e 's|~/user_scripts/waybar/update_counter.sh|dusky-waybar-update-counter|g' \
       -e 's|\$HOME/user_scripts/waybar/update_counter.sh|dusky-waybar-update-counter|g' \
+      -e 's|python3 ~/user_scripts/waybar/weather.py|dusky-waybar-weather|g' \
+      -e 's|python3 \$HOME/user_scripts/waybar/weather.py|dusky-waybar-weather|g' \
       -e 's|pactl set-sink-mute @DEFAULT_SINK@ toggle|dusky-osd-router --vol-mute|g' \
       -e 's|pactl set-sink-volume @DEFAULT_SINK@ +5%|dusky-osd-router --vol-up 5|g' \
       -e 's|pactl set-sink-volume @DEFAULT_SINK@ -5%|dusky-osd-router --vol-down 5|g' \
@@ -53,12 +55,27 @@ in
   # waybar_autostart.sh manages which theme is active by symlinking
   # config.jsonc and style.css to the waybar root
   home.activation.createWaybarSymlinks = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    # Set default waybar theme if no symlinks exist
-    if [ ! -L "$HOME/.config/waybar/config.jsonc" ]; then
-      run ln -snf "$HOME/.config/waybar/themes/01_horizontal_block/config.jsonc" "$HOME/.config/waybar/config.jsonc"
-    fi
-    if [ ! -L "$HOME/.config/waybar/style.css" ]; then
-      run ln -snf "$HOME/.config/waybar/themes/01_horizontal_block/style.css" "$HOME/.config/waybar/style.css"
+    # Pick the lowest-numbered theme that ships with the current dusky pin.
+    # Upstream renames these directories from time to time (e.g. 01_horizontal_block
+    # → 01_mechabar_h), so hardcoding a name produces a dangling symlink that
+    # falls through to /etc/xdg/waybar/config.jsonc and breaks the bar.
+    themes_dir="$HOME/.config/waybar/themes"
+    default_theme="$(ls -1 "$themes_dir" 2>/dev/null | sort | head -n1)"
+
+    # Symlink (re)created when the existing target is missing OR points nowhere.
+    link_if_needed() {
+      local link="$1" target="$2"
+      if [ -z "$target" ] || [ ! -e "$themes_dir/$default_theme/$(basename "$target")" ]; then
+        return
+      fi
+      if [ ! -L "$link" ] || [ ! -e "$link" ]; then
+        run ln -snf "$target" "$link"
+      fi
+    }
+
+    if [ -n "$default_theme" ]; then
+      link_if_needed "$HOME/.config/waybar/config.jsonc" "$themes_dir/$default_theme/config.jsonc"
+      link_if_needed "$HOME/.config/waybar/style.css"    "$themes_dir/$default_theme/style.css"
     fi
   '';
 }

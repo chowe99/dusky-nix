@@ -10,6 +10,9 @@ let
     # Override with dusky-nix vibrant variants
     cp -f ${../../assets/templates/btop.theme} $out/btop.theme
     cp -f ${../../assets/templates/omp-theme.omp.json} $out/omp-theme.omp.json
+    # Hyprland-conf-format colors template (upstream only ships hyprland-colors.lua,
+    # which can't be `source =`d into a Hyprland config).
+    cp -f ${../../assets/templates/hyprland-colors.conf} $out/hyprland-colors.conf
   '';
 in
 {
@@ -49,14 +52,23 @@ in
     fi
   '';
 
-  # Generate default matugen colors on first activation if none exist
+  # Generate default matugen colors on first activation if none exist.
+  #
+  # Runtime regeneration (Hyprland keybinds, waybar buttons, theme menus) goes
+  # through `dusky-theme-ctl`, which is the canonical entry point. We can't use
+  # dusky-theme-ctl here because activation runs without a Wayland session —
+  # `awww-daemon` would fail to bind. So we call matugen directly, but with the
+  # `color` subcommand: matugen 4.0.0's `image` subcommand fails with
+  # "IO error: not a terminal" outside a real TTY (which home-manager activation
+  # is). `color hex` doesn't hit that code path.
   home.activation.createMatugenGenerated = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p "$HOME/.config/matugen/generated"
-    if [ ! -f "$HOME/.config/matugen/generated/rofi-colors.rasi" ] || [ ! -f "$HOME/.config/matugen/generated/mako-colors" ]; then
+    if [ ! -f "$HOME/.config/matugen/generated/rofi-colors.rasi" ] || [ ! -f "$HOME/.config/matugen/generated/mako-colors.ini" ]; then
       run ${pkgs.matugen}/bin/matugen \
         -c "$HOME/.config/matugen/config.toml" \
         --mode dark \
-        image "${dusky}/Pictures/wallpapers/dusk_default.jpg" || true
+        --quiet \
+        color hex "#7e57c2" || true
     fi
   '';
 }
