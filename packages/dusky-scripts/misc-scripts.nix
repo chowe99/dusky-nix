@@ -181,15 +181,12 @@ pkgs.symlinkJoin {
       runtimeInputs = with pkgs; [ gawk coreutils ];
       text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/238_terminal_switcher.sh";
     })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-waypaper-reset";
-      runtimeInputs = with pkgs; [ coreutils ];
-      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/170_waypaper_config_reset.sh";
-    })
+    # dusky-waypaper-reset removed: upstream dropped waypaper (replaced by awww),
+    # so 170_waypaper_config_reset.sh no longer exists.
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-animation-default";
       runtimeInputs = with pkgs; [ coreutils hyprland ];
-      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/175_animation_default.sh";
+      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/006_animation_default.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-cursor-bibata";
@@ -260,7 +257,8 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-firefox-matugen";
       runtimeInputs = with pkgs; [ matugen coreutils ];
-      text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/400_firefox_matugen_pywalfox.sh";
+      # Upstream moved this from arch_setup_scripts/scripts/ into firefox/.
+      text = builtins.readFile "${upstream}/firefox/400_firefox_matugen_pywalfox.sh";
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-battery-notify";

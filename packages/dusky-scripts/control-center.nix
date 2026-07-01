@@ -53,7 +53,7 @@ let
     ["\\$HOME/user_scripts/rofi/rofi_cliphist.sh"                   "dusky-rofi-cliphist"]
 
     # Sliders
-    ["\\$HOME/user_scripts/sliders/dusky_sliders.py"                "dusky-sliders"]
+    ["\\$HOME/user_scripts/dusky_system/quickpanal/dusky_quickpanal.py" "dusky-sliders"]
 
     # Wlogout
     ["\\$HOME/user_scripts/wlogout/wlogout_scale.sh"                "dusky-wlogout-scale"]
@@ -80,8 +80,8 @@ let
     ["\\$HOME/user_scripts/battery/power_saving_off/power_saver_off.sh" "dusky-power-saver-off"]
 
     # Drives
-    ["\\$HOME/user_scripts/drives/io_monitor.sh"                    "dusky-io-monitor"]
-    ["\\$HOME/user_scripts/drives/drive_manager.sh"                 "dusky-drive-manager"]
+    ["\\$HOME/user_scripts/drives/dusky_disk_monitor_io.py"         "dusky-io-monitor"]
+    ["\\$HOME/user_scripts/drives/drive_manager/drive_manager.py"   "dusky-drive-manager"]
 
     # Networking
     ["\\$HOME/user_scripts/networking/warp_toggle.sh"               "dusky-warp-toggle"]
@@ -118,7 +118,7 @@ let
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/236_browser_switcher.sh" "dusky-browser-switch"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/237_text_editer_switcher.sh" "dusky-editor-switch"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/238_terminal_switcher.sh" "dusky-terminal-switch"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/170_waypaper_config_reset.sh" "dusky-waypaper-reset"]
+    # 170_waypaper_config_reset.sh removed upstream (waypaper dropped for awww)
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/175_animation_default.sh" "dusky-animation-default"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh" "dusky-cursor-bibata"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/460_switch_clipboard.sh" "dusky-clipboard-switch"]
@@ -149,7 +149,7 @@ let
 
     # Portable Arch Setup Scripts (additional — work on NixOS)
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh" "dusky-desktop-apps-fix"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/400_firefox_matugen_pywalfox.sh"  "dusky-firefox-matugen"]
+    ["\\$HOME/user_scripts/firefox/400_firefox_matugen_pywalfox.sh"  "dusky-firefox-matugen"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh"    "dusky-battery-notify"]
 
     # NOTE: The following scripts are Arch-only (use pacman/paru/AUR) and remain
@@ -191,7 +191,7 @@ let
         pattern = builtins.elemAt pair 0;
         replacement = builtins.elemAt pair 1;
       in
-      "sed -i 's|${pattern}|${replacement}|g' $out/lib/dusky-control-center/dusky_config.yaml"
+      "sed -i 's|${pattern}|${replacement}|g' $out/lib/dusky-control-center/dusky_config.toml"
     ) pathSubstitutions
   );
 in
@@ -218,30 +218,37 @@ pkgs.stdenv.mkDerivation {
     # Replace hardcoded $HOME/user_scripts/ paths with Nix-packaged binary names
     ${sedCommands}
 
-    # Inject dharmx/walls download button after the existing wallpaper download button
-    local yaml="$out/lib/dusky-control-center/dusky_config.yaml"
+    # Inject dharmx/walls download button after the existing wallpaper download button.
+    # Upstream config is now TOML; anchor on the post-substitution download command
+    # then the next `terminal = false`. Guarded so a missing anchor is a no-op (not a
+    # build crash) in case upstream restructures the wallpaper section again.
+    local toml="$out/lib/dusky-control-center/dusky_config.toml"
     local line_num
-    line_num=$(grep -n 'dusky-wallpaper-download' "$yaml" | tail -1 | cut -d: -f1)
+    line_num=$(grep -n 'dusky-wallpaper-download' "$toml" | tail -1 | cut -d: -f1)
     if [[ -n "$line_num" ]]; then
-      local insert_after
-      insert_after=$(tail -n +"$line_num" "$yaml" | grep -n 'terminal: false' | head -1 | cut -d: -f1)
-      insert_after=$((line_num + insert_after - 1))
-      local snippet
-      snippet=$(mktemp)
-      cat > "$snippet" << 'WALLS_EOF'
-    - type: button
-      properties:
-        title: "dharmx/walls Collection"
-        description: "Download ~56 themed wallpaper categories via git"
-        icon: image-x-generic-symbolic
-        button_text: "Download"
-      on_press:
-        type: exec
-        command: kitty --class dusky_walls_download --hold sh -c "dusky-walls-download"
-        terminal: false
+      local rel insert_after
+      rel=$(tail -n +"$line_num" "$toml" | grep -n 'terminal = false' | head -1 | cut -d: -f1)
+      if [[ -n "$rel" ]]; then
+        insert_after=$((line_num + rel - 1))
+        local snippet
+        snippet=$(mktemp)
+        cat > "$snippet" << 'WALLS_EOF'
+
+[[pages.layout.items]]
+type = "button"
+[pages.layout.items.properties]
+title = "dharmx/walls Collection"
+description = "Download ~56 themed wallpaper categories via git"
+icon = "image-x-generic-symbolic"
+button_text = "Download"
+[pages.layout.items.on_press]
+type = "exec"
+command = "kitty --class dusky_walls_download --hold sh -c \"dusky-walls-download\""
+terminal = false
 WALLS_EOF
-      sed -i "''${insert_after}r $snippet" "$yaml"
-      rm -f "$snippet"
+        sed -i "''${insert_after}r $snippet" "$toml"
+        rm -f "$snippet"
+      fi
     fi
   '';
 
