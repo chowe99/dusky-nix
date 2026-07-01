@@ -244,6 +244,13 @@ pkgs.stdenv.mkDerivation {
     mkdir -p $out/bin $out/lib/dusky-control-center
     cp -r . $out/lib/dusky-control-center/
 
+    # nix-compat: upstream bumped its hard Python floor to 3.14.5, but pkgs.python314
+    # is 3.14.3 → the app sys.exit()s at startup ("[FATAL] Python 3.14.5+ is required"),
+    # so the D-Bus/dusky.service (ALT+SPACE) never starts. Point releases add no language
+    # features it needs; relax the gate to any 3.14.x.
+    sed -i 's/sys.version_info < (3, 14, 5)/sys.version_info < (3, 14, 0)/' \
+      $out/lib/dusky-control-center/dusky_control_center.py
+
     # Replace hardcoded $HOME/user_scripts/ paths with Nix-packaged binary names
     ${sedCommands}
 

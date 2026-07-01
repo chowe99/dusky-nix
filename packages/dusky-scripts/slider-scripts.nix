@@ -57,6 +57,11 @@ in
       mkdir -p $out/bin $out/lib/dusky-sliders
       cp -r . $out/lib/dusky-sliders/
 
+      # nix-compat: upstream's 3.14.5 hard floor vs pkgs.python314 3.14.3 (see
+      # control-center.nix). Relax to any 3.14.x so Quick Panal starts.
+      sed -i 's/sys.version_info < (3, 14, 5)/sys.version_info < (3, 14, 0)/' \
+        $out/lib/dusky-sliders/dusky_quickpanal.py
+
       runHook postInstall
     '';
 

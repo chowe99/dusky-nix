@@ -38,7 +38,20 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-theme";
       runtimeInputs = with pkgs; [ rofi matugen ];
-      text = builtins.readFile "${scriptDir}/rofi_theme.sh";
+      # nix-compat: upstream hardcodes $HOME/user_scripts/theme_matugen/theme_ctl.sh
+      # (fatal "Controller script missing/non-executable" on NixOS). Point at our
+      # packaged binary + relax the file/exec test to a PATH lookup (same as the
+      # dusky-rofi-wallpaper patch above).
+      text = builtins.replaceStrings
+        [
+          ''readonly THEME_CTL="''${HOME}/user_scripts/theme_matugen/theme_ctl.sh"''
+          ''[[ -f $THEME_CTL && -x $THEME_CTL ]]''
+        ]
+        [
+          ''readonly THEME_CTL="dusky-theme-ctl"''
+          ''command -v "$THEME_CTL" >/dev/null 2>&1''
+        ]
+        (builtins.readFile "${scriptDir}/rofi_theme.sh");
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-rofi-keybindings";
