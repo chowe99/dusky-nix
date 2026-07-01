@@ -11,7 +11,13 @@ pkgs.symlinkJoin {
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-theme-ctl";
       runtimeInputs = with pkgs; [ awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas python3 ];
-      text = builtins.readFile "${scriptDir}/theme_ctl.sh";
+      # nix-compat: Nix's makeWrapper renames the daemon binary to
+      # `.awww-daemon-wrapped`, so the kernel `comm` (15-char) becomes
+      # `.awww-daemon-wr` and upstream's `pgrep -xu awww-daemon` never matches —
+      # theme_ctl then spawns a second daemon which aborts on the busy socket.
+      # Match the full cmdline (still contains `awww-daemon`) instead.
+      text = builtins.replaceStrings [ "pgrep -xu" ] [ "pgrep -fu" ]
+        (builtins.readFile "${scriptDir}/theme_ctl.sh");
     })
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-matugen-presets";
@@ -138,8 +144,8 @@ pkgs.symlinkJoin {
 
         log "Applying: ''${WALLPAPER##*/}"
 
-        # Ensure awww is running
-        if ! pgrep -xu "$UID" awww-daemon >/dev/null 2>&1; then
+        # Ensure awww is running (pgrep -f: Nix wrapper truncates comm name)
+        if ! pgrep -fu "$UID" awww-daemon >/dev/null 2>&1; then
           awww-daemon --format xrgb >/dev/null 2>&1 &
           sleep 1
         fi
