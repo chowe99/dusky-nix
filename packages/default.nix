@@ -16,7 +16,9 @@ in
     dusky-slider-scripts
     dusky-control-center
     dusky-network-scripts
-    dusky-misc-scripts;
+    dusky-mako-scripts
+    dusky-misc-scripts
+    dusky-tui-scripts;
 
   # Meta-package that pulls everything
   dusky-scripts-all = pkgs.symlinkJoin {

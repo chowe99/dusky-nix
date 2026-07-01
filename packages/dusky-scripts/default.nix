@@ -14,4 +14,5 @@
   dusky-network-scripts = import ./network-scripts.nix { inherit pkgs dusky; };
   dusky-mako-scripts = import ./mako-scripts.nix { inherit pkgs dusky; };
   dusky-misc-scripts = import ./misc-scripts.nix { inherit pkgs dusky; };
+  dusky-tui-scripts = import ./tui-scripts.nix { inherit pkgs dusky; };
 }

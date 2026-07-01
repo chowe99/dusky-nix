@@ -15,6 +15,35 @@ let
   # Mapping of hardcoded $HOME/user_scripts/ paths → Nix package binary names.
   # Each entry is [pattern replacement]. Longest paths first to avoid partial matches.
   pathSubstitutions = [
+    # --- Upstream dusky_tui textual framework (settings screens) ---
+    # Normalize ~ to $HOME first so the rules below match both forms the config
+    # uses (the control center shell-expands $HOME, proven by upstream's own
+    # literal $HOME commands).
+    ["~/user_scripts"                                             "\\$HOME/user_scripts"]
+    # The shared dispatcher (main.py) becomes our packaged binary.
+    ["\\$HOME/user_scripts/dusky_tui/python/main/main.py"          "dusky-tui"]
+    # Each schema argument → absolute store path, because main.py resolves a
+    # direct path but its dot-notation fallback mangles full $HOME paths.
+    ["\\$HOME/user_scripts/hypr/visual/tui_appearance.py"          "${dusky}/user_scripts/hypr/visual/tui_appearance.py"]
+    ["\\$HOME/user_scripts/hypr/input/tui_input.py"                "${dusky}/user_scripts/hypr/input/tui_input.py"]
+    ["\\$HOME/user_scripts/hypr/monitor/monitor_wizard.py"         "${dusky}/user_scripts/hypr/monitor/monitor_wizard.py"]
+    ["\\$HOME/user_scripts/hypridle/tui_dusky_hypridle.py"         "${dusky}/user_scripts/hypridle/tui_dusky_hypridle.py"]
+    ["\\$HOME/user_scripts/services/tui_service_toggle.py"         "${dusky}/user_scripts/services/tui_service_toggle.py"]
+    ["\\$HOME/user_scripts/mako_osd/mako_tui/tui_mako.py"          "${dusky}/user_scripts/mako_osd/mako_tui/tui_mako.py"]
+    ["\\$HOME/user_scripts/waybar/tui_waybars.py"                  "${dusky}/user_scripts/waybar/tui_waybars.py"]
+    # Direct-invocation scripts → their packaged binaries (paths moved upstream).
+    ["\\$HOME/user_scripts/hypr/monitor/adjust_scale.py"           "dusky-adjust-scale"]
+    ["\\$HOME/user_scripts/hypr/monitor/screen_rotate.py"          "dusky-screen-rotate"]
+    ["\\$HOME/user_scripts/hypr/input/dusky_keybinds.py"           "dusky-keybinds"]
+    ["\\$HOME/user_scripts/hypr/rules/window_rules_generator.py"   "dusky-window-rules-gen"]
+    ["\\$HOME/user_scripts/external/usb_sound_toggle.py"           "dusky-usb-sound"]
+    ["\\$HOME/user_scripts/battery/power_saver.sh"                 "dusky-power-saver"]
+    ["\\$HOME/user_scripts/locale/locale_tui.sh"                   "dusky-locale-tui"]
+    ["\\$HOME/user_scripts/waybar/toggle_time.sh"                  "dusky-waybar-toggle-time"]
+    ["\\$HOME/user_scripts/wayclick/sounds/wayclick_soundpacks_download.sh" "dusky-wayclick-soundpacks"]
+    ["\\$HOME/user_scripts/networking/dusky_wireguard_new.sh"      "dusky-wireguard-new"]
+    ["\\$HOME/user_scripts/networking/dusky_wireguard_setup.sh"    "dusky-wireguard-setup"]
+
     # Theme / Matugen
     ["\\$HOME/user_scripts/theme_matugen/theme_ctl.sh"              "dusky-theme-ctl"]
     ["~/user_scripts/theme_matugen/dusky_matugen_presets.sh"        "dusky-matugen-presets"]

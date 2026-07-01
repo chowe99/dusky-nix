@@ -24,10 +24,7 @@ pkgs.symlinkJoin {
       ${builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.py"}
     '')
 
-    # Mako TUI (terminal-based config editor)
-    (pkgs.writeScriptBin "dusky-mako-tui" ''
-      #!${osd-python}/bin/python3
-      ${builtins.readFile "${upstream}/mako_osd/mako_tui/tui_mako.py"}
-    '')
+    # dusky-mako-tui moved to tui-scripts.nix: tui_mako.py is now a dusky_tui
+    # schema (textual framework + PYTHONPATH), not a standalone python script.
   ];
 }
