@@ -262,6 +262,17 @@ pkgs.stdenv.mkDerivation {
     sed -i 's/sys.version_info < (3, 14, 5)/sys.version_info < (3, 14, 0)/' \
       $out/lib/dusky-control-center/dusky_control_center.py
 
+    # Visually grey out the "not applicable" buttons: every row widget ends its
+    # __init__ with self._start_hyprland_ipc(); append a check that renders the
+    # row insensitive + tooltipped when its command routes to `dusky-nixos-ctl na`
+    # (the declarative/Arch-only no-ops). Defensive getattr so it's a no-op for any
+    # row type without on_action. Covers ActionRows and grid cards uniformly.
+    substituteInPlace $out/lib/dusky-control-center/lib/rows.py \
+      --replace-quiet 'self._start_hyprland_ipc()' 'self._start_hyprland_ipc()
+        if isinstance(getattr(self, "on_action", None), dict) and "dusky-nixos-ctl na" in str(self.on_action.get("command", "")):
+            self.set_sensitive(False)
+            self.set_tooltip_text("Managed by NixOS (not applicable here)")'
+
     # Replace hardcoded $HOME/user_scripts/ paths with Nix-packaged binary names
     ${sedCommands}
 
