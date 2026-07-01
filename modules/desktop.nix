@@ -47,6 +47,12 @@ in
 
   # Desktop packages
   environment.systemPackages = with pkgs; [
+    # Tools the control center / dusky menus shell out to (were Arch pacman
+    # installs upstream; provide them as Nix packages instead).
+    dysk # disk utility (CC "disk" button)
+    wireguard-tools # wg / wg-quick (CC network → WireGuard); needs to be on the
+    # system PATH so `sudo wg` resolves via secure_path
+
     # Wayland essentials
     wl-clipboard
     wl-clip-persist

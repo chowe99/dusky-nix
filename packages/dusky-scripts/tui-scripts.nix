@@ -90,5 +90,49 @@ pkgs.symlinkJoin {
           ${upstream}/mako_osd/mako_tui/tui_mako.py "$@"
       '';
     })
+
+    # Adaptive shim so upstream (Arch) Control Center / Quick Panal buttons work
+    # on NixOS instead of erroring on missing $HOME/user_scripts paths:
+    #   install <attr> [<name>]  → nix profile install nixpkgs#<attr> (imperative
+    #                              user package; the nix analogue of `pacman -S`)
+    #   service <unit> -- <cmd>  → run <cmd> if <unit> is declaratively present,
+    #                              else explain a service must be enabled in config
+    #                              (can't be imperatively installed on NixOS)
+    #   na [<msg>]               → "managed declaratively / not applicable" note
+    (pkgs.writeShellApplication { checkPhase = "";
+      name = "dusky-nixos-ctl";
+      runtimeInputs = with pkgs; [ nix libnotify systemd coreutils gnugrep ];
+      text = ''
+        note() { notify-send "$1" "''${2:-}" 2>/dev/null || true; printf '\n  %s\n  %s\n' "$1" "''${2:-}"; }
+        action="''${1:-na}"; shift || true
+        case "$action" in
+          install)
+            attr="''${1:-}"; disp="''${2:-$attr}"
+            if command -v "$attr" >/dev/null 2>&1 || nix profile list 2>/dev/null | grep -q "nixpkgs#$attr"; then
+              note "Already available" "$disp is already installed."
+              exit 0
+            fi
+            note "Installing $disp" "nix profile install nixpkgs#$attr — (tip: add it to your config to make it declarative)"
+            if nix --extra-experimental-features "nix-command flakes" profile install "nixpkgs#$attr"; then
+              note "Installed" "$disp"
+            else
+              note "Install failed" "$disp — see output above."
+            fi
+            ;;
+          service)
+            unit="''${1:-}"; shift || true
+            [ "''${1:-}" = "--" ] && shift || true
+            if systemctl cat "$unit" >/dev/null 2>&1; then
+              exec "$@"
+            else
+              note "Not enabled on NixOS" "A system service can't be installed imperatively here. Enable it declaratively (e.g. services.''${unit%.service}.enable = true) and rebuild."
+            fi
+            ;;
+          *)
+            note "Not applicable on NixOS" "''${1:-Managed declaratively by your Nix config, or Arch-only.}"
+            ;;
+        esac
+      '';
+    })
   ];
 }

@@ -181,44 +181,55 @@ let
     ["\\$HOME/user_scripts/firefox/400_firefox_matugen_pywalfox.sh"  "dusky-firefox-matugen"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh"    "dusky-battery-notify"]
 
-    # NOTE: The following scripts are Arch-only (use pacman/paru/AUR) and remain
-    # as hardcoded paths. They will only work on Arch-based systems:
-    #   - $HOME/user_scripts/update_dusky/* (Arch system updater)
-    #   - $HOME/user_scripts/ftp/* (vsftpd config, no Nix equivalent)
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/080_aur_paru_fallback_yay.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/085_warp.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/090_paru_packages_optional.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/055_pacman_reflector.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/205_zram_configuration.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/210_zram_optimize_swappiness.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/260_spotify.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/285_tty_autologin.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/300_git_config.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/335_preload_config.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/380_nvidia_open_source.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/385_waydroid_setup.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/405_spicetify_matugen_setup.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/465_sddm_setup.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/470_vesktop_matugen.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/035_configure_uwsm_gpu.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/ORCHESTRA.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/deploy_dotfiles.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/send_logs.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/365_cache_purge.sh
-    #   - $HOME/user_scripts/networking/01_tailscale_setup.sh (Arch-specific)
-    #   - $HOME/user_scripts/networking/02_openssh_setup.sh (Arch-specific)
-    #   - $HOME/user_scripts/networking/uninstall_tailscale.sh (Arch-specific)
-    #   - $HOME/user_scripts/ftp/change_ftp_directory_server.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/250_ftp_arch.sh
-    #   - $HOME/user_scripts/arch_setup_scripts/scripts/005_hypr_custom_config_setup.sh
+    # --- Arch/service/app buttons adapted for NixOS via the dusky-nixos-ctl shim ---
+    # service <unit> -- <cmd> : manage if the unit is declaratively present, else
+    #   guide (a system service can't be imperatively installed on NixOS).
+    # install <attr> : nix profile install nixpkgs#<attr> (imperative user pkg).
+    # na '<msg>' : managed declaratively / not applicable — informative no-op.
+    # Services (detect + manage on this host, guide on others):
+    ["\\$HOME/user_scripts/networking/01_tailscale_setup.sh"                      "dusky-nixos-ctl service tailscaled.service -- tailscale status"]
+    ["\\$HOME/user_scripts/networking/02_openssh_setup.py"                        "dusky-nixos-ctl service sshd.service -- systemctl status sshd"]
+    # App installs (nix profile):
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/260_spotify.sh"             "dusky-nixos-ctl install spotify Spotify"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/470_vesktop_matugen.sh"     "dusky-nixos-ctl install vesktop Vesktop"]
+    # Declarative / Arch-only — informative no-op with the Nix way to do it:
+    ["\\$HOME/user_scripts/networking/uninstall_tailscale.sh"                     "dusky-nixos-ctl na 'Tailscale is declarative: services.tailscale.enable'"]
+    ["\\$HOME/user_scripts/networking/airmon_ng.sh"                               "dusky-nixos-ctl na 'Add aircrack-ng to your config if needed'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/005_hypr_custom_config_setup.py"     "dusky-nixos-ctl na 'Hyprland config is managed by dusky-nix (home-manager)'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/035_configure_uwsm_gpu.sh"  "dusky-nixos-ctl na 'GPU/UWSM configured declaratively'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/055_pacman_reflector.sh"    "dusky-nixos-ctl na 'No pacman on NixOS'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/080_aur_paru_fallback_yay.sh" "dusky-nixos-ctl na 'No AUR on NixOS; add packages to your config'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/085_warp.sh"                "dusky-nixos-ctl na 'Cloudflare Warp is a service; enable declaratively'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/090_paru_packages_optional.sh" "dusky-nixos-ctl na 'Add packages to your Nix config'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/170_waypaper_config_reset.sh" "dusky-nixos-ctl na 'waypaper removed upstream (awww)'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/205_zram_configuration.sh"  "dusky-nixos-ctl na 'zram is declarative: zramSwap.enable'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/210_zram_optimize_swappiness.sh" "dusky-nixos-ctl na 'Set kernel sysctls declaratively'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/250_ftp_arch.sh"            "dusky-nixos-ctl na 'FTP is declarative: services.vsftpd'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/285_tty_autologin.sh"       "dusky-nixos-ctl na 'Declarative: services.getty.autologinUser'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/300_git_config.sh"          "dusky-nixos-ctl na 'Configure git via programs.git'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/335_preload_config.sh"      "dusky-nixos-ctl na 'preload is a service; enable declaratively'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/365_cache_purge.sh"         "dusky-nixos-ctl na 'Use nix-collect-garbage'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/380_nvidia_open_source.sh"  "dusky-nixos-ctl na 'Declarative: hardware.nvidia.open'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/385_waydroid_setup.sh"      "dusky-nixos-ctl na 'Declarative: virtualisation.waydroid.enable'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/405_spicetify_matugen_setup.sh" "dusky-nixos-ctl na 'Add spotify + spicetify-cli to your config'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/465_sddm_setup.sh"          "dusky-nixos-ctl na 'Declarative: services.displayManager.sddm'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/ORCHESTRA.sh"                       "dusky-nixos-ctl na 'Arch installer; not used on NixOS'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/deploy_dotfiles.sh"                 "dusky-nixos-ctl na 'dusky-nix deploys configs declaratively'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/send_logs.sh"                       "dusky-nixos-ctl na 'Arch-only'"]
+    ["\\$HOME/user_scripts/update_dusky/update_dusky.sh"                          "dusky-nixos-ctl na 'Update: nix flake update dusky-nix then rebuild'"]
+    ["\\$HOME/user_scripts/ftp/change_ftp_directory_server.sh"                    "dusky-nixos-ctl na 'FTP is declarative: services.vsftpd'"]
   ];
 
-  # Build a chain of sed commands from the substitution list
+  # Build a chain of sed commands from the substitution list. The sed script is
+  # single-quoted in the shell, so any literal ' in a pattern/replacement (e.g. a
+  # `na 'message'` replacement) must be escaped as '\'' or it terminates the quote
+  # and the substitution silently no-ops.
+  shEsc = builtins.replaceStrings ["'"] ["'\\''"];
   sedCommands = builtins.concatStringsSep "\n" (
     builtins.map (pair:
       let
-        pattern = builtins.elemAt pair 0;
-        replacement = builtins.elemAt pair 1;
+        pattern = shEsc (builtins.elemAt pair 0);
+        replacement = shEsc (builtins.elemAt pair 1);
       in
       "sed -i 's|${pattern}|${replacement}|g' $out/lib/dusky-control-center/dusky_config.toml"
     ) pathSubstitutions
