@@ -10,13 +10,23 @@ pkgs.symlinkJoin {
   paths = [
     (pkgs.writeShellApplication { checkPhase = "";
       name = "dusky-theme-ctl";
-      runtimeInputs = with pkgs; [ awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas python3 ];
+      runtimeInputs = with pkgs; [ awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas dconf python3 ];
       # nix-compat: Nix's makeWrapper renames the daemon binary to
       # `.awww-daemon-wrapped`, so the kernel `comm` (15-char) becomes
       # `.awww-daemon-wr` and upstream's `pgrep -xu awww-daemon` never matches —
       # theme_ctl then spawns a second daemon which aborts on the busy socket.
       # Match the full cmdline (still contains `awww-daemon`) instead.
-      text = builtins.replaceStrings [ "pgrep -xu" ] [ "pgrep -fu" ]
+      # nix-compat: gsettings needs GSETTINGS_SCHEMA_DIR which
+      # writeShellApplication doesn't set, causing color-scheme calls to
+      # silently fail. Use dconf write instead — it works directly with
+      # the user dbus session and doesn't need compiled schemas.
+      text = builtins.replaceStrings
+        [ "pgrep -xu"
+          "        gsettings set org.gnome.desktop.interface color-scheme \"prefer-\${THEME_MODE}\" 2>/dev/null || true"
+        ]
+        [ "pgrep -fu"
+          "        dconf write /org/gnome/desktop/interface/color-scheme \"'prefer-\${THEME_MODE}'\" 2>/dev/null || true"
+        ]
         (builtins.readFile "${scriptDir}/theme_ctl.sh");
     })
     (pkgs.writeShellApplication { checkPhase = "";
