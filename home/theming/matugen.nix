@@ -1,6 +1,10 @@
-{ config, pkgs, lib, dusky, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  dusky,
+  ...
+}: let
   matugenSrc = "${dusky}/.config/matugen";
 
   # Merge upstream templates with our overrides (ours win on conflict)
@@ -14,8 +18,7 @@ let
     # which can't be `source =`d into a Hyprland config).
     cp -f ${../../assets/templates/hyprland-colors.conf} $out/hyprland-colors.conf
   '';
-in
-{
+in {
   # Deploy matugen config.toml with patched post_hooks
   # Post hooks use packaged script names on $PATH instead of ~/user_scripts/...
   xdg.configFile."matugen/config.toml".source = ./matugen-config.toml;
@@ -32,7 +35,7 @@ in
     recursive = true;
   };
 
-  home.packages = [ pkgs.matugen pkgs.oh-my-posh ];
+  home.packages = [pkgs.matugen pkgs.oh-my-posh];
 
   # Oh My Posh — use matugen-generated theme, fallback to built-in
   programs.zsh.initContent = lib.mkBefore ''
@@ -45,7 +48,7 @@ in
   '';
 
   # Deploy default wallpaper from upstream dusky
-  home.activation.deployWallpapers = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.deployWallpapers = lib.hm.dag.entryAfter ["writeBoundary"] ''
     run mkdir -p "$HOME/Pictures/wallpapers"
     if [ ! -f "$HOME/Pictures/wallpapers/dusk_default.jpg" ]; then
       run cp "${dusky}/Pictures/wallpapers/dusk_default.jpg" "$HOME/Pictures/wallpapers/"
@@ -61,7 +64,7 @@ in
   # `color` subcommand: matugen 4.0.0's `image` subcommand fails with
   # "IO error: not a terminal" outside a real TTY (which home-manager activation
   # is). `color hex` doesn't hit that code path.
-  home.activation.createMatugenGenerated = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.createMatugenGenerated = lib.hm.dag.entryAfter ["writeBoundary"] ''
     run mkdir -p "$HOME/.config/matugen/generated"
     if [ ! -f "$HOME/.config/matugen/generated/rofi-colors.rasi" ] || [ ! -f "$HOME/.config/matugen/generated/mako-colors.ini" ]; then
       run ${pkgs.matugen}/bin/matugen \

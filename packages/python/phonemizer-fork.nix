@@ -1,6 +1,5 @@
 # phonemizer-fork — text-to-phoneme conversion (fork used by kokoro-onnx)
-{ pkgs }:
-
+{pkgs}:
 pkgs.python3Packages.buildPythonPackage rec {
   pname = "phonemizer-fork";
   version = "3.3.2";
@@ -19,7 +18,7 @@ pkgs.python3Packages.buildPythonPackage rec {
     typing-extensions
   ];
 
-  pythonImportsCheck = [ "phonemizer" ];
+  pythonImportsCheck = ["phonemizer"];
 
   meta = {
     description = "Text-to-phoneme conversion (fork for kokoro-onnx)";

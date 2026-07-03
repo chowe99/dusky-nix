@@ -1,6 +1,10 @@
-{ config, pkgs, lib, dusky, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  dusky,
+  ...
+}: let
   # Source waybar themes from upstream dusky, patch hardcoded paths at build time
   patchedThemes = pkgs.runCommand "dusky-waybar-themes-patched" {} ''
     cp -r ${dusky}/.config/waybar $out
@@ -43,8 +47,7 @@ let
       -e 's|brightnessctl set 5%-|dusky-osd-router --bright-down 5|g' \
       {} +
   '';
-in
-{
+in {
   # Deploy waybar theme directories directly under ~/.config/waybar/<theme>/
   # to match upstream's layout. dusky_waybars.sh and the control-center
   # YAML scan $HOME/.config/waybar/*/config.jsonc for themes — keeping
@@ -58,7 +61,7 @@ in
   # Create runtime symlinks via activation
   # config.jsonc and style.css live at the waybar root and point at the
   # currently-active theme directory.
-  home.activation.createWaybarSymlinks = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.createWaybarSymlinks = lib.hm.dag.entryAfter ["writeBoundary"] ''
     # Pick the lowest-numbered theme that ships with the current dusky pin.
     # Upstream renames these directories from time to time (e.g. 01_horizontal_block
     # → 01_mechabar_h), so hardcoding a name produces a dangling symlink that

@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Deploy fontconfig
   xdg.configFile."fontconfig/fonts.conf".text = ''
     <?xml version="1.0"?>

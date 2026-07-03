@@ -1,82 +1,95 @@
-{ pkgs, dusky }:
-
-let
+{
+  pkgs,
+  dusky,
+}: let
   scriptDir = "${dusky}/user_scripts/rofi";
 in
-pkgs.symlinkJoin {
-  name = "dusky-rofi-scripts";
-  paths = [
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-emoji";
-      runtimeInputs = with pkgs; [ rofi wl-clipboard wtype ];
-      text = builtins.readFile "${scriptDir}/emoji.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-calculator";
-      runtimeInputs = with pkgs; [ rofi wl-clipboard ];
-      text = builtins.readFile "${scriptDir}/calculator.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-cliphist";
-      runtimeInputs = with pkgs; [ rofi cliphist wl-clipboard ];
-      text = builtins.readFile "${scriptDir}/rofi_cliphist.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-wallpaper";
-      runtimeInputs = with pkgs; [ rofi awww matugen coreutils findutils gawk imagemagick util-linux ];
-      text = builtins.replaceStrings
-        [
-          ''readonly THEME_CTL="''${HOME}/user_scripts/theme_matugen/theme_ctl.sh"''
-          ''[[ ! -x "$THEME_CTL" ]]''
-        ]
-        [
-          ''readonly THEME_CTL="dusky-theme-ctl"''
-          ''! command -v "$THEME_CTL" >/dev/null 2>&1''
-        ]
-        (builtins.readFile "${scriptDir}/rofi_wallpaper_selctor.sh");
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-theme";
-      runtimeInputs = with pkgs; [ rofi matugen ];
-      # nix-compat: upstream hardcodes $HOME/user_scripts/theme_matugen/theme_ctl.sh
-      # (fatal "Controller script missing/non-executable" on NixOS). Point at our
-      # packaged binary + relax the file/exec test to a PATH lookup (same as the
-      # dusky-rofi-wallpaper patch above).
-      text = builtins.replaceStrings
-        [
-          ''readonly THEME_CTL="''${HOME}/user_scripts/theme_matugen/theme_ctl.sh"''
-          ''[[ -f $THEME_CTL && -x $THEME_CTL ]]''
-        ]
-        [
-          ''readonly THEME_CTL="dusky-theme-ctl"''
-          ''command -v "$THEME_CTL" >/dev/null 2>&1''
-        ]
-        (builtins.readFile "${scriptDir}/rofi_theme.sh");
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-keybindings";
-      runtimeInputs = with pkgs; [ rofi hyprland gnugrep gawk libxkbcommon jq ];
-      text = builtins.readFile "${scriptDir}/keybindings.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-powermenu";
-      runtimeInputs = with pkgs; [ rofi systemd ];
-      text = builtins.readFile "${scriptDir}/powermenu.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-shader";
-      runtimeInputs = with pkgs; [ rofi hyprland hyprshade util-linux ];
-      text = builtins.readFile "${scriptDir}/shader_menu.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-animations";
-      runtimeInputs = with pkgs; [ rofi hyprland ];
-      text = builtins.readFile "${scriptDir}/hypr_anim.sh";
-    })
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-rofi-mako";
-      runtimeInputs = with pkgs; [ rofi mako jq libnotify coreutils hyprland gtk3 ];
-      text = builtins.readFile "${scriptDir}/rofi_mako.sh";
-    })
-  ];
-}
+  pkgs.symlinkJoin {
+    name = "dusky-rofi-scripts";
+    paths = [
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-emoji";
+        runtimeInputs = with pkgs; [rofi wl-clipboard wtype];
+        text = builtins.readFile "${scriptDir}/emoji.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-calculator";
+        runtimeInputs = with pkgs; [rofi wl-clipboard];
+        text = builtins.readFile "${scriptDir}/calculator.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-cliphist";
+        runtimeInputs = with pkgs; [rofi cliphist wl-clipboard];
+        text = builtins.readFile "${scriptDir}/rofi_cliphist.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-wallpaper";
+        runtimeInputs = with pkgs; [rofi awww matugen coreutils findutils gawk imagemagick util-linux];
+        text =
+          builtins.replaceStrings
+          [
+            ''readonly THEME_CTL="''${HOME}/user_scripts/theme_matugen/theme_ctl.sh"''
+            ''[[ ! -x "$THEME_CTL" ]]''
+          ]
+          [
+            ''readonly THEME_CTL="dusky-theme-ctl"''
+            ''! command -v "$THEME_CTL" >/dev/null 2>&1''
+          ]
+          (builtins.readFile "${scriptDir}/rofi_wallpaper_selctor.sh");
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-theme";
+        runtimeInputs = with pkgs; [rofi matugen];
+        # nix-compat: upstream hardcodes $HOME/user_scripts/theme_matugen/theme_ctl.sh
+        # (fatal "Controller script missing/non-executable" on NixOS). Point at our
+        # packaged binary + relax the file/exec test to a PATH lookup (same as the
+        # dusky-rofi-wallpaper patch above).
+        text =
+          builtins.replaceStrings
+          [
+            ''readonly THEME_CTL="''${HOME}/user_scripts/theme_matugen/theme_ctl.sh"''
+            ''[[ -f $THEME_CTL && -x $THEME_CTL ]]''
+          ]
+          [
+            ''readonly THEME_CTL="dusky-theme-ctl"''
+            ''command -v "$THEME_CTL" >/dev/null 2>&1''
+          ]
+          (builtins.readFile "${scriptDir}/rofi_theme.sh");
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-keybindings";
+        runtimeInputs = with pkgs; [rofi hyprland gnugrep gawk libxkbcommon jq];
+        text = builtins.readFile "${scriptDir}/keybindings.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-powermenu";
+        runtimeInputs = with pkgs; [rofi systemd];
+        text = builtins.readFile "${scriptDir}/powermenu.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-shader";
+        runtimeInputs = with pkgs; [rofi hyprland hyprshade util-linux];
+        text = builtins.readFile "${scriptDir}/shader_menu.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-animations";
+        runtimeInputs = with pkgs; [rofi hyprland];
+        text = builtins.readFile "${scriptDir}/hypr_anim.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-rofi-mako";
+        runtimeInputs = with pkgs; [rofi mako jq libnotify coreutils hyprland gtk3];
+        text = builtins.readFile "${scriptDir}/rofi_mako.sh";
+      })
+    ];
+  }

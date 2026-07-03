@@ -1,6 +1,10 @@
-{ config, pkgs, lib, dusky, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  dusky,
+  ...
+}: {
   # Deploy rofi config
   xdg.configFile."rofi/config.rasi".source = "${dusky}/.config/rofi/config.rasi";
 

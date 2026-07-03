@@ -1,5 +1,3 @@
-{ pkgs, ... }:
-
-{
-  home.packages = [ pkgs.blanket ];
+{pkgs, ...}: {
+  home.packages = [pkgs.blanket];
 }

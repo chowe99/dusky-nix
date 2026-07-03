@@ -1,12 +1,14 @@
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.dusky.gpu;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.dusky.gpu;
+in {
   config = lib.mkIf (cfg.type == "nvidia" || cfg.type == "nvidia-passthrough") {
     # Load nvidia driver for Xorg and Wayland
-    services.xserver.videoDrivers = [ "nvidia" ];
+    services.xserver.videoDrivers = ["nvidia"];
 
     hardware.nvidia = {
       modesetting.enable = true;

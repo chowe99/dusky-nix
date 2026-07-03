@@ -1,6 +1,10 @@
-{ config, pkgs, lib, dusky, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  dusky,
+  ...
+}: {
   # Deploy zed config
   xdg.configFile."zed" = {
     source = "${dusky}/.config/zed";
@@ -8,7 +12,7 @@
   };
 
   # Theme dir for matugen
-  home.activation.createZedThemes = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.createZedThemes = lib.hm.dag.entryAfter ["writeBoundary"] ''
     run mkdir -p "$HOME/.config/zed/themes"
   '';
 }

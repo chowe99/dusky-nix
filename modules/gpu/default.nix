@@ -1,9 +1,10 @@
-{ config, lib, ... }:
-
-let
-  cfg = config.dusky.gpu;
-in
 {
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.dusky.gpu;
+in {
   imports = [
     ./intel.nix
     ./nvidia.nix

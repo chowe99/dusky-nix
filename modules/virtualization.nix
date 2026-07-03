@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Libvirt + QEMU
   virtualisation.libvirtd = {
     enable = lib.mkDefault false;
@@ -14,5 +17,5 @@
 
   # Add user to libvirtd group when enabled
   users.users.${config.dusky.user.name}.extraGroups =
-    lib.optionals config.virtualisation.libvirtd.enable [ "libvirtd" "kvm" ];
+    lib.optionals config.virtualisation.libvirtd.enable ["libvirtd" "kvm"];
 }

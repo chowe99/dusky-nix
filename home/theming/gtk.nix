@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # GTK 3 settings
   xdg.configFile."gtk-3.0/settings.ini".text = ''
     [Settings]

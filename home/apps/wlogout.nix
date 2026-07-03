@@ -1,6 +1,10 @@
-{ config, pkgs, lib, dusky, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  dusky,
+  ...
+}: {
   # Wlogout layout with patched commands
   xdg.configFile."wlogout/layout".text = ''
     {

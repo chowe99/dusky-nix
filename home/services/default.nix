@@ -1,12 +1,15 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Battery notification service
   systemd.user.services.dusky-battery-notify = {
     Unit = {
       Description = "Dusky battery notification daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       Type = "simple";
@@ -14,15 +17,15 @@
       Restart = "on-failure";
       RestartSec = 5;
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 
   # Mako OSD daemon (hardware key events: caps lock, num lock, keyboard backlight)
   systemd.user.services.dusky-mako-osd = {
     Unit = {
       Description = "Hardware Lock Key OSD Daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       Type = "simple";
@@ -30,15 +33,15 @@
       Restart = "on-failure";
       RestartSec = 2;
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 
   # Dusky control center daemon (D-Bus activated via SUPER+Space)
   systemd.user.services.dusky = {
     Unit = {
       Description = "Dusky Control Center Daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       Type = "simple";
@@ -48,7 +51,7 @@
       RestartSec = 3;
       Slice = "app.slice";
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 
   # D-Bus service file for control center activation
@@ -63,8 +66,8 @@
   systemd.user.services.dusky-kokoro-tts = {
     Unit = {
       Description = "Dusky Kokoro TTS daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       Type = "simple";
@@ -72,15 +75,15 @@
       Restart = "on-failure";
       RestartSec = 5;
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 
   # Parakeet STT daemon (lazy-started by trigger, or auto-start on login)
   systemd.user.services.dusky-parakeet-stt = {
     Unit = {
       Description = "Dusky Parakeet STT daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       Type = "simple";
@@ -96,9 +99,9 @@
   systemd.user.services.dusky-voice-assistant = {
     Unit = {
       Description = "Dusky Voice Assistant daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" "dusky-kokoro-tts.service" ];
-      Requires = [ "dusky-kokoro-tts.service" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target" "dusky-kokoro-tts.service"];
+      Requires = ["dusky-kokoro-tts.service"];
     };
     Service = {
       Type = "simple";
@@ -106,15 +109,15 @@
       Restart = "on-failure";
       RestartSec = 5;
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 
   # Hyprsunset (blue light filter)
   systemd.user.services.hyprsunset = {
     Unit = {
       Description = "Hyprland sunset (blue light filter)";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       Type = "simple";
@@ -122,6 +125,6 @@
       Restart = "on-failure";
       RestartSec = 1;
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 }

@@ -1,9 +1,11 @@
-{ config, pkgs, lib, ... }:
-
-let
-  cfg = config.dusky;
-in
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
+  cfg = config.dusky;
+in {
   # Bootloader
   boot.loader = {
     systemd-boot.enable = true;
@@ -13,7 +15,7 @@ in
   # Nix settings
   nix = {
     settings = {
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = ["nix-command" "flakes"];
       auto-optimise-store = true;
       warn-dirty = false;
     };
@@ -121,10 +123,10 @@ in
     ];
     fontconfig = {
       defaultFonts = {
-        serif = [ "Noto Serif" ];
-        sansSerif = [ "Noto Sans" ];
-        monospace = [ "JetBrainsMono Nerd Font" ];
-        emoji = [ "Noto Color Emoji" ];
+        serif = ["Noto Serif"];
+        sansSerif = ["Noto Sans"];
+        monospace = ["JetBrainsMono Nerd Font"];
+        emoji = ["Noto Color Emoji"];
       };
     };
   };

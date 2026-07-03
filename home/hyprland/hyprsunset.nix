@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Deploy hyprsunset.conf
   xdg.configFile."hypr/hyprsunset.conf".text = ''
     # Morning - gently warm, like early daylight

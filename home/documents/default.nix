@@ -1,9 +1,11 @@
-{ config, pkgs, lib, ... }:
-
-let
-  vaultDir = ../../assets/obsidian-vault;
-in
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
+  vaultDir = ../../assets/obsidian-vault;
+in {
   # Obsidian vault configuration (pensive vault)
   # Only the .obsidian settings are managed — vault content is user-owned
   xdg.configFile = {
@@ -22,7 +24,7 @@ in
   };
 
   # Create matugen theme symlink for Obsidian
-  home.activation.obsidianMatugenTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.obsidianMatugenTheme = lib.hm.dag.entryAfter ["writeBoundary"] ''
     SNIPPET_DIR="$HOME/Documents/pensive/.obsidian/snippets"
     mkdir -p "$SNIPPET_DIR"
     LINK="$SNIPPET_DIR/matugen-theme.css"

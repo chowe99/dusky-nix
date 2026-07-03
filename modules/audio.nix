@@ -1,6 +1,8 @@
-{ config, pkgs, ... }:
-
 {
+  config,
+  pkgs,
+  ...
+}: {
   # PipeWire audio stack
   services.pipewire = {
     enable = true;

@@ -1,6 +1,5 @@
 # espeakng-loader — bundles espeak-ng shared libraries for kokoro-onnx phonemization
-{ pkgs }:
-
+{pkgs}:
 pkgs.python3Packages.buildPythonPackage rec {
   pname = "espeakng-loader";
   version = "0.2.4";
@@ -11,13 +10,13 @@ pkgs.python3Packages.buildPythonPackage rec {
     hash = "sha256-CHIbryfRPUYfa+bu2aZSd+cNaCNP9IT9i5iXsiLNy20=";
   };
 
-  nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+  nativeBuildInputs = [pkgs.autoPatchelfHook];
 
   buildInputs = [
-    pkgs.stdenv.cc.cc.lib  # libstdc++
+    pkgs.stdenv.cc.cc.lib # libstdc++
   ];
 
-  pythonImportsCheck = [ "espeakng_loader" ];
+  pythonImportsCheck = ["espeakng_loader"];
 
   meta = {
     description = "Bundled espeak-ng for Python (used by kokoro-onnx)";

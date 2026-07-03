@@ -1,6 +1,9 @@
 # kokoro-onnx — ONNX-based text-to-speech engine
-{ pkgs, espeakng-loader, phonemizer-fork }:
-
+{
+  pkgs,
+  espeakng-loader,
+  phonemizer-fork,
+}:
 pkgs.python3Packages.buildPythonPackage rec {
   pname = "kokoro-onnx";
   version = "0.5.0";
@@ -19,7 +22,7 @@ pkgs.python3Packages.buildPythonPackage rec {
     pkgs.python3Packages.soundfile
   ];
 
-  pythonImportsCheck = [ "kokoro_onnx" ];
+  pythonImportsCheck = ["kokoro_onnx"];
 
   meta = {
     description = "ONNX-based text-to-speech with Kokoro voices";

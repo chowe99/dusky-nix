@@ -1,30 +1,33 @@
-{ pkgs, dusky }:
-
-let
+{
+  pkgs,
+  dusky,
+}: let
   upstream = "${dusky}/user_scripts";
 
-  osd-python = pkgs.python3.withPackages (ps: with ps; [
-    pyudev
-    evdev
-  ]);
+  osd-python = pkgs.python3.withPackages (ps:
+    with ps; [
+      pyudev
+      evdev
+    ]);
 in
-pkgs.symlinkJoin {
-  name = "dusky-mako-scripts";
-  paths = [
-    # OSD Router shell script (volume/brightness/media OSD via mako)
-    (pkgs.writeShellApplication { checkPhase = "";
-      name = "dusky-osd-router";
-      runtimeInputs = with pkgs; [ wireplumber brightnessctl playerctl libnotify coreutils util-linux ];
-      text = builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.sh";
-    })
+  pkgs.symlinkJoin {
+    name = "dusky-mako-scripts";
+    paths = [
+      # OSD Router shell script (volume/brightness/media OSD via mako)
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-osd-router";
+        runtimeInputs = with pkgs; [wireplumber brightnessctl playerctl libnotify coreutils util-linux];
+        text = builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.sh";
+      })
 
-    # OSD Router Python daemon (caps lock, num lock, keyboard backlight events)
-    (pkgs.writeScriptBin "dusky-mako-osd-daemon" ''
-      #!${osd-python}/bin/python3
-      ${builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.py"}
-    '')
+      # OSD Router Python daemon (caps lock, num lock, keyboard backlight events)
+      (pkgs.writeScriptBin "dusky-mako-osd-daemon" ''
+        #!${osd-python}/bin/python3
+        ${builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.py"}
+      '')
 
-    # dusky-mako-tui moved to tui-scripts.nix: tui_mako.py is now a dusky_tui
-    # schema (textual framework + PYTHONPATH), not a standalone python script.
-  ];
-}
+      # dusky-mako-tui moved to tui-scripts.nix: tui_mako.py is now a dusky_tui
+      # schema (textual framework + PYTHONPATH), not a standalone python script.
+    ];
+  }

@@ -1,9 +1,11 @@
-{ config, pkgs, lib, ... }:
-
-let
-  cfg = config.dusky;
-in
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
+  cfg = config.dusky;
+in {
   # Hyprland compositor
   programs.hyprland = {
     enable = true;
@@ -27,15 +29,15 @@ in
       xdg-desktop-portal-hyprland
       xdg-desktop-portal-gtk
     ];
-    config.common.default = [ "hyprland" "gtk" ];
+    config.common.default = ["hyprland" "gtk"];
   };
 
   # Polkit agent (for GUI privilege escalation)
   systemd.user.services.hyprpolkitagent = {
     description = "Hyprland Polkit Authentication Agent";
-    wantedBy = [ "graphical-session.target" ];
-    wants = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    wants = ["graphical-session.target"];
+    after = ["graphical-session.target"];
     serviceConfig = {
       Type = "simple";
       ExecStart = "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
@@ -100,8 +102,8 @@ in
     brightnessctl
     playerctl
     xhost
-    glib.bin  # gdbus for control center D-Bus activation
-    libxkbcommon  # xkbcli for keybindings rofi script
+    glib.bin # gdbus for control center D-Bus activation
+    libxkbcommon # xkbcli for keybindings rofi script
 
     # Cursor
     bibata-cursors

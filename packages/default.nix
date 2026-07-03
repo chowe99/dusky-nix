@@ -1,10 +1,11 @@
-{ pkgs, dusky }:
-
-let
-  dusky-scripts = import ./dusky-scripts { inherit pkgs dusky; };
-in
 {
-  inherit (dusky-scripts)
+  pkgs,
+  dusky,
+}: let
+  dusky-scripts = import ./dusky-scripts {inherit pkgs dusky;};
+in {
+  inherit
+    (dusky-scripts)
     dusky-hypr-scripts
     dusky-theme-scripts
     dusky-waybar-scripts
@@ -18,7 +19,8 @@ in
     dusky-network-scripts
     dusky-mako-scripts
     dusky-misc-scripts
-    dusky-tui-scripts;
+    dusky-tui-scripts
+    ;
 
   # Meta-package that pulls everything
   dusky-scripts-all = pkgs.symlinkJoin {

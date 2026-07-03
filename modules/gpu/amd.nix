@@ -1,11 +1,13 @@
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.dusky.gpu;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.dusky.gpu;
+in {
   config = lib.mkIf (cfg.type == "amd") {
-    boot.initrd.kernelModules = [ "amdgpu" ];
+    boot.initrd.kernelModules = ["amdgpu"];
 
     hardware.graphics.extraPackages = with pkgs; [
       amdvlk

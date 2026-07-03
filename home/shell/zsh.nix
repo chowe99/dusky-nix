@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   programs.zsh = {
     enable = true;
     autosuggestion = {
@@ -227,5 +230,4 @@
     enable = true;
     enableZshIntegration = true;
   };
-
 }

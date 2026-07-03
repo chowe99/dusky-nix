@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   home.sessionVariables = {
     TERMINAL = "kitty";
     EDITOR = "nvim";

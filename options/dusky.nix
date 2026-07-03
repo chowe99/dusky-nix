@@ -1,10 +1,8 @@
-{ lib, ... }:
-
-{
+{lib, ...}: {
   options.dusky = {
     gpu = {
       type = lib.mkOption {
-        type = lib.types.enum [ "intel" "nvidia" "amd" "nvidia-passthrough" ];
+        type = lib.types.enum ["intel" "nvidia" "amd" "nvidia-passthrough"];
         default = "intel";
         description = "Primary GPU type for driver configuration.";
       };
@@ -15,7 +13,7 @@
     };
 
     displayManager = lib.mkOption {
-      type = lib.types.enum [ "uwsm" "greetd" "none" ];
+      type = lib.types.enum ["uwsm" "greetd" "none"];
       default = "uwsm";
       description = "Display/session manager to use.";
     };
@@ -44,6 +42,5 @@
       default = "firefox";
       description = "Default web browser.";
     };
-
   };
 }

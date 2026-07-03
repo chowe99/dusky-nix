@@ -1,9 +1,11 @@
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.dusky.laptop;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.dusky.laptop;
+in {
   config = lib.mkIf cfg.enable {
     # TLP for power management
     services.tlp = {

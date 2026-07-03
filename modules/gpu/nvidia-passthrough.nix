@@ -1,13 +1,15 @@
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.dusky.gpu;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.dusky.gpu;
+in {
   config = lib.mkIf (cfg.type == "nvidia-passthrough") {
     # VFIO / GPU passthrough for Looking Glass
     boot = {
-      kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
+      kernelModules = ["vfio_pci" "vfio" "vfio_iommu_type1"];
       kernelParams = [
         "intel_iommu=on"
         "iommu=pt"

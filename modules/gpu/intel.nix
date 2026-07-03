@@ -1,14 +1,16 @@
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.dusky.gpu;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.dusky.gpu;
+in {
   config = lib.mkIf (cfg.type == "intel") {
     # Intel GPU drivers
     hardware.graphics.extraPackages = with pkgs; [
-      intel-media-driver    # iHD driver (Broadwell+)
-      vpl-gpu-rt            # Intel Video Processing Library
+      intel-media-driver # iHD driver (Broadwell+)
+      vpl-gpu-rt # Intel Video Processing Library
       intel-compute-runtime # OpenCL
     ];
 

@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Hostname
   networking.hostName = lib.mkDefault "dusky";
 
@@ -10,8 +13,8 @@
   # Firewall
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ ];
-    allowedUDPPorts = [ ];
+    allowedTCPPorts = [];
+    allowedUDPPorts = [];
   };
 
   # Tailscale (optional, enable per-host)

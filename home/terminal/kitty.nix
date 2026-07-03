@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Deploy kitty.conf via xdg.configFile (not programs.kitty)
   # This preserves the matugen color include and raw config style
   xdg.configFile."kitty/kitty.conf".text = ''

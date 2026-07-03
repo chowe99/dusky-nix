@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # UWSM general environment
   xdg.configFile."uwsm/env".text = ''
     #!/bin/sh

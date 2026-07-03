@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Deploy hypridle.conf
   xdg.configFile."hypr/hypridle.conf".text = ''
     general {
@@ -47,14 +50,14 @@
   systemd.user.services.hypridle = {
     Unit = {
       Description = "Hyprland idle daemon";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
     };
     Service = {
       ExecStart = "${pkgs.hypridle}/bin/hypridle";
       Restart = "on-failure";
       RestartSec = 1;
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.WantedBy = ["graphical-session.target"];
   };
 }
