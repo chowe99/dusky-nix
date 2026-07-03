@@ -20,12 +20,21 @@ pkgs.symlinkJoin {
       # writeShellApplication doesn't set, causing color-scheme calls to
       # silently fail. Use dconf write instead — it works directly with
       # the user dbus session and doesn't need compiled schemas.
+      #
+      # UX fix: upstream only writes color-scheme deep inside the matugen
+      # apply path, i.e. AFTER a ~1-2s color regen, so dark/light lands
+      # seconds after the toggle and users double-tap it. Fire the dconf
+      # write immediately on mode change (right where mode_changed is set),
+      # so portal-following apps (GTK4/libadwaita, Firefox/Zen) flip at once.
+      # The later apply-path writes stay as a harmless idempotent backstop.
       text = builtins.replaceStrings
         [ "pgrep -xu"
           "        gsettings set org.gnome.desktop.interface color-scheme \"prefer-\${THEME_MODE}\" 2>/dev/null || true"
+          "    [[ \"$THEME_MODE\" != \"$prev_mode\" ]] && mode_changed=1"
         ]
         [ "pgrep -fu"
           "        dconf write /org/gnome/desktop/interface/color-scheme \"'prefer-\${THEME_MODE}'\" 2>/dev/null || true"
+          "    [[ \"$THEME_MODE\" != \"$prev_mode\" ]] && mode_changed=1\n    (( mode_changed )) && dconf write /org/gnome/desktop/interface/color-scheme \"'prefer-\${THEME_MODE}'\" 2>/dev/null || true"
         ]
         (builtins.readFile "${scriptDir}/theme_ctl.sh");
     })
