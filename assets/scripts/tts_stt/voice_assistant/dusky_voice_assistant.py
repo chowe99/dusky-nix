@@ -33,7 +33,7 @@ MAX_TURNS = int(os.environ.get("DUSKY_MAX_TURNS", "20"))
 # for local Ollama point DUSKY_LLM_URL at http://<host>:11434/v1/chat/completions (no key needed).
 # The model must support tool/function calling for web search to work.
 OPENROUTER_URL = os.environ.get("DUSKY_LLM_URL", "https://openrouter.ai/api/v1/chat/completions")
-LLM_MODEL = os.environ.get("DUSKY_LLM_MODEL", "deepseek/deepseek-chat-v3-0324")
+LLM_MODEL = os.environ.get("DUSKY_LLM_MODEL", "deepseek/deepseek-v4-flash")
 
 # Web search backend: self-hosted SearXNG JSON API. Default reaches the homelab K3s NodePort
 # via the Keepalived VIP; override with DUSKY_SEARXNG_URL.
@@ -43,7 +43,7 @@ WEB_SEARCH_TOOL = {
     "type": "function",
     "function": {
         "name": "web_search",
-        "description": "Search the web for current, real-time, or factual information you don't already know (news, prices, weather, recent events, specific facts). Returns the top results.",
+        "description": "Search the web via the user's search engine. Call this whenever a question touches anything that can change over time or that you are not certain is current — who holds an office/role/title, recent events, news, dates, prices, sports, weather, product facts, or any specific claim. When unsure, search rather than guess. Returns the top results to answer from.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -53,6 +53,21 @@ WEB_SEARCH_TOOL = {
         },
     },
 }
+SYSTEM_PROMPT = (
+    "You are Dusky, a helpful voice assistant. "
+    "Keep responses concise and conversational — they are spoken aloud via TTS. "
+    "Avoid markdown, code blocks, and long lists; use natural spoken language. "
+    "Your built-in knowledge has a training cutoff and is out of date. For ANYTHING that "
+    "can change over time — who currently holds an office, role, or title; recent events; "
+    "news; dates; prices; sports; weather; or any specific fact you are not certain is "
+    "current — call the web_search tool FIRST, then answer using ONLY what the results say. "
+    "Trust fresh search results over your own memory AND over anything said earlier in this "
+    "conversation; if they conflict, the search results win and you correct yourself. "
+    "Do not answer current-events questions from memory. "
+    "Once you have search results, state the answer directly in the same reply — never say "
+    "you will check, look it up, or ask the user to wait; you already have the results. "
+    "If the user says 'remember that...' or 'remember:', confirm what you'll remember."
+)
 CHIME_SOUND = os.environ.get("DUSKY_CHIME_SOUND", "")
 STT_MODEL_NAME = os.environ.get("DUSKY_STT_MODEL", "nemo-parakeet-tdt-0.6b-v2")
 STT_QUANTIZATION = os.environ.get("DUSKY_STT_QUANTIZATION", "int8")
@@ -672,17 +687,9 @@ class DuskyVoiceAssistant:
     # --- LLM Interaction ---
 
     def build_prompt(self, user_text):
-        """Build prompt with conversation history and persistent memory for the LLM."""
-        system_context = (
-            "You are Dusky, a helpful voice assistant. "
-            "Keep responses concise and conversational — they will be spoken aloud via TTS. "
-            "Avoid markdown formatting, code blocks, or long lists. "
-            "Use natural spoken language. "
-            "If the user says 'remember that...' or 'remember:', save the information — "
-            "respond confirming what you'll remember."
-        )
-
-        parts = [system_context]
+        """Build the user-turn content: persistent memory, summary, and conversation history.
+        The fixed instructions live in SYSTEM_PROMPT (sent as a system message by query_llm)."""
+        parts = []
 
         # Add persistent memory if available
         memory = self._load_memory()
@@ -776,13 +783,20 @@ class DuskyVoiceAssistant:
         except Exception as e:
             logger.warning(f"Web search failed: {e}")
             return f"Search failed: {e}"
-        results = data.get("results", [])[:max_results]
-        if not results:
+        lines = []
+        # Instant answers / infoboxes often state the fact directly — put them first.
+        for a in data.get("answers", []):
+            ans = a.get("answer") if isinstance(a, dict) else a
+            if ans:
+                lines.append(f"ANSWER: {ans}")
+        for ib in data.get("infoboxes", [])[:1]:
+            if ib.get("content"):
+                lines.append(f"ANSWER: {ib['content']}")
+        for r in data.get("results", [])[:max_results]:
+            lines.append(f"- {r.get('title', '')}: {r.get('content', '')} ({r.get('url', '')})")
+        if not lines:
             return "No results found."
-        return "\n".join(
-            f"- {r.get('title', '')}: {r.get('content', '')} ({r.get('url', '')})"
-            for r in results
-        )
+        return "\n".join(lines)
 
     def _run_interruptible(self, fn):
         """Run blocking fn() in a thread; return its result, or None if the user hits
@@ -800,8 +814,10 @@ class DuskyVoiceAssistant:
 
     def query_llm(self, user_text):
         """Send user text to the LLM, letting it call web_search (SearXNG) when it needs current info."""
-        prompt = self.build_prompt(user_text)
-        messages = [{"role": "user", "content": prompt}]
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": self.build_prompt(user_text)},
+        ]
 
         msg = None
         for round_i in range(MAX_TOOL_ROUNDS):
