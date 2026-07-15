@@ -262,10 +262,11 @@ class WakeWordThread(threading.Thread):
 # THREAD: FIFO COMMAND READER
 # ==============================================================================
 class FifoReader(threading.Thread):
-    def __init__(self, command_queue, fifo_path):
+    def __init__(self, command_queue, fifo_path, interrupt_callback=None):
         super().__init__(name="FIFO", daemon=True)
         self.command_queue = command_queue
         self.fifo_path = fifo_path
+        self.interrupt_callback = interrupt_callback
         self.active = True
 
     def run(self):
@@ -292,7 +293,14 @@ class FifoReader(threading.Thread):
                 if data:
                     for line in data.decode('utf-8', errors='ignore').splitlines():
                         cmd = line.strip().upper()
-                        if cmd:
+                        if not cmd:
+                            continue
+                        # INTERRUPT must take effect immediately, even while the main
+                        # thread is blocked in the THINKING phase (query_llm HTTP call) —
+                        # handle it here in the reader thread instead of queueing it.
+                        if cmd == "INTERRUPT" and self.interrupt_callback:
+                            self.interrupt_callback()
+                        else:
                             self.command_queue.put(cmd)
             except OSError:
                 time.sleep(1)
@@ -433,7 +441,7 @@ class DuskyVoiceAssistant:
         self.last_stt_used = 0
 
         # Threads
-        self.fifo_reader = FifoReader(self.command_queue, FIFO_PATH)
+        self.fifo_reader = FifoReader(self.command_queue, FIFO_PATH, interrupt_callback=self.interrupt)
         self.wake_thread = WakeWordThread(self._on_wake)
 
     # --- STT Model Management (same pattern as Parakeet) ---
@@ -776,6 +784,20 @@ class DuskyVoiceAssistant:
             for r in results
         )
 
+    def _run_interruptible(self, fn):
+        """Run blocking fn() in a thread; return its result, or None if the user hits
+        interrupt (SUPER+Esc) mid-flight. Lets the THINKING phase be cancelled even
+        while an HTTP request is in progress. The abandoned thread is a daemon and
+        finishes on its own. ponytail: fine for rare interrupts; revisit if they pile up."""
+        box = {}
+        t = threading.Thread(target=lambda: box.__setitem__("v", fn()), daemon=True)
+        t.start()
+        while t.is_alive():
+            if self._interrupted:
+                return None
+            t.join(timeout=0.15)
+        return box.get("v")
+
     def query_llm(self, user_text):
         """Send user text to the LLM, letting it call web_search (SearXNG) when it needs current info."""
         prompt = self.build_prompt(user_text)
@@ -783,10 +805,12 @@ class DuskyVoiceAssistant:
 
         msg = None
         for round_i in range(MAX_TOOL_ROUNDS):
+            if self._interrupted:
+                return None
             # On the final round, drop tools so the model must produce a spoken answer
             # instead of endlessly refining its searches.
             tools = [WEB_SEARCH_TOOL] if round_i < MAX_TOOL_ROUNDS - 1 else None
-            msg = self._llm_post(messages, tools=tools)
+            msg = self._run_interruptible(lambda: self._llm_post(messages, tools=tools))
             if not msg:
                 self.set_state(State.THINKING, tool_use="")
                 return None
@@ -795,6 +819,8 @@ class DuskyVoiceAssistant:
                 break
             messages.append(msg)  # assistant turn requesting the tool
             for tc in tool_calls:
+                if self._interrupted:
+                    return None
                 try:
                     args = json.loads(tc.get("function", {}).get("arguments") or "{}")
                 except (ValueError, TypeError):
@@ -802,10 +828,13 @@ class DuskyVoiceAssistant:
                 q = args.get("query", "")
                 self.set_state(State.THINKING, tool_use="Web Searching")
                 logger.info(f"web_search: {q}")
+                result = self._run_interruptible(lambda q=q: self._web_search(q)) if q else "No query provided."
+                if result is None:
+                    return None
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tc.get("id", ""),
-                    "content": self._web_search(q) if q else "No query provided.",
+                    "content": result,
                 })
 
         self.set_state(State.THINKING, tool_use="")
@@ -853,9 +882,12 @@ class DuskyVoiceAssistant:
             return
 
         try:
-            # Non-blocking write to FIFO
+            # Non-blocking write to FIFO. Pass the text as an argv argument ("$1"),
+            # NOT interpolated into the shell string — otherwise responses containing
+            # both a quote and an apostrophe (e.g. '"Palworld" ... don\'t') break bash
+            # quoting and the text silently never reaches Kokoro.
             proc = subprocess.Popen(
-                ["bash", "-c", f"printf '%s\\n' {repr(clean)} > {KOKORO_FIFO}"],
+                ["bash", "-c", 'printf "%s\\n" "$1" > "$2"', "tts", clean, str(KOKORO_FIFO)],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
             proc.wait(timeout=5)
