@@ -13,6 +13,9 @@ import json
 import struct
 import tempfile
 import re
+import urllib.request
+import urllib.error
+import urllib.parse
 from pathlib import Path
 import logging
 
@@ -26,7 +29,30 @@ WAKE_WORD = os.environ.get("DUSKY_WAKE_WORD", "hey_jarvis")
 VOICE_MODE = os.environ.get("DUSKY_VOICE_MODE", "local")
 FOLLOWUP_TIMEOUT = float(os.environ.get("DUSKY_FOLLOWUP_TIMEOUT", "15"))
 MAX_TURNS = int(os.environ.get("DUSKY_MAX_TURNS", "20"))
-LLM_COMMAND = os.environ.get("DUSKY_LLM_COMMAND", "claude")
+# LLM backend: any OpenAI-compatible chat endpoint. Set OPENROUTER_API_KEY for OpenRouter;
+# for local Ollama point DUSKY_LLM_URL at http://<host>:11434/v1/chat/completions (no key needed).
+# The model must support tool/function calling for web search to work.
+OPENROUTER_URL = os.environ.get("DUSKY_LLM_URL", "https://openrouter.ai/api/v1/chat/completions")
+LLM_MODEL = os.environ.get("DUSKY_LLM_MODEL", "deepseek/deepseek-chat-v3-0324")
+
+# Web search backend: self-hosted SearXNG JSON API. Default reaches the homelab K3s NodePort
+# via the Keepalived VIP; override with DUSKY_SEARXNG_URL.
+SEARXNG_URL = os.environ.get("DUSKY_SEARXNG_URL", "http://10.1.1.100:30347")
+MAX_TOOL_ROUNDS = int(os.environ.get("DUSKY_MAX_TOOL_ROUNDS", "3"))
+WEB_SEARCH_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "web_search",
+        "description": "Search the web for current, real-time, or factual information you don't already know (news, prices, weather, recent events, specific facts). Returns the top results.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "The search query"},
+            },
+            "required": ["query"],
+        },
+    },
+}
 CHIME_SOUND = os.environ.get("DUSKY_CHIME_SOUND", "")
 STT_MODEL_NAME = os.environ.get("DUSKY_STT_MODEL", "nemo-parakeet-tdt-0.6b-v2")
 STT_QUANTIZATION = os.environ.get("DUSKY_STT_QUANTIZATION", "int8")
@@ -395,7 +421,7 @@ class DuskyVoiceAssistant:
         self._interrupted = False
 
         logger.info(f"Dusky Voice Assistant {VERSION} Initializing...")
-        logger.info(f"Wake word: {WAKE_WORD}, LLM: {LLM_COMMAND}, Follow-up: {FOLLOWUP_TIMEOUT}s")
+        logger.info(f"Wake word: {WAKE_WORD}, LLM: {LLM_MODEL}, Follow-up: {FOLLOWUP_TIMEOUT}s")
 
         # Ensure memory dir exists
         MEMORY_DIR.mkdir(parents=True, exist_ok=True)
@@ -588,14 +614,9 @@ class DuskyVoiceAssistant:
         )
 
         try:
-            env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-            result = subprocess.run(
-                [LLM_COMMAND, "-p", compact_prompt, "--no-session-persistence",
-                 "--output-format", "text", "--model", "haiku"],
-                capture_output=True, text=True, timeout=60, env=env,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                self._compacted_summary = result.stdout.strip()
+            summary = self._llm_chat(compact_prompt, timeout=60)
+            if summary:
+                self._compacted_summary = summary
                 self.conversation = recent
                 self._save_session()
                 logger.info(f"Compaction done: {num_turns} turns → {len(recent)} + summary")
@@ -677,89 +698,130 @@ class DuskyVoiceAssistant:
 
         return "\n".join(parts)
 
-    # Tool name → display label mapping
-    _TOOL_LABELS = {
-        "WebSearch": "Web Searching",
-        "WebFetch": "Fetching Page",
-        "Read": "Reading File",
-        "Bash": "Running Command",
-        "Grep": "Searching Code",
-        "Glob": "Finding Files",
-    }
+    def _llm_post(self, messages, tools=None, timeout=120):
+        """POST messages to an OpenAI-compatible chat endpoint, return the assistant message dict (or None).
+
+        Works with OpenRouter and any OpenAI-compatible server (e.g. local Ollama at
+        http://<host>:11434/v1/chat/completions) — just point DUSKY_LLM_URL/DUSKY_LLM_MODEL there.
+        """
+        api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+        if not api_key and "openrouter.ai" in OPENROUTER_URL:
+            logger.error("OPENROUTER_API_KEY not set")
+            notify("Voice Assistant Error", "OPENROUTER_API_KEY not set", critical=True)
+            return None
+        payload = {"model": LLM_MODEL, "messages": messages}
+        if tools:
+            payload["tools"] = tools
+        headers = {
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/chowe99/dusky-nix",
+            "X-Title": "Dusky Voice Assistant",
+        }
+        if api_key:  # local servers don't need auth
+            headers["Authorization"] = f"Bearer {api_key}"
+        req = urllib.request.Request(
+            OPENROUTER_URL, data=json.dumps(payload).encode(), method="POST", headers=headers,
+        )
+        # Free models get 429'd by their upstream provider intermittently — retry a few times.
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    data = json.loads(resp.read().decode())
+                # OpenRouter can return a 200 whose body carries a provider error (e.g. 429).
+                if "error" in data and "choices" not in data:
+                    code = data["error"].get("code")
+                    if code == 429 and attempt < 3:
+                        time.sleep(min(2 ** attempt, 5))
+                        continue
+                    logger.error(f"LLM provider error: {str(data['error'])[:200]}")
+                    notify("Voice Assistant", f"LLM error {code}", critical=True)
+                    return None
+                return data["choices"][0]["message"]
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < 3:
+                    retry_after = e.headers.get("Retry-After")
+                    time.sleep(min(float(retry_after) if retry_after else 2 ** attempt, 5))
+                    continue
+                detail = e.read().decode(errors="replace")[:200]
+                logger.error(f"LLM HTTP {e.code}: {detail}")
+                notify("Voice Assistant", f"LLM error {e.code}", critical=True)
+                return None
+            except Exception as e:
+                logger.error(f"LLM request failed: {e}")
+                notify("Voice Assistant", "LLM request failed", critical=True)
+                return None
+        return None
+
+    def _llm_chat(self, prompt, timeout=120):
+        """One-shot prompt → reply text (no tools). Used for background tasks like compaction."""
+        msg = self._llm_post([{"role": "user", "content": prompt}], timeout=timeout)
+        if not msg:
+            return None
+        return (msg.get("content") or "").strip() or None
+
+    def _web_search(self, query, max_results=5):
+        """Query the self-hosted SearXNG JSON API, return a compact digest of top results."""
+        url = f"{SEARXNG_URL.rstrip('/')}/search?" + urllib.parse.urlencode({"q": query, "format": "json"})
+        try:
+            with urllib.request.urlopen(url, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+        except Exception as e:
+            logger.warning(f"Web search failed: {e}")
+            return f"Search failed: {e}"
+        results = data.get("results", [])[:max_results]
+        if not results:
+            return "No results found."
+        return "\n".join(
+            f"- {r.get('title', '')}: {r.get('content', '')} ({r.get('url', '')})"
+            for r in results
+        )
 
     def query_llm(self, user_text):
-        """Send user text to LLM via stream-json, detecting tool usage in real-time."""
+        """Send user text to the LLM, letting it call web_search (SearXNG) when it needs current info."""
         prompt = self.build_prompt(user_text)
+        messages = [{"role": "user", "content": prompt}]
 
-        try:
-            env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-            proc = subprocess.Popen(
-                [LLM_COMMAND, "-p", prompt, "--no-session-persistence",
-                 "--output-format", "stream-json", "--verbose",
-                 "--model", "sonnet", "--allowedTools", "WebSearch", "WebFetch"],
-                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env,
-            )
-
-            response_text = ""
-            for line in proc.stdout:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-
-                etype = event.get("type", "")
-
-                if etype == "assistant":
-                    msg = event.get("message", {})
-                    for block in msg.get("content", []):
-                        btype = block.get("type", "")
-                        if btype == "text":
-                            response_text = block.get("text", "")
-                        elif btype == "tool_use":
-                            tool_name = block.get("name", "")
-                            label = self._TOOL_LABELS.get(tool_name, tool_name)
-                            self.set_state(State.THINKING, tool_use=label)
-                            logger.info(f"Tool use: {tool_name}")
-                        elif btype == "tool_result":
-                            # Tool finished, back to thinking
-                            self.set_state(State.THINKING, tool_use="")
-
-                elif etype == "result":
-                    # Final result — use this as the authoritative response
-                    result_text = event.get("result", "")
-                    if result_text:
-                        response_text = result_text
-
-            proc.wait(timeout=10)
-
-            if proc.returncode != 0:
-                logger.error(f"LLM error (rc={proc.returncode})")
-                notify("Voice Assistant", "LLM error", critical=True)
+        msg = None
+        for round_i in range(MAX_TOOL_ROUNDS):
+            # On the final round, drop tools so the model must produce a spoken answer
+            # instead of endlessly refining its searches.
+            tools = [WEB_SEARCH_TOOL] if round_i < MAX_TOOL_ROUNDS - 1 else None
+            msg = self._llm_post(messages, tools=tools)
+            if not msg:
+                self.set_state(State.THINKING, tool_use="")
                 return None
+            tool_calls = msg.get("tool_calls")
+            if not tool_calls:
+                break
+            messages.append(msg)  # assistant turn requesting the tool
+            for tc in tool_calls:
+                try:
+                    args = json.loads(tc.get("function", {}).get("arguments") or "{}")
+                except (ValueError, TypeError):
+                    args = {}
+                q = args.get("query", "")
+                self.set_state(State.THINKING, tool_use="Web Searching")
+                logger.info(f"web_search: {q}")
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.get("id", ""),
+                    "content": self._web_search(q) if q else "No query provided.",
+                })
 
-            # Clean up response: collapse newlines into spaces, strip prefix
-            response = response_text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
-            # Collapse multiple spaces
-            while "  " in response:
-                response = response.replace("  ", " ")
-            response = response.strip()
-            if response.lower().startswith("dusky:"):
-                response = response[6:].strip()
-
-            self.set_state(State.THINKING, tool_use="")
-            return response if response else None
-
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            logger.error("LLM request timed out")
+        self.set_state(State.THINKING, tool_use="")
+        response_text = (msg.get("content") or "").strip() if msg else ""
+        if not response_text:
             return None
-        except FileNotFoundError:
-            logger.error(f"LLM command not found: {LLM_COMMAND}")
-            notify("Voice Assistant Error", f"LLM not found: {LLM_COMMAND}", critical=True)
-            return None
+
+        # Clean up response: collapse newlines/spaces, strip the "Dusky:" prefix
+        response = response_text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+        while "  " in response:
+            response = response.replace("  ", " ")
+        response = response.strip()
+        if response.lower().startswith("dusky:"):
+            response = response[6:].strip()
+
+        return response if response else None
 
     # --- TTS Output (via Kokoro) ---
 

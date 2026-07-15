@@ -442,8 +442,12 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-voice-assistant-daemon";
-        runtimeInputs = [voice-python pkgs.pipewire pkgs.mpv pkgs.libnotify pkgs.sox pkgs.procps pkgs.kitty pkgs.wireplumber];
-        text = ''exec ${voice-python}/bin/python3 ${patched}/tts_stt/voice_assistant/dusky_voice_assistant.py --daemon "$@"'';
+        runtimeInputs = [voice-python pkgs.pipewire pkgs.mpv pkgs.libnotify pkgs.sox pkgs.procps pkgs.kitty pkgs.wireplumber pkgs.coreutils];
+        # OpenRouter key: reuse the agenix-cached hermes key unless already in the env.
+        text = ''
+          export OPENROUTER_API_KEY="''${OPENROUTER_API_KEY:-$(cat "$HOME/.agenix-cache/hermes-openrouter-api-key" 2>/dev/null || true)}"
+          exec ${voice-python}/bin/python3 ${patched}/tts_stt/voice_assistant/dusky_voice_assistant.py --daemon "$@"
+        '';
       })
 
       # --- Voice Assistant trigger (keybind target): toggle listening ---
