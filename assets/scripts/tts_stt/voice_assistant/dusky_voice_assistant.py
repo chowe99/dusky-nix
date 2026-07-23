@@ -277,11 +277,12 @@ class WakeWordThread(threading.Thread):
 # THREAD: FIFO COMMAND READER
 # ==============================================================================
 class FifoReader(threading.Thread):
-    def __init__(self, command_queue, fifo_path, interrupt_callback=None):
+    def __init__(self, command_queue, fifo_path, interrupt_callback=None, proceed_callback=None):
         super().__init__(name="FIFO", daemon=True)
         self.command_queue = command_queue
         self.fifo_path = fifo_path
         self.interrupt_callback = interrupt_callback
+        self.proceed_callback = proceed_callback
         self.active = True
 
     def run(self):
@@ -315,6 +316,10 @@ class FifoReader(threading.Thread):
                         # handle it here in the reader thread instead of queueing it.
                         if cmd == "INTERRUPT" and self.interrupt_callback:
                             self.interrupt_callback()
+                        elif cmd == "PROCEED" and self.proceed_callback:
+                            # Single SUPER+Esc — stop listening now, transcribe what's
+                            # captured. Handled in the reader thread so it lands mid-record.
+                            self.proceed_callback()
                         else:
                             self.command_queue.put(cmd)
             except OSError:
@@ -341,11 +346,16 @@ def _read_rms(path, offset=0):
         return None
 
 
-def record_until_silence(output_path, timeout=30):
+def record_until_silence(output_path, timeout=30, should_proceed=None):
     """Record from mic via pw-record, stop after silence or timeout.
 
     Uses adaptive noise floor: calibrates from the first ~0.5s of audio,
     then considers speech as anything >3x the noise floor RMS.
+
+    should_proceed() is polled each loop — when it returns True (user hit
+    SUPER+Esc once) we stop immediately and force transcription of whatever
+    was captured, so a noisy room that never trips silence detection can't
+    stall the turn.
 
     Returns True if speech was captured, False if only silence.
     """
@@ -376,6 +386,10 @@ def record_until_silence(output_path, timeout=30):
 
     try:
         while proc.poll() is None:
+            if should_proceed and should_proceed():
+                logger.info("Manual proceed — stopping recording, transcribing anyway")
+                has_speech = True
+                break
             if time.time() > deadline:
                 logger.info("Recording timeout reached")
                 break
@@ -442,6 +456,7 @@ class DuskyVoiceAssistant:
         self._last_tool_use = ""
         self._compacted_summary = ""
         self._interrupted = False
+        self._force_proceed = False
 
         logger.info(f"Dusky Voice Assistant {VERSION} Initializing...")
         logger.info(f"Wake word: {WAKE_WORD}, LLM: {LLM_MODEL}, Follow-up: {FOLLOWUP_TIMEOUT}s")
@@ -456,7 +471,9 @@ class DuskyVoiceAssistant:
         self.last_stt_used = 0
 
         # Threads
-        self.fifo_reader = FifoReader(self.command_queue, FIFO_PATH, interrupt_callback=self.interrupt)
+        self.fifo_reader = FifoReader(self.command_queue, FIFO_PATH,
+                                      interrupt_callback=self.interrupt,
+                                      proceed_callback=self.force_proceed)
         self.wake_thread = WakeWordThread(self._on_wake)
 
     # --- STT Model Management (same pattern as Parakeet) ---
@@ -985,6 +1002,17 @@ class DuskyVoiceAssistant:
         self._interrupted = True
         logger.info("Interrupted (TTS + recording killed)")
 
+    def force_proceed(self):
+        """Single SUPER+Esc: stop the current listening phase and transcribe whatever was
+        captured, instead of waiting for silence detection (which stalls in noisy rooms).
+        Only meaningful while recording — a no-op otherwise, so the flag can't leak into
+        the next turn. The recording loops poll self._force_proceed and reset it."""
+        if self.state not in (State.RECORDING, State.LISTENING_FOLLOWUP):
+            logger.info(f"Proceed ignored (state={self.state})")
+            return
+        self._force_proceed = True
+        logger.info("Proceed: stop listening, transcribe captured audio")
+
     # --- Wake Word Callback ---
 
     def _on_wake(self):
@@ -1039,7 +1067,8 @@ class DuskyVoiceAssistant:
         self.set_state(State.RECORDING)
         audio_path = AUDIO_DIR / f"voice_{int(time.time())}.wav"
 
-        has_speech = record_until_silence(audio_path)
+        has_speech = record_until_silence(audio_path, should_proceed=lambda: self._force_proceed)
+        self._force_proceed = False
 
         if not has_speech:
             logger.info("No speech detected in recording")
@@ -1150,6 +1179,7 @@ class DuskyVoiceAssistant:
                     self.show_overlay()
 
                     self._interrupted = False
+                    self._force_proceed = False
                     self.play_chime()
 
                     # Conversation loop with follow-up
@@ -1190,6 +1220,12 @@ class DuskyVoiceAssistant:
 
                         while time.time() < followup_deadline:
                             if not self.running or self._interrupted:
+                                break
+
+                            # Single SUPER+Esc — stop listening, transcribe what we have.
+                            if self._force_proceed:
+                                self._force_proceed = False
+                                has_followup_speech = True
                                 break
 
                             # Check for commands
