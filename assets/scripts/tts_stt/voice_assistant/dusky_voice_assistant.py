@@ -873,7 +873,9 @@ class DuskyVoiceAssistant:
         self.set_state(State.THINKING, tool_use="")
         response_text = (msg.get("content") or "").strip() if msg else ""
         if not response_text:
-            return None
+            # Ran out of tool rounds with nothing to say — speak a fallback
+            # instead of going silent, which is indistinguishable from an interrupt.
+            return "Sorry, I couldn't find a clear answer to that."
 
         # Clean up response: collapse newlines/spaces, strip the "Dusky:" prefix
         response = response_text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
