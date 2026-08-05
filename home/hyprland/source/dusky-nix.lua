@@ -89,40 +89,44 @@ hl.gesture({ fingers = 4, direction = "pinchout", action = function() hl.exec_cm
 -- -------------------------------------------------------------------------------------------------
 -- KEYBINDS
 -- -------------------------------------------------------------------------------------------------
+-- hl.unbind() matches the LITERAL key string (whitespace-stripped, lowercased),
+-- not a parsed modmask — "ALT + SUPER + W" will not remove a bind registered as
+-- "SUPER + ALT + W". Every unbind below reuses upstream's exact spelling.
+--
+-- ponytail: ALT+8 and SUPER+ALT+O are each bound twice, carried over verbatim
+-- from the old .conf. Both fire, same as before. Drop one when you decide which.
 hl.unbind("CTRL + SPACE")
 hl.bind("CTRL + SPACE", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; dusky-rofi-wallpaper"), { description = "Rofi Wallpaper Selector" })
 hl.bind("ALT + 8", hl.dsp.exec_cmd("uwsm-app -- blanket"), { description = "Ambient Noise (Blanket)" })
-hl.unbind("SUPER + APOSTROPHE")
+hl.unbind("SUPER + apostrophe")
 hl.bind("SUPER + apostrophe", hl.dsp.exec_cmd("uwsm-app -- dusky-theme-ctl random"), { description = "Cycle Wallpaper" })
 hl.bind("ALT + 7", hl.dsp.exec_cmd("hyprctl keyword monitor eDP-1,1920x1080@48,0x0,1.6 && sleep 2 && hyprctl keyword misc:vrr 0"), { locked = true, description = "Set Refresh rate to 48Hz Asus Tuf" })
 hl.bind("ALT + 8", hl.dsp.exec_cmd("hyprctl keyword monitor eDP-1,1920x1080@144,0x0,1.6 && sleep 2 && hyprctl keyword misc:vrr 1"), { locked = true, description = "Set Refresh rate to 144Hz Asus Tuf" })
-hl.unbind("ALT + SUPER + W")
+hl.unbind("SUPER + ALT + W")
 hl.bind("SUPER + ALT + W", hl.dsp.exec_cmd("uwsm-app -- dusky-waybars --toggle"), { description = "Waybar Swap Configs" })
-hl.unbind("ALT + SHIFT + SUPER + W")
+hl.unbind("SUPER + ALT + SHIFT + W")
 hl.bind("SUPER + ALT + SHIFT + W", hl.dsp.exec_cmd("uwsm-app -- dusky-waybars --back_toggle"), { description = "Waybar Swap Configs" })
 hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("uwsm-app -- looking-glass-client -f /dev/shm/looking-glass -m KEY_F6"), { description = "Looking Glass VM" })
+hl.unbind("ALT + R")
 hl.bind("ALT + R", hl.dsp.exec_cmd("hyprctl reload"), { locked = true, description = "Reload Hyprland" })
+hl.unbind("ALT + V")
 hl.bind("ALT + V", hl.dsp.exec_cmd("uwsm-app -- dusky-sliders"), { description = "Volume/Brightness & Nightlight Slider" })
 hl.bind("XF86Launch3", hl.dsp.exec_cmd("uwsm-app -- " .. terminal .. " --class asusctl.sh -e sudo dusky-asus-control"), { description = "ASUS Control" })
-hl.unbind("ALT + SUPER + X")
+hl.unbind("SUPER + ALT + X")
 hl.bind("SUPER + ALT + X", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; dusky-rofi-shader"), { description = "Shader Menu" })
 hl.bind("SUPER + ALT + SHIFT + X", hl.dsp.exec_cmd("hyprshade off"), { locked = true, description = "Disable Shader" })
 hl.unbind("SUPER + V")
 hl.bind("SUPER + V", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; rofi -modi \"clipboard:dusky-rofi-cliphist\" -show clipboard"), { description = "Clipboard History" })
 hl.unbind("SUPER + S")
 hl.bind("SUPER + S", hl.dsp.exec_cmd("dusky-screenshot --region --freeze --notify"), { description = "Quick Screenshot" })
-hl.unbind("ALT + SUPER + S")
+hl.unbind("SUPER + ALT + S")
 hl.bind("SUPER + ALT + S", hl.dsp.exec_cmd("dusky-screenshot --region --freeze --annotate --notify --tool arrow"), { description = "Screenshot and Annotation" })
-hl.unbind("ALT + SUPER + O")
+hl.unbind("SUPER + ALT + O")
 hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd("uwsm-app -- " .. terminal .. " --class ollama_terminal.sh -e dusky-ollama-terminal"), { description = "AI LLM Ollama Chat" })
 hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("uwsm-app -- dusky-voice-reset"), { description = "Voice Assistant Reset" })
 hl.bind("SUPER + Escape", hl.dsp.exec_cmd("uwsm-app -- dusky-voice-interrupt"), { description = "Voice Proceed / double-tap Interrupt" })
 hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd("uwsm-app -- dusky-kokoro-voice"), { description = "TTS Voice Picker" })
 hl.bind("SUPER + Q", hl.dsp.window.close(), { description = "Close Window" })
-hl.bind("ALT + P", hl.dsp.exec_cmd(osd .. " --vol-mute"), { locked = true, description = "Mute Audio" })
-hl.bind("ALT + M", hl.dsp.exec_cmd("dusky-mono-audio"), { locked = true, description = "Mono Audio Toggle" })
-hl.bind("ALT + O", hl.dsp.exec_cmd("uwsm-app -- dusky-audio-switch"), { locked = true, description = "Switch Audio Output" })
-hl.bind("ALT + I", hl.dsp.exec_cmd("uwsm-app -- dusky-mic-switch"), { locked = true, description = "Switch Mic Input" })
 
 -- -------------------------------------------------------------------------------------------------
 -- WINDOW RULES
