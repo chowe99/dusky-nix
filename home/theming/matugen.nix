@@ -14,9 +14,6 @@
     # Override with dusky-nix vibrant variants
     cp -f ${../../assets/templates/btop.theme} $out/btop.theme
     cp -f ${../../assets/templates/omp-theme.omp.json} $out/omp-theme.omp.json
-    # Hyprland-conf-format colors template (upstream only ships hyprland-colors.lua,
-    # which can't be `source =`d into a Hyprland config).
-    cp -f ${../../assets/templates/hyprland-colors.conf} $out/hyprland-colors.conf
   '';
 in {
   # Deploy matugen config.toml with patched post_hooks

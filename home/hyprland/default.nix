@@ -5,7 +5,12 @@
   dusky,
   ...
 }: let
-  hyprDir = ./.;
+  # Upstream's ~/user_scripts/ tree, with packaged scripts symlinked to their
+  # dusky-* binaries. Pointing `dusky_scripts` here is what lets us deploy
+  # upstream's .lua config files verbatim instead of forking + sed-patching them.
+  userScripts = "${pkgs.dusky.dusky-user-scripts}/user_scripts/";
+
+  upstreamHypr = "${dusky}/.config/hypr";
 in {
   imports = [
     ./hypridle.nix
@@ -13,80 +18,84 @@ in {
     ./hyprsunset.nix
   ];
 
-  # Deploy the main hyprland.conf
-  xdg.configFile."hypr/hyprland.conf".text = ''
-    source = ~/.config/hypr/edit_here/source/default_apps.conf
+  # Main config. Hyprland 0.55+ dropped hyprlang for Lua; .conf support is gone
+  # in 0.57. This mirrors upstream's hyprland.lua, but resolves scripts through
+  # the Nix shim tree rather than $HOME/user_scripts.
+  xdg.configFile."hypr/hyprland.lua".text = ''
+    -- -----------------------------------------------------
+    -- HYPRLAND MAIN CONFIGURATION
+    -- Managed by Nix / home-manager
+    -- System: UWSM Managed
+    -- -----------------------------------------------------
+    -- Files are loaded with require(); Hyprland gives each one its own
+    -- error-isolated scope, so a broken file won't abort the rest.
+    -- Paths are dot-separated, relative to ~/.config/hypr/.
 
+    HOME = os.getenv("HOME")
 
-    # -----------------------------------------------------
-    # HYPRLAND MAIN CONFIGURATION
-    # -----------------------------------------------------
-    # Managed by Nix / home-manager
-    # System: UWSM Managed
-    # -----------------------------------------------------
+    -- Nix-packaged dusky scripts (upstream uses HOME .. "/user_scripts/")
+    dusky_scripts = "${userScripts}"
 
-    # 1. MONITORS
-    source = ~/.config/hypr/source/monitors.conf
+    -- Matugen palette. Written by matugen at theme-switch time, so it may not
+    -- exist on a fresh install — loadfile keeps that from aborting the config.
+    do
+      local colors = loadfile(HOME .. "/.config/matugen/generated/hyprland-colors.lua")
+      if colors then colors() end
+    end
 
-    # 2. PERMISSIONS
-    source = ~/.config/hypr/source/permissions.conf
+    -- User variables ($terminal, $browser, ...) must come first: every file
+    -- below reads them as globals.
+    require("edit_here.source.default_apps")
 
-    # 3. INPUT DEVICES
-    source = ~/.config/hypr/source/input.conf
+    require("source.monitors")
+    require("source.permissions")
+    require("source.input")
+    require("source.appearance")
+    require("source.window_rules")
+    require("source.keybinds")
+    require("source.autostart")
+    require("source.environment_variables")
+    require("source.workspace_rules")
 
-    # 4. APPEARANCE
-    source = ~/.config/hypr/source/appearance.conf
+    -- dusky-nix deltas on top of upstream (settings, extra binds, extra rules).
+    require("source.dusky-nix")
 
-    # 5. WINDOW RULES
-    source = ~/.config/hypr/source/window_rules.conf
-
-    # 6. KEYBINDINGS
-    source = ~/.config/hypr/source/keybinds.conf
-
-    # 7. AUTOSTART
-    source = ~/.config/hypr/source/autostart.conf
-
-    # 8. ENVIRONMENT VARIABLES
-    source = ~/.config/hypr/source/environment_variables.conf
-
-    # 9. WORKSPACE RULES
-    source = ~/.config/hypr/source/workspace_rules.conf
-
-    # -----------------------------------------------------
-    # LOCAL OVERRIDES (User editable, not Nix-managed)
-    # -----------------------------------------------------
-    source = ~/.config/hypr/edit_here/hyprland.conf
+    -- Local overrides — loaded LAST so it can unbind/replace anything above.
+    require("edit_here.hyprland")
   '';
 
-  # Deploy source/*.conf files
-  # Unpatched configs reference dusky/ submodule directly (upstream updates flow through)
-  # Patched configs (autostart, keybinds) live in this repo with dusky-* script name translations
-  xdg.configFile."hypr/source/appearance.conf".source = lib.mkDefault ./source/appearance.conf;
-  xdg.configFile."hypr/source/autostart.conf".source = lib.mkDefault ./source/autostart.conf;
-  xdg.configFile."hypr/source/environment_variables.conf".source = lib.mkDefault ./source/environment_variables.conf;
-  xdg.configFile."hypr/source/input.conf".source = lib.mkDefault ./source/input.conf;
-  xdg.configFile."hypr/source/keybinds.conf".source = lib.mkDefault ./source/keybinds.conf;
-  xdg.configFile."hypr/source/monitors.conf".source = lib.mkDefault ./source/monitors.conf;
-  xdg.configFile."hypr/source/permissions.conf".source = lib.mkDefault ./source/permissions.conf;
-  xdg.configFile."hypr/source/window_rules.conf".source = lib.mkDefault ./source/window_rules.conf;
-  xdg.configFile."hypr/source/workspace_rules.conf".source = lib.mkDefault ./source/workspace_rules.conf;
+  # Upstream .lua config, deployed verbatim. Script paths resolve via the shim
+  # tree above, so these need no patching and future dusky syncs are free.
+  xdg.configFile."hypr/source/appearance.lua".source = lib.mkDefault "${upstreamHypr}/source/appearance.lua";
+  xdg.configFile."hypr/source/autostart.lua".source = lib.mkDefault "${upstreamHypr}/source/autostart.lua";
+  xdg.configFile."hypr/source/environment_variables.lua".source = lib.mkDefault "${upstreamHypr}/source/environment_variables.lua";
+  xdg.configFile."hypr/source/input.lua".source = lib.mkDefault "${upstreamHypr}/source/input.lua";
+  xdg.configFile."hypr/source/keybinds.lua".source = lib.mkDefault "${upstreamHypr}/source/keybinds.lua";
+  xdg.configFile."hypr/source/monitors.lua".source = lib.mkDefault "${upstreamHypr}/source/monitors.lua";
+  xdg.configFile."hypr/source/permissions.lua".source = lib.mkDefault "${upstreamHypr}/source/permissions.lua";
+  xdg.configFile."hypr/source/window_rules.lua".source = lib.mkDefault "${upstreamHypr}/source/window_rules.lua";
+  xdg.configFile."hypr/source/workspace_rules.lua".source = lib.mkDefault "${upstreamHypr}/source/workspace_rules.lua";
+
+  # Our deltas on top of upstream — see the file header for what belongs here.
+  xdg.configFile."hypr/source/dusky-nix.lua".source = lib.mkDefault ./source/dusky-nix.lua;
 
   # Deploy animation presets
   xdg.configFile."hypr/source/animations" = {
-    source = lib.mkDefault "${dusky}/.config/hypr/source/animations";
+    source = lib.mkDefault "${upstreamHypr}/source/animations";
     recursive = true;
   };
 
   # Deploy shaders
   xdg.configFile."hypr/shaders" = {
-    source = lib.mkDefault "${dusky}/.config/hypr/shaders";
+    source = lib.mkDefault "${upstreamHypr}/shaders";
     recursive = true;
   };
 
   # Deploy hyprlock themes (patched: replace ~/user_scripts/ paths with Nix-packaged names)
+  # hyprlock is still hyprlang — only Hyprland itself moved to Lua.
   xdg.configFile."hypr/hyprlock_themes" = {
     source = lib.mkDefault (pkgs.runCommand "dusky-hyprlock-themes-patched" {} ''
-      cp -r "${dusky}/.config/hypr/hyprlock_themes" $out
+      cp -r "${upstreamHypr}/hyprlock_themes" $out
       chmod -R u+w $out
       find $out -name '*.conf' -exec sed -i \
         -e 's|~/user_scripts/hyprlock/check_capslock.sh|dusky-hyprlock-capslock|g' \
@@ -104,50 +113,27 @@ in {
   home.activation.createHyprEditHere = lib.hm.dag.entryAfter ["writeBoundary"] ''
         run mkdir -p "$HOME/.config/hypr/edit_here/source"
         # Create default files if they don't exist
-        if [ ! -f "$HOME/.config/hypr/edit_here/hyprland.conf" ]; then
-          run touch "$HOME/.config/hypr/edit_here/hyprland.conf"
+        if [ ! -f "$HOME/.config/hypr/edit_here/hyprland.lua" ]; then
+          run touch "$HOME/.config/hypr/edit_here/hyprland.lua"
         fi
-        if [ ! -f "$HOME/.config/hypr/edit_here/source/default_apps.conf" ]; then
-          cat > "$HOME/.config/hypr/edit_here/source/default_apps.conf" << 'CONF'
-    # User-editable default apps
-    # These variables are used throughout keybinds.conf
-    $terminal    = kitty
-    $fileManager = yazi
-    $menu        = rofi -show drun
-    $browser     = firefox
-    $textEditor  = nvim
-    CONF
+        if [ ! -f "$HOME/.config/hypr/edit_here/source/default_apps.lua" ]; then
+          cat > "$HOME/.config/hypr/edit_here/source/default_apps.lua" << 'LUA'
+    -- User-editable default apps. Globals, so source/keybinds.lua can read them.
+    terminal    = "kitty"
+    fileManager = "yazi"
+    menu        = "rofi -show drun"
+    browser     = "firefox"
+    textEditor  = "nvim"
+    LUA
         fi
   '';
 
   # Create default animation preset if none is active
   home.activation.createDefaultAnimation = lib.hm.dag.entryAfter ["writeBoundary"] ''
-        run mkdir -p "$HOME/.config/hypr/source/animations/active"
-        if [ ! -f "$HOME/.config/hypr/source/animations/active/active.conf" ]; then
-          run cp "$HOME/.config/hypr/source/animations/horizontal_dusky.conf" \
-                 "$HOME/.config/hypr/source/animations/active/active.conf" 2>/dev/null || \
-          cat > "$HOME/.config/hypr/source/animations/active/active.conf" << 'ANIM'
-    animations {
-        enabled = true
-        bezier = overshot, 0.05, 0.9, 0.1, 1.1
-        bezier = fluid, 0.25, 1, 0, 1
-        bezier = snap, 0.5, 0.9, 0.1, 1.05
-        bezier = menu_decel, 0.1, 1, 0, 1
-        bezier = liner, 1, 1, 1, 1
-        animation = windowsIn, 1, 7, overshot, popin 80%
-        animation = windowsOut, 1, 5, snap, popin 80%
-        animation = windowsMove, 1, 7, overshot, slide
-        animation = border, 1, 2, liner
-        animation = borderangle, 1, 40, liner, once
-        animation = fade, 1, 5, fluid
-        animation = layersIn, 1, 6, overshot, popin 70%
-        animation = layersOut, 0, 0, menu_decel, slide
-        animation = fadeLayersIn, 1, 5, menu_decel
-        animation = fadeLayersOut, 1, 4, menu_decel
-        animation = workspaces, 1, 8, overshot, slide
-        animation = specialWorkspace, 1, 8, overshot, slidevert
-    }
-    ANIM
-        fi
+    run mkdir -p "$HOME/.config/hypr/source/animations/active"
+    if [ ! -f "$HOME/.config/hypr/source/animations/active/active.lua" ]; then
+      run cp "$HOME/.config/hypr/source/animations/dusky.lua" \
+             "$HOME/.config/hypr/source/animations/active/active.lua"
+    fi
   '';
 }
