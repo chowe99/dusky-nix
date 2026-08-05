@@ -92,16 +92,24 @@ hl.gesture({ fingers = 4, direction = "pinchout", action = function() hl.exec_cm
 -- hl.unbind() matches the LITERAL key string (whitespace-stripped, lowercased),
 -- not a parsed modmask — "ALT + SUPER + W" will not remove a bind registered as
 -- "SUPER + ALT + W". Every unbind below reuses upstream's exact spelling.
---
--- ponytail: ALT+8 and SUPER+ALT+O are each bound twice, carried over verbatim
--- from the old .conf. Both fire, same as before. Drop one when you decide which.
+
+hl.unbind("SUPER + SPACE")
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("pkill rofi; rofi -show drun -run-command \"uwsm app -- {cmd}\""), { description = "Launch Menu for Apps" })
 hl.unbind("CTRL + SPACE")
 hl.bind("CTRL + SPACE", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; dusky-rofi-wallpaper"), { description = "Rofi Wallpaper Selector" })
+hl.unbind("ALT + SPACE")
+hl.bind("ALT + SPACE", hl.dsp.exec_cmd("gdbus call --session --dest com.github.dusky.controlcenter --object-path /com/github/dusky/controlcenter --method org.freedesktop.Application.Activate \"{}\""), { description = "System Menu" })
+hl.unbind("CTRL + ALT + SPACE")
+hl.bind("CTRL + ALT + SPACE", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; uuctl"), { description = "UWSM uuctl - display active user units" })
+hl.unbind("ALT + 4")
+hl.bind("ALT + 4", hl.dsp.exec_cmd("uwsm-app -- waypaper"), { description = "Wallpaper App" })
 hl.bind("ALT + 8", hl.dsp.exec_cmd("uwsm-app -- blanket"), { description = "Ambient Noise (Blanket)" })
 hl.unbind("SUPER + apostrophe")
 hl.bind("SUPER + apostrophe", hl.dsp.exec_cmd("uwsm-app -- dusky-theme-ctl random"), { description = "Cycle Wallpaper" })
 hl.bind("ALT + 7", hl.dsp.exec_cmd("hyprctl keyword monitor eDP-1,1920x1080@48,0x0,1.6 && sleep 2 && hyprctl keyword misc:vrr 0"), { locked = true, description = "Set Refresh rate to 48Hz Asus Tuf" })
-hl.bind("ALT + 8", hl.dsp.exec_cmd("hyprctl keyword monitor eDP-1,1920x1080@144,0x0,1.6 && sleep 2 && hyprctl keyword misc:vrr 1"), { locked = true, description = "Set Refresh rate to 144Hz Asus Tuf" })
+-- ALT+8 is Blanket (above); the 144Hz half of the ALT+7/8 pair has no key.
+hl.unbind("ALT + 0")
+hl.bind("ALT + 0", hl.dsp.exec_cmd("pkill waybar"), { locked = true, description = "Kill Waybar" })
 hl.unbind("SUPER + ALT + W")
 hl.bind("SUPER + ALT + W", hl.dsp.exec_cmd("uwsm-app -- dusky-waybars --toggle"), { description = "Waybar Swap Configs" })
 hl.unbind("SUPER + ALT + SHIFT + W")
@@ -122,11 +130,15 @@ hl.bind("SUPER + S", hl.dsp.exec_cmd("dusky-screenshot --region --freeze --notif
 hl.unbind("SUPER + ALT + S")
 hl.bind("SUPER + ALT + S", hl.dsp.exec_cmd("dusky-screenshot --region --freeze --annotate --notify --tool arrow"), { description = "Screenshot and Annotation" })
 hl.unbind("SUPER + ALT + O")
-hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd("uwsm-app -- " .. terminal .. " --class ollama_terminal.sh -e dusky-ollama-terminal"), { description = "AI LLM Ollama Chat" })
+-- SUPER+ALT+O is the TTS voice picker (below); Ollama chat has no key.
 hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("uwsm-app -- dusky-voice-reset"), { description = "Voice Assistant Reset" })
 hl.bind("SUPER + Escape", hl.dsp.exec_cmd("uwsm-app -- dusky-voice-interrupt"), { description = "Voice Proceed / double-tap Interrupt" })
 hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd("uwsm-app -- dusky-kokoro-voice"), { description = "TTS Voice Picker" })
 hl.bind("SUPER + Q", hl.dsp.window.close(), { description = "Close Window" })
+hl.unbind("SUPER + F")
+hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), { description = "Window Fullscreen" })
+hl.unbind("SUPER + SHIFT + F")
+hl.bind("SUPER + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }), { description = "Window Maximize" })
 
 -- -------------------------------------------------------------------------------------------------
 -- WINDOW RULES
