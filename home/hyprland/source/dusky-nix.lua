@@ -291,6 +291,6 @@ hl.window_rule({
     match = {
         workspace = "special:magic",
     },
-    border_color = "$primary",
+    border_color = primary,
     border_size = 1,
 })
