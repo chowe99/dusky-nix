@@ -44,9 +44,21 @@ in
         runtimeInputs = with pkgs; [hypridle procps libnotify];
         text = builtins.readFile "${scriptDir}/toggle_hypridle.sh";
       })
+      # Upstream splits the network meter in two: a long-running daemon that writes
+      # $XDG_RUNTIME_DIR/waybar-net/state, and a caller that reads that state and
+      # prints the JSON. Waybar and the Quick Panal both invoke the *caller* — this
+      # package used to be built from the daemon, so the thing everyone called just
+      # looped forever writing the state file and never printed a single byte. Hence
+      # the permanently blank network module/pill. Package both, correctly named.
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-waybar-network-meter";
+        runtimeInputs = with pkgs; [coreutils];
+        text = builtins.readFile "${scriptDir}/network/network_meter_calling.sh";
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-waybar-network-meter-daemon";
         runtimeInputs = with pkgs; [coreutils iproute2];
         text = builtins.readFile "${scriptDir}/network/network_meter_daemon.sh";
       })

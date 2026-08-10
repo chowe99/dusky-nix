@@ -20,6 +20,26 @@
     Install.WantedBy = ["graphical-session.target"];
   };
 
+  # Network speed daemon — writes $XDG_RUNTIME_DIR/waybar-net/state, which
+  # dusky-waybar-network-meter reads. Upstream ships this as network_meter.service;
+  # until now it only ran because waybar accidentally invoked the daemon in the
+  # caller's place (see waybar-scripts.nix), so fixing that packaging bug means
+  # something has to start it on purpose.
+  systemd.user.services.dusky-waybar-network-meter = {
+    Unit = {
+      Description = "Dusky waybar network speed daemon";
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "/etc/profiles/per-user/%u/bin/dusky-waybar-network-meter-daemon";
+      Restart = "always";
+      RestartSec = 1;
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+
   # Mako OSD daemon (hardware key events: caps lock, num lock, keyboard backlight)
   systemd.user.services.dusky-mako-osd = {
     Unit = {

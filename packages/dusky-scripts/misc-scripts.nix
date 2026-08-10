@@ -157,7 +157,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-reload-sliders";
-        runtimeInputs = with pkgs; [procps systemd coreutils];
+        runtimeInputs = with pkgs; [procps util-linux coreutils];
         text = builtins.readFile "${patched}/sliders/reload_sliders.sh";
       })
 

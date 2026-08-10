@@ -19,9 +19,12 @@ trap '' HUP
 # -----------------------------------------------------------------------------
 # Configuration
 # -----------------------------------------------------------------------------
-readonly APP_NAME="Dusky Sliders"
-readonly SERVICE_NAME="dusky_sliders.service"
-readonly PROCESS_PATTERN='dusky_sliders\.py'
+readonly APP_NAME="Dusky Quick Panal"
+# Upstream still says dusky_sliders.py / dusky_sliders.service — both are dead
+# names. The app was rewritten as dusky_quickpanal.py, and we launch it as a
+# plain uwsm-app scope (same as the ALT+V keybind) rather than a systemd unit,
+# so there is no service to start here.
+readonly PROCESS_PATTERN='dusky_quickpanal\.py'
 readonly GUI_CMD="dusky-sliders"
 
 # Timing Constants (Seconds)
@@ -58,7 +61,7 @@ preflight_checks() {
     fi
 
     local -a missing=()
-    for cmd in pgrep systemctl journalctl python3; do
+    for cmd in pgrep setsid; do
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
     done
 
@@ -117,28 +120,32 @@ terminate_processes() {
 }
 
 # -----------------------------------------------------------------------------
-# Service Management
+# Launch
 # -----------------------------------------------------------------------------
 start_and_verify_service() {
-    log_info "Starting systemd service: ${C_BOLD}${SERVICE_NAME}${C_RESET}"
+    log_info "Starting ${C_BOLD}${GUI_CMD}${C_RESET}..."
 
-    systemctl --user reset-failed -- "$SERVICE_NAME" 2>/dev/null || true
-
-    if ! systemctl --user start -- "$SERVICE_NAME"; then
-        log_err "systemctl start failed. Dumping logs:"
-        journalctl --user -u "$SERVICE_NAME" -n 15 --no-pager >&2
+    if ! command -v "$GUI_CMD" &>/dev/null; then
+        log_err "Not on PATH: $GUI_CMD"
         return 1
+    fi
+
+    # Detached session so the panel outlives this script. uwsm-app when available
+    # (matches the ALT+V keybind and puts it in the right scope), else bare.
+    if command -v uwsm-app &>/dev/null; then
+        setsid uwsm-app -- "$GUI_CMD" >/dev/null 2>&1 &
+    else
+        setsid "$GUI_CMD" >/dev/null 2>&1 &
     fi
 
     sleep "$SERVICE_INIT_DELAY_SEC"
 
-    if ! systemctl --user is-active --quiet -- "$SERVICE_NAME"; then
-        log_err "Service started but immediately exited. Dumping logs:"
-        journalctl --user -u "$SERVICE_NAME" -n 10 --no-pager >&2
+    if ! pgrep -f -- "$PROCESS_PATTERN" &>/dev/null; then
+        log_err "Panel exited immediately. Run '$GUI_CMD' directly to see why."
         return 1
     fi
 
-    log_ok "Service is active."
+    log_ok "Panel is running."
 }
 
 # -----------------------------------------------------------------------------
