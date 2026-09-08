@@ -46,7 +46,19 @@
       -e 's|brightnessctl set +5%|dusky-osd-router --bright-up 5|g' \
       -e 's|brightnessctl set 5%-|dusky-osd-router --bright-down 5|g' \
       {} +
+
+    # Wifi / bluetooth / audio open a TUI (impala, bluetui, wiremix) in a
+    # floating terminal instead of a GUI, and move to the right-hand side of
+    # the bar. Applied to every theme, since dusky-waybars can switch to any
+    # of them. Store paths, not bare names, so a click works regardless of
+    # what the consuming config installs.
+    ${pkgs.python3}/bin/python3 ${./tui-modules.py} $out \
+      "${terminal} --class dusky-tui -e ${pkgs.impala}/bin/impala" \
+      "${terminal} --class dusky-tui -e ${pkgs.bluetui}/bin/bluetui" \
+      "${terminal} --class dusky-tui -e ${pkgs.wiremix}/bin/wiremix"
   '';
+
+  terminal = "${pkgs.kitty}/bin/kitty";
 in {
   # Deploy waybar theme directories directly under ~/.config/waybar/<theme>/
   # to match upstream's layout. dusky_waybars.sh and the control-center
