@@ -6,6 +6,7 @@ import queue
 import argparse
 import select
 import gc
+import ctypes
 import subprocess
 import traceback
 import shutil
@@ -442,6 +443,14 @@ def record_until_silence(output_path, timeout=30, should_proceed=None):
 # ==============================================================================
 # DAEMON CORE
 # ==============================================================================
+def _rss_mb():
+    """Resident set size in MB, for the unload accounting in check_stt_idle()."""
+    try:
+        with open("/proc/self/statm") as f:
+            return int(f.read().split()[1]) * os.sysconf("SC_PAGE_SIZE") // (1024 * 1024)
+    except OSError:
+        return -1
+
 class DuskyVoiceAssistant:
     def __init__(self):
         self.running = True
@@ -511,6 +520,16 @@ class DuskyVoiceAssistant:
             del self.stt_model
             self.stt_model = None
             gc.collect()
+            # gc.collect() hands the arena back to glibc but glibc keeps the pages:
+            # in a long-lived daemon the freed chunks sit between live objects, so
+            # trimming the top of the heap reclaims nothing and ~1GB of private-dirty
+            # [heap] survives the unload. malloc_trim madvises the free pages away.
+            before = _rss_mb()
+            try:
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+            except Exception as e:
+                logger.debug(f"malloc_trim unavailable: {e}")
+            logger.info(f"Model unloaded. RSS {before}MB -> {_rss_mb()}MB")
 
     # --- State & Overlay ---
 
@@ -1002,6 +1021,10 @@ class DuskyVoiceAssistant:
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # Signal conversation to end
         self._interrupted = True
+        # Make the STT model eligible for unload on the next main-loop tick.
+        # ponytail: flag instead of freeing here — interrupt() runs on the FIFO
+        # thread and the main thread may be mid-recognize().
+        self.last_stt_used = 0
         logger.info("Interrupted (TTS + recording killed)")
 
     def force_proceed(self):
