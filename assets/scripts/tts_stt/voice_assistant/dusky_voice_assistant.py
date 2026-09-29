@@ -36,9 +36,10 @@ MAX_TURNS = int(os.environ.get("DUSKY_MAX_TURNS", "20"))
 OPENROUTER_URL = os.environ.get("DUSKY_LLM_URL", "https://openrouter.ai/api/v1/chat/completions")
 LLM_MODEL = os.environ.get("DUSKY_LLM_MODEL", "deepseek/deepseek-v4-flash")
 
-# Web search backend: self-hosted SearXNG JSON API. Default reaches the homelab K3s NodePort
-# via the Keepalived VIP; override with DUSKY_SEARXNG_URL.
-SEARXNG_URL = os.environ.get("DUSKY_SEARXNG_URL", "http://10.1.1.100:30347")
+# Web search backend: a SearXNG instance with the JSON API enabled (set by the
+# home-manager option dusky.voiceAssistant.searxngUrl). Unset/empty = no web_search
+# tool: the model answers from its own knowledge.
+SEARXNG_URL = os.environ.get("DUSKY_SEARXNG_URL", "").strip()
 MAX_TOOL_ROUNDS = int(os.environ.get("DUSKY_MAX_TOOL_ROUNDS", "3"))
 WEB_SEARCH_TOOL = {
     "type": "function",
@@ -812,6 +813,8 @@ class DuskyVoiceAssistant:
 
     def _web_search(self, query, max_results=5):
         """Query the self-hosted SearXNG JSON API, return a compact digest of top results."""
+        if not SEARXNG_URL:
+            return "Web search is not configured."
         url = f"{SEARXNG_URL.rstrip('/')}/search?" + urllib.parse.urlencode({"q": query, "format": "json"})
         try:
             with urllib.request.urlopen(url, timeout=15) as resp:
@@ -861,7 +864,7 @@ class DuskyVoiceAssistant:
                 return None
             # On the final round, drop tools so the model must produce a spoken answer
             # instead of endlessly refining its searches.
-            tools = [WEB_SEARCH_TOOL] if round_i < MAX_TOOL_ROUNDS - 1 else None
+            tools = [WEB_SEARCH_TOOL] if SEARXNG_URL and round_i < MAX_TOOL_ROUNDS - 1 else None
             msg = self._run_interruptible(lambda: self._llm_post(messages, tools=tools))
             if not msg:
                 self.set_state(State.THINKING, tool_use="")

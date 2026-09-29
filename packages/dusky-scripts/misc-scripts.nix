@@ -444,9 +444,13 @@ in
         checkPhase = "";
         name = "dusky-voice-assistant-daemon";
         runtimeInputs = [voice-python pkgs.pipewire pkgs.mpv pkgs.libnotify pkgs.sox pkgs.procps pkgs.kitty pkgs.wireplumber pkgs.coreutils];
-        # OpenRouter key: reuse the agenix-cached hermes key unless already in the env.
+        # OpenRouter key: $OPENROUTER_API_KEY, else read from $DUSKY_OPENROUTER_KEY_FILE
+        # (home-manager: dusky.voiceAssistant.apiKeyFile).
         text = ''
-          export OPENROUTER_API_KEY="''${OPENROUTER_API_KEY:-$(cat "$HOME/.agenix-cache/hermes-openrouter-api-key" 2>/dev/null || true)}"
+          if [ -z "''${OPENROUTER_API_KEY:-}" ] && [ -n "''${DUSKY_OPENROUTER_KEY_FILE:-}" ]; then
+            OPENROUTER_API_KEY="$(cat "$DUSKY_OPENROUTER_KEY_FILE" 2>/dev/null || true)"
+            export OPENROUTER_API_KEY
+          fi
           exec ${voice-python}/bin/python3 ${patched}/tts_stt/voice_assistant/dusky_voice_assistant.py --daemon "$@"
         '';
       })

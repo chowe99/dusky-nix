@@ -3,7 +3,24 @@
   pkgs,
   lib,
   ...
-}: {
+}: let
+  va = config.dusky.voiceAssistant;
+in {
+  options.dusky.voiceAssistant = {
+    searxngUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      example = "http://searxng.lan:8080";
+      description = "SearXNG instance (JSON API enabled) the voice assistant's web_search tool queries. Empty: no web search.";
+    };
+    apiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/run/user/1000/openrouter-api-key";
+      description = "File holding the OpenRouter API key, read at daemon start when OPENROUTER_API_KEY is not already set.";
+    };
+  };
+
   # Battery notification service
   systemd.user.services.dusky-battery-notify = {
     Unit = {
@@ -126,6 +143,9 @@
     Service = {
       Type = "simple";
       ExecStart = "/etc/profiles/per-user/%u/bin/dusky-voice-assistant-daemon";
+      Environment =
+        lib.optional (va.searxngUrl != "") "DUSKY_SEARXNG_URL=${va.searxngUrl}"
+        ++ lib.optional (va.apiKeyFile != null) "DUSKY_OPENROUTER_KEY_FILE=${va.apiKeyFile}";
       Restart = "on-failure";
       RestartSec = 5;
     };
