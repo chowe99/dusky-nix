@@ -1,7 +1,8 @@
 # profiles/home/standalone.nix — a complete dusky desktop user (home side):
 # common.nix + kitty, zsh (plugins, fzf-tab, vi-mode), fzf/zoxide/fastfetch,
-# tmux and the dusky keybinding overrides. Apps are the basics only: Zen,
-# kitty, Thunar, yazi, btop, plus what dusky's menus drive.
+# tmux and the dusky keybinding overrides, plus Zen, Thunar and btop. The
+# dusky app configs themselves (neovim, rofi, yazi, zathura, cava, mpv,
+# zellij, zed, ...) come from lib.mkSystem's `apps`.
 {
   config,
   pkgs,
@@ -42,7 +43,11 @@
     xarchiver
     btop # SUPER+SHIFT+T and the menu's "Activity"
     lsd # zsh's ls aliases
-    (writeShellScriptBin "nix-search" (builtins.readFile ../scripts/nix-search)) # SUPER+SHIFT+N
+    # SUPER+SHIFT+N. `nix` itself is the host's.
+    (writeShellScriptBin "nix-search" ''
+      export PATH="${lib.makeBinPath [fzf libnotify uwsm wl-clipboard xdg-terminal-exec]}:$PATH"
+      ${builtins.readFile ../scripts/nix-search}
+    '')
   ];
 
   # Default apps. Globals — dusky's source/keybinds.lua reads them.

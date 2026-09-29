@@ -168,8 +168,9 @@
 
     lib = rec {
       # dusky's app configs, trimmed to what the desktop drives: rofi,
-      # wlogout, yazi, btop, waypaper. (The full `apps` also brings
-      # neovim, zathura, cava, mpv, zellij, zed, fastfetch and blanket.)
+      # wlogout, yazi, btop, waypaper. (The full `apps`, mkSystem's default,
+      # also brings neovim, zathura, cava, mpv, zellij, zed, fastfetch and
+      # blanket.) Pass `apps = standaloneApps` to mkSystem for the trimmed set.
       standaloneApps = {
         imports = map (a: ./home/apps/${a}.nix) ["rofi" "wlogout" "yazi" "btop" "waypaper"];
       };
@@ -206,7 +207,7 @@
         system ? "x86_64-linux",
         hostConfig,
         homeConfig,
-        apps ? standaloneApps,
+        apps ? self.homeManagerModules.apps,
         extraModules ? [],
         specialArgs ? {inherit inputs;},
       }:

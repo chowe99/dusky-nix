@@ -36,14 +36,14 @@ the pieces into your own config:
 
 | Output | What |
 |---|---|
-| `nixosModules.standalone` | A complete machine: `common` + `desktop-base` + `cachyos-kernel`, nix/boot/firmware/NetworkManager basics, the user (zsh, wheel). No sshd. |
+| `nixosModules.standalone` | A complete machine: the port's own system modules (base, desktop, audio, networking, services, gpu, laptop) + `common` + `desktop-base` + `cachyos-kernel`, all firmware, the user (zsh, wheel). No sshd, no virtualisation. |
 | `nixosModules.common` | Desktop core: greetd (tuigreet, or `dusky-desktop.autoLogin`), Plymouth, Snapper on `/` + `/home`, nightly `dua` snapshot. |
 | `nixosModules.desktop-base` | PipeWire, Bluetooth, polkit, udisks/udiskie, LocalSend, gpu-screen-recorder, fonts. Opt-in `desktop-base.{kdeconnect,mosh}`. |
 | `nixosModules.cachyos-kernel` | `cachyos-kernel.enable` + the prebuilt-kernel cache. |
 | `homeManagerModules.standalone` | A complete user: `common` + kitty, zsh, fzf, zoxide, fd, ripgrep, fastfetch, tmux, keybindings; Zen, Thunar, btop. |
 | `homeManagerModules.common` | Desktop core: patched waybar themes, autostart, mako/battery unit fixes, matugen + wallpaper bootstrap, dusky-extras menu, Zen transparency. |
 | `homeManagerModules.*` | The individual pieces (`zsh` has `dusky-desktop.zsh.<slot>` hooks for your own init lines), plus `opencode`. |
-| `lib.duskyModules { apps ? … }` | The port's NixOS + home-manager module stack; `lib.standaloneApps` is a trimmed app list. |
+| `lib.duskyModules { apps ? … }` | The port's NixOS + home-manager module stack (full `apps` by default); `lib.standaloneApps` is a trimmed app list. |
 | `lib.mkSystem` | `nixosSystem` with home-manager, the dusky stack and the CachyOS/opencode overlays. |
 | `overlays.{default,cachyos,opencode}` | `pkgs.dusky.*`; CachyOS kernels; a known-good opencode build (temporary pin). |
 

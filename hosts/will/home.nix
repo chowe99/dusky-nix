@@ -1,4 +1,4 @@
-# users/will/home.nix — Will: the dusky desktop, basics + opencode
+# hosts/will/home.nix — Will: the full dusky desktop + opencode
 {...}: {
   imports = [
     ../../profiles/home/standalone.nix
