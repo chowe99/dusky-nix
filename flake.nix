@@ -256,6 +256,12 @@
         nixosConfig = will;
         username = "will";
       };
+      # first-boot activation: steps that need the linked files run after them
+      will-activation-order = import ./checks/activation-order {
+        inherit pkgs lib;
+        nixosConfig = will;
+        username = "will";
+      };
     };
 
     # Complete NixOS configuration (for standalone dusky installs)
