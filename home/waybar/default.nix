@@ -60,6 +60,12 @@
 
   terminal = "${pkgs.kitty}/bin/kitty";
 in {
+  # Launched by name from the themes' on-click/on-scroll handlers.
+  home.packages = with pkgs; [
+    gnome-clocks
+    pulseaudio # pactl
+  ];
+
   # Deploy waybar theme directories directly under ~/.config/waybar/<theme>/
   # to match upstream's layout. dusky_waybars.sh and the control-center
   # YAML scan $HOME/.config/waybar/*/config.jsonc for themes — keeping

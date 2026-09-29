@@ -45,7 +45,7 @@
   # the /run/wrappers setcap build, which is what makes kms capture work.
   # ---------------------------------------------------------------------------
   screenrecord = pkgs.writeShellScriptBin "dusky-screenrecord" ''
-    export PATH="${bin [pkgs.jq pkgs.slurp pkgs.hyprpicker pkgs.libnotify pkgs.ffmpeg-full pkgs.v4l-utils pkgs.procps pkgs.coreutils]}:/run/wrappers/bin:$PATH"
+    export PATH="${bin [pkgs.jq pkgs.slurp pkgs.hyprpicker pkgs.libnotify pkgs.ffmpeg-full pkgs.v4l-utils pkgs.procps pkgs.coreutils pkgs.hyprland]}:/run/wrappers/bin:$PATH"
     set -u
 
     OUTPUT_DIR="''${XDG_VIDEOS_DIR:-$HOME/Videos}"
@@ -384,7 +384,7 @@
   '';
 
   menu = pkgs.writeShellScriptBin "dusky-menu" ''
-    export PATH="${bin [pkgs.rofi pkgs.libnotify pkgs.coreutils pkgs.systemd pkgs.procps pkgs.wl-clipboard pkgs.yazi pkgs.gnugrep]}:$PATH"
+    export PATH="${bin [pkgs.rofi pkgs.libnotify pkgs.coreutils pkgs.systemd pkgs.procps pkgs.wl-clipboard pkgs.yazi pkgs.gnugrep pkgs.slurp pkgs.grim pkgs.rust-paddle-ocr pkgs.hyprpicker pkgs.hyprlock pkgs.util-linux pkgs.gawk pkgs.glib pkgs.uwsm pkgs.localsend]}:$PATH"
 
     pick() { rofi -dmenu -i -p "$1…" ''${2:-}; }
     ask() { : | rofi -dmenu -p "$1…"; }

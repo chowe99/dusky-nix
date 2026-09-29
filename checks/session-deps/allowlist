@@ -1,0 +1,20 @@
+# Names the session audit may see in a launch position without them being
+# installed. `name` anywhere, or `<config file>:name` for one file.
+
+# Waybar module actions (on-click = "activate", "mode", ...), not commands.
+activate
+mode
+shift_up
+shift_down
+shift_reset
+close
+fullscreen
+minimize
+maximize
+
+# Guarded fallbacks: the command before `||` handles the normal case.
+.config/wlogout/layout:hyprshutdown   # `uwsm stop` first, `hyprctl dispatch exit` last
+
+# Optional integrations that only make sense with extra setup.
+.config/waybar/09_retro_compact_h/config.jsonc:lrcsnc   # synced-lyrics module of one theme; not in nixpkgs
+.config/hypr/source/dusky-nix.lua:looking-glass-client  # VM GPU passthrough (modules/virtualization.nix + gpu nvidia-passthrough)

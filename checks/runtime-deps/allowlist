@@ -18,3 +18,7 @@ dusky-spotify-toggle:spotify    # toggles the Spotify client, installed by the u
 
 # Arch-only step; NixOS locales are i18n.supportedLocales.
 dusky-locale-tui:locale-gen
+
+# Host-provided by design.
+nix-search:nix                  # the system's nix (matches its daemon)
+dusky-screenrecord:gpu-screen-recorder  # setcap wrapper from programs.gpu-screen-recorder (desktop-base), found via /run/wrappers/bin

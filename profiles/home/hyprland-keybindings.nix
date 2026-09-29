@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cfg = config.programs.hyprland-keybindings;
@@ -66,6 +67,8 @@ in {
     })
 
     (lib.mkIf (cfg.variant == "dusky") {
+      # `ocr` for the CTRL+ALT+T bind below.
+      home.packages = [pkgs.rust-paddle-ocr];
       xdg.configFile."hypr/edit_here/hyprland.lua".force = true;
       xdg.configFile."hypr/edit_here/hyprland.lua".text =
         ''

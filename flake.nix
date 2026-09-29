@@ -238,10 +238,24 @@
     # Standalone packages
     packages.${system} = import ./packages {inherit pkgs dusky;};
 
-    # `nix flake check`: every packaged script carries its own runtime deps.
-    checks.${system}.runtime-deps = import ./checks/runtime-deps {
-      inherit pkgs;
-      packages = [self.packages.${system}.dusky-scripts-all];
+    # `nix flake check`:
+    checks.${system} = let
+      will = self.nixosConfigurations.will;
+      # The profile's own scripts (dusky-menu, dusky-screenrecord, ...), as
+      # will installs them.
+      profileScripts = builtins.filter (p: let n = p.name or ""; in (lib.hasPrefix "dusky-" n && n != "dusky-scripts-all") || n == "nix-search") will.config.home-manager.users.will.home.packages;
+    in {
+      # every packaged script carries its own runtime deps
+      runtime-deps = import ./checks/runtime-deps {
+        inherit pkgs;
+        packages = [self.packages.${system}.dusky-scripts-all] ++ profileScripts;
+      };
+      # every command will's deployed configs launch by name is installed
+      will-session = import ./checks/session-deps {
+        inherit pkgs;
+        nixosConfig = will;
+        username = "will";
+      };
     };
 
     # Complete NixOS configuration (for standalone dusky installs)

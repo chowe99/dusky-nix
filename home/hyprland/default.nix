@@ -109,7 +109,19 @@ in {
   # tesseract is required for dusky's OCR keybinds (SUPER+T, SUPER+SHIFT+T)
   # dusky-scripts-all: every dusky-* command the keybinds, waybar, menus and
   # desktop entries call by name.
-  home.packages = [pkgs.uwsm pkgs.tesseract pkgs.dusky.dusky-scripts-all];
+  # The rest are what upstream's keybinds.lua / hypridle.conf and our
+  # source/dusky-nix.lua launch by name.
+  home.packages = with pkgs; [
+    uwsm
+    tesseract
+    pkgs.dusky.dusky-scripts-all # (not `dusky.`: that is the upstream source arg)
+    jq
+    hyprshade
+    swappy
+    gnome-calculator
+    foot
+    pulseaudio # pactl
+  ];
 
   # Create mutable edit_here directory structure via activation
   home.activation.createHyprEditHere = lib.hm.dag.entryAfter ["writeBoundary"] ''
