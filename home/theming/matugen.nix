@@ -61,7 +61,8 @@ in {
   # `color` subcommand: matugen 4.0.0's `image` subcommand fails with
   # "IO error: not a terminal" outside a real TTY (which home-manager activation
   # is). `color hex` doesn't hit that code path.
-  home.activation.createMatugenGenerated = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  # After linkGeneration: it reads the linked matugen config.toml + templates.
+  home.activation.createMatugenGenerated = lib.hm.dag.entryAfter ["linkGeneration"] ''
     run mkdir -p "$HOME/.config/matugen/generated"
     if [ ! -f "$HOME/.config/matugen/generated/rofi-colors.rasi" ] || [ ! -f "$HOME/.config/matugen/generated/mako-colors.ini" ]; then
       run ${pkgs.matugen}/bin/matugen \

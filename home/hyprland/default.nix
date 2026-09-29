@@ -21,6 +21,10 @@ in {
   # Main config. Hyprland 0.55+ dropped hyprlang for Lua; .conf support is gone
   # in 0.57. This mirrors upstream's hyprland.lua, but resolves scripts through
   # the Nix shim tree rather than $HOME/user_scripts.
+  # force: on a first login where activation had not yet linked this file,
+  # Hyprland writes its own default hyprland.lua here; that stub must not
+  # block every later activation as an "existing file in the way".
+  xdg.configFile."hypr/hyprland.lua".force = true;
   xdg.configFile."hypr/hyprland.lua".text = ''
     -- -----------------------------------------------------
     -- HYPRLAND MAIN CONFIGURATION
@@ -123,8 +127,12 @@ in {
     pulseaudio # pactl
   ];
 
-  # Create mutable edit_here directory structure via activation
-  home.activation.createHyprEditHere = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  # Activation steps that read or fill around home-manager's own links must
+  # run after linkGeneration: before it, a fresh home has none of them yet.
+
+  # Create mutable edit_here directory structure via activation (only the
+  # files no module manages: those are links by now).
+  home.activation.createHyprEditHere = lib.hm.dag.entryAfter ["linkGeneration"] ''
         run mkdir -p "$HOME/.config/hypr/edit_here/source"
         # Create default files if they don't exist
         if [ ! -f "$HOME/.config/hypr/edit_here/hyprland.lua" ]; then
@@ -142,8 +150,10 @@ in {
         fi
   '';
 
-  # Create default animation preset if none is active
-  home.activation.createDefaultAnimation = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  # Create default animation preset if none is active. Copies from the linked
+  # source/animations tree, so it must follow linkGeneration (it used to run
+  # first on a fresh home, fail, and abort the whole activation).
+  home.activation.createDefaultAnimation = lib.hm.dag.entryAfter ["linkGeneration"] ''
     run mkdir -p "$HOME/.config/hypr/source/animations/active"
     if [ ! -f "$HOME/.config/hypr/source/animations/active/active.lua" ]; then
       run cp "$HOME/.config/hypr/source/animations/dusky.lua" \

@@ -5,8 +5,11 @@
   ...
 }: {
   # The theme, icon theme and cursor the settings below (and matugen's gtk
-  # post_hooks, and uwsm's XCURSOR_THEME) name.
-  home.packages = with pkgs; [adw-gtk3 papirus-icon-theme bibata-cursors];
+  # post_hooks, and uwsm's XCURSOR_THEME) name. Adwaita + hicolor are the
+  # fallbacks for the symbolic icon names the control center and waybar use
+  # (image-x-generic-symbolic, ...): without an icon theme that has them,
+  # they render as empty boxes.
+  home.packages = with pkgs; [adw-gtk3 papirus-icon-theme bibata-cursors adwaita-icon-theme hicolor-icon-theme];
 
   # GTK 3 settings
   xdg.configFile."gtk-3.0/settings.ini".text = ''

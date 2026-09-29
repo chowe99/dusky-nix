@@ -89,18 +89,7 @@
   # still work on demand.
   systemd.user.services.dusky-voice-assistant.Install.WantedBy = lib.mkForce [];
 
-  # Nothing upstream owns awww-daemon's lifetime, and
-  # dusky-rofi-wallpaper dies without it. Tie it to the session.
-  systemd.user.services.awww-daemon = {
-    Unit = {
-      Description = "awww wallpaper daemon";
-      PartOf = ["graphical-session.target"];
-      After = ["graphical-session.target"];
-    };
-    Service = {
-      ExecStart = "${pkgs.awww}/bin/awww-daemon --format xrgb";
-      Restart = "on-failure";
-    };
-    Install.WantedBy = ["graphical-session.target"];
-  };
+  # awww-daemon is started by the Hyprland autostart (profiles/home/common.nix),
+  # once the compositor is up. A graphical-session.target unit started it
+  # before WAYLAND_DISPLAY reached the user manager and crash-looped at login.
 }

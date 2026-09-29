@@ -87,6 +87,10 @@
         hl.exec_cmd("uwsm-app -- wl-paste --type image --watch cliphist store")
         hl.exec_cmd("uwsm-app -- wl-clip-persist --clipboard regular")
         hl.exec_cmd("uwsm-app -- waybar")
+        -- Wallpaper daemon: started here, inside the running compositor, where
+        -- WAYLAND_DISPLAY is certain (a graphical-session.target unit raced
+        -- it). theme-ctl below finds it (pgrep -f) instead of spawning its own.
+        hl.exec_cmd("uwsm-app -- awww-daemon --format xrgb")
         hl.exec_cmd("sleep 1 && dusky-theme-ctl restore || dusky-theme-ctl random")
         hl.exec_cmd("systemctl --user import-environment $(env | cut -d'=' -f 1)")
         hl.exec_cmd("dbus-update-activation-environment --systemd --all")

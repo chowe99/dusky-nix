@@ -61,7 +61,20 @@ output_path = '~/.config/matugen/generated/hyprlock-colors.conf'
 [templates.waybar]
 input_path  = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/matugen/generated/waybar-colors.css'
-post_hook   = 'pkill -SIGUSR2 waybar || true'
+post_hook   = '''
+bash -c '
+# Reload waybar styles (SIGUSR2). Exact names only: under Nix waybar runs as
+# .waybar-wrapped, and a bare `pkill waybar` also matched (and killed) the
+# dusky-waybar-network-meter daemon. Skip a waybar younger than 3s: it may not
+# have its SIGUSR2 handler yet (default action: terminate), and it is reading
+# these colours anyway. Login races this: dusky-wallpaper-fetch runs matugen
+# while the bar starts.
+for pid in $(pgrep -x -u "$(id -u)" "waybar|\.waybar-wrapped"); do
+  age=$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d " ")
+  [ "${age:-0}" -ge 3 ] && kill -USR2 "$pid"
+done
+true'
+'''
 
 [templates.mako]
 input_path  = '~/.config/matugen/templates/mako.ini'

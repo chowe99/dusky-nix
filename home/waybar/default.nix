@@ -79,7 +79,9 @@ in {
   # Create runtime symlinks via activation
   # config.jsonc and style.css live at the waybar root and point at the
   # currently-active theme directory.
-  home.activation.createWaybarSymlinks = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  # After linkGeneration: it picks a theme from the linked theme dirs, which a
+  # fresh home does not have before linking (no bar at first login).
+  home.activation.createWaybarSymlinks = lib.hm.dag.entryAfter ["linkGeneration"] ''
     # Pick the lowest-numbered theme that ships with the current dusky pin.
     # Upstream renames these directories from time to time (e.g. 01_horizontal_block
     # → 01_mechabar_h), so hardcoding a name produces a dangling symlink that
