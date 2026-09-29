@@ -36,7 +36,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-tui";
-        runtimeInputs = [pyTui];
+        runtimeInputs = [pyTui pkgs.hyprland pkgs.libnotify];
         text = ''
           export PYTHONPATH="${duskyTui}''${PYTHONPATH:+:$PYTHONPATH}"
           exec ${pyTui}/bin/python3 ${duskyTui}/python/main/main.py "$@"
@@ -53,13 +53,13 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-window-rules-gen";
-        runtimeInputs = with pkgs; [python3 hyprland];
+        runtimeInputs = with pkgs; [python3 hyprland wl-clipboard];
         text = ''exec python3 ${upstream}/hypr/rules/window_rules_generator.py "$@"'';
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-locale-tui";
-        runtimeInputs = with pkgs; [gawk gnused systemd];
+        runtimeInputs = with pkgs; [gawk gnused systemd hostname-debian];
         text = builtins.readFile "${upstream}/locale/locale_tui.sh";
       })
       (pkgs.writeShellApplication {
@@ -83,7 +83,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-wireguard-setup";
-        runtimeInputs = with pkgs; [wireguard-tools systemd coreutils];
+        runtimeInputs = with pkgs; [wireguard-tools systemd coreutils sudo];
         text = builtins.readFile "${upstream}/networking/dusky_wireguard_setup.sh";
       })
 
@@ -98,6 +98,20 @@ in
           export PYTHONPATH="${duskyTui}''${PYTHONPATH:+:$PYTHONPATH}"
           exec ${pyTui}/bin/python3 ${duskyTui}/python/main/main.py \
             ${upstream}/mako_osd/mako_tui/tui_mako.py "$@"
+        '';
+      })
+
+      # monitor_wizard.py is a dusky_tui schema too (it imports the framework's
+      # `python` package); it used to be run as a bare script, which died on
+      # that import.
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-monitor";
+        runtimeInputs = [pyTui pkgs.hyprland pkgs.libnotify];
+        text = ''
+          export PYTHONPATH="${duskyTui}''${PYTHONPATH:+:$PYTHONPATH}"
+          exec ${pyTui}/bin/python3 ${duskyTui}/python/main/main.py \
+            ${upstream}/hypr/monitor/monitor_wizard.py "$@"
         '';
       })
 

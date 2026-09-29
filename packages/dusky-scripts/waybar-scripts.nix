@@ -71,7 +71,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-waybar-mako";
-        runtimeInputs = with pkgs; [mako jq coreutils];
+        runtimeInputs = with pkgs; [mako jq coreutils uwsm];
         text = builtins.readFile "${scriptDir}/mako.sh";
       })
       (pkgs.writeShellApplication {

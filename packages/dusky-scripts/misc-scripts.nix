@@ -45,13 +45,13 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-lock";
-        runtimeInputs = with pkgs; [hyprlock procps];
+        runtimeInputs = with pkgs; [hyprlock procps awww];
         text = builtins.readFile "${upstream}/hyprlock/lock.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-hyprlock-switcher";
-        runtimeInputs = with pkgs; [rofi coreutils];
+        runtimeInputs = with pkgs; [rofi coreutils jq];
         text = builtins.readFile "${upstream}/hyprlock/dusky_hyprlock_switcher.sh";
       })
       (pkgs.writeShellApplication {
@@ -99,7 +99,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-hypridle";
-        runtimeInputs = with pkgs; [hypridle coreutils];
+        runtimeInputs = with pkgs; [hypridle coreutils psmisc];
         text = builtins.readFile "${upstream}/hypridle/dusky_hypridle.sh";
       })
 
@@ -115,7 +115,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-google-image-search";
-        runtimeInputs = with pkgs; [grim slurp wl-clipboard curl xdg-utils];
+        runtimeInputs = with pkgs; [grim slurp wl-clipboard curl xdg-utils jq libnotify uwsm];
         text = builtins.readFile "${upstream}/google_image_search/google_image_search.sh";
       })
       (pkgs.writeShellApplication {
@@ -135,7 +135,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-ollama-terminal";
-        runtimeInputs = with pkgs; [curl jq wl-clipboard coreutils];
+        runtimeInputs = with pkgs; [curl jq wl-clipboard coreutils fzf];
         text = builtins.readFile "${upstream}/llm/ollama_terminal.sh";
       })
 
@@ -157,7 +157,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-reload-sliders";
-        runtimeInputs = with pkgs; [procps util-linux coreutils];
+        runtimeInputs = with pkgs; [procps util-linux coreutils uwsm];
         text = builtins.readFile "${patched}/sliders/reload_sliders.sh";
       })
 
@@ -185,25 +185,25 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-file-manager-switch";
-        runtimeInputs = with pkgs; [gawk xdg-utils coreutils];
+        runtimeInputs = with pkgs; [gawk xdg-utils coreutils hyprland];
         text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/235_file_manager_switch.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-browser-switch";
-        runtimeInputs = with pkgs; [gawk xdg-utils coreutils];
+        runtimeInputs = with pkgs; [gawk xdg-utils coreutils hyprland];
         text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/236_browser_switcher.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-editor-switch";
-        runtimeInputs = with pkgs; [gawk xdg-utils coreutils];
+        runtimeInputs = with pkgs; [gawk xdg-utils coreutils hyprland];
         text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/237_text_editer_switcher.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-terminal-switch";
-        runtimeInputs = with pkgs; [gawk coreutils];
+        runtimeInputs = with pkgs; [gawk coreutils hyprland];
         text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/238_terminal_switcher.sh";
       })
       # dusky-waypaper-reset removed: upstream dropped waypaper (replaced by awww),
@@ -248,13 +248,14 @@ in
         checkPhase = "";
         name = "dusky-github-backup-new";
         runtimeInputs = with pkgs; [git openssh coreutils];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh";
+        # nix-compat: upstream calls git as /usr/bin/git.
+        text = builtins.replaceStrings ["/usr/bin/git"] ["git"] (builtins.readFile "${upstream}/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh");
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-github-backup-sync";
         runtimeInputs = with pkgs; [git openssh coreutils];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh";
+        text = builtins.replaceStrings ["/usr/bin/git"] ["git"] (builtins.readFile "${upstream}/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh");
       })
 
       # --- Neovim ---
@@ -281,7 +282,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-gsettings";
-        runtimeInputs = with pkgs; [glib coreutils];
+        runtimeInputs = with pkgs; [glib coreutils hyprland xrdb];
         text = builtins.readFile "${upstream}/gtk/dusky_gsettings.sh";
       })
 
@@ -295,7 +296,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-firefox-matugen";
-        runtimeInputs = with pkgs; [matugen coreutils];
+        runtimeInputs = with pkgs; [matugen coreutils pywalfox-native];
         # Upstream moved this from arch_setup_scripts/scripts/ into firefox/.
         text = builtins.readFile "${upstream}/firefox/400_firefox_matugen_pywalfox.sh";
       })
@@ -310,7 +311,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-wayclick";
-        runtimeInputs = with pkgs; [pulseaudio coreutils libinput];
+        runtimeInputs = with pkgs; [pulseaudio coreutils libinput libnotify uv];
         text = builtins.readFile "${upstream}/wayclick/dusky_wayclick.sh";
       })
 

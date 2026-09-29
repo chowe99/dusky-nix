@@ -12,7 +12,9 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-theme-ctl";
-        runtimeInputs = with pkgs; [awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas dconf python3];
+        # hyprland/libnotify/mako/procps + the glib gsettings also serve matugen's
+        # post_hooks (home/theming/matugen-config.toml), which run with this PATH.
+        runtimeInputs = with pkgs; [awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas dconf python3 uwsm hyprland libnotify mako];
         # nix-compat: Nix's makeWrapper renames the daemon binary to
         # `.awww-daemon-wrapped`, so the kernel `comm` (15-char) becomes
         # `.awww-daemon-wr` and upstream's `pgrep -xu awww-daemon` never matches —
@@ -52,7 +54,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-theme-favorites";
-        runtimeInputs = with pkgs; [coreutils];
+        runtimeInputs = with pkgs; [coreutils awww libnotify];
         text = builtins.readFile "${scriptDir}/theme_favorites_ctl.sh";
       })
       (pkgs.writeShellApplication {

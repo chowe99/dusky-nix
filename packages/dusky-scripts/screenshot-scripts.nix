@@ -10,7 +10,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-screenshot";
-        runtimeInputs = with pkgs; [grim slurp satty wl-clipboard libnotify hyprland jq coreutils];
+        runtimeInputs = with pkgs; [grim slurp satty wl-clipboard libnotify hyprland jq coreutils hyprpicker xdg-user-dirs];
         # slurp -d: live WxH readout while dragging (region/window/smart).
         text = builtins.replaceStrings ["$(slurp"] ["$(slurp -d"] (builtins.readFile "${scriptDir}/dusky_screenshot.sh");
       })

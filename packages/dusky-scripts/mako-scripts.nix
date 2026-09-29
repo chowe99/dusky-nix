@@ -17,15 +17,17 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-osd-router";
-        runtimeInputs = with pkgs; [wireplumber brightnessctl playerctl libnotify coreutils util-linux];
+        runtimeInputs = with pkgs; [wireplumber brightnessctl playerctl libnotify coreutils util-linux hyprland];
         text = builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.sh";
       })
 
       # OSD Router Python daemon (caps lock, num lock, keyboard backlight events)
-      (pkgs.writeScriptBin "dusky-mako-osd-daemon" ''
-        #!${osd-python}/bin/python3
-        ${builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.py"}
-      '')
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-mako-osd-daemon";
+        runtimeInputs = with pkgs; [libnotify glib];
+        text = ''exec ${osd-python}/bin/python3 ${upstream}/mako_osd/osd_router/osd_router.py "$@"'';
+      })
 
       # dusky-mako-tui moved to tui-scripts.nix: tui_mako.py is now a dusky_tui
       # schema (textual framework + PYTHONPATH), not a standalone python script.

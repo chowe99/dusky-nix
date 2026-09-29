@@ -10,13 +10,13 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-network";
-        runtimeInputs = with pkgs; [networkmanager gum coreutils];
+        runtimeInputs = with pkgs; [networkmanager gum coreutils iw libnotify];
         text = builtins.readFile "${scriptDir}/network_manager/dusky_network.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-warp-toggle";
-        runtimeInputs = with pkgs; [coreutils];
+        runtimeInputs = with pkgs; [coreutils libnotify];
         text = builtins.readFile "${scriptDir}/networking/warp_toggle.sh";
       })
       (pkgs.writeShellApplication {

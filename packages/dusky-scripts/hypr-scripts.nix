@@ -3,33 +3,26 @@
   dusky,
 }: let
   scriptDir = "${dusky}/user_scripts/hypr";
-  mkScript = name: src: deps:
-    pkgs.writeShellScriptBin name ''
-      export PATH="${pkgs.lib.makeBinPath deps}:$PATH"
-      exec ${src} "$@"
-    '';
 in
   pkgs.symlinkJoin {
     name = "dusky-hypr-scripts";
     paths = [
-      (let
-        python = pkgs.python3.withPackages (ps: with ps; []);
-      in
-        pkgs.writeScriptBin "dusky-adjust-scale" ''
-          #!${python}/bin/python3
-          ${builtins.readFile "${scriptDir}/monitor/adjust_scale.py"}
-        '')
-      (let
-        python = pkgs.python3.withPackages (ps: with ps; []);
-      in
-        pkgs.writeScriptBin "dusky-screen-rotate" ''
-          #!${python}/bin/python3
-          ${builtins.readFile "${scriptDir}/monitor/screen_rotate.py"}
-        '')
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-adjust-scale";
+        runtimeInputs = with pkgs; [python3 hyprland libnotify];
+        text = ''exec python3 ${scriptDir}/monitor/adjust_scale.py "$@"'';
+      })
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-screen-rotate";
+        runtimeInputs = with pkgs; [python3 hyprland libnotify];
+        text = ''exec python3 ${scriptDir}/monitor/screen_rotate.py "$@"'';
+      })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-blur-toggle";
-        runtimeInputs = with pkgs; [hyprland jq libnotify];
+        runtimeInputs = with pkgs; [hyprland jq libnotify mako];
         text = builtins.readFile "${scriptDir}/hypr_blur_opacity_shadow_toggle.sh";
       })
       (pkgs.writeShellApplication {
@@ -59,23 +52,20 @@ in
         text = builtins.readFile "${scriptDir}/old/dusky_input.sh";
       })
       (let
-        python = pkgs.python3.withPackages (ps: with ps; []);
+        python = pkgs.python3.withPackages (ps: with ps; [rich]);
       in
-        pkgs.writeScriptBin "dusky-keybinds" ''
-          #!${python}/bin/python3
-          ${builtins.readFile "${scriptDir}/input/dusky_keybinds.py"}
-        '')
-      (let
-        python = pkgs.python3.withPackages (ps: with ps; []);
-      in
-        pkgs.writeScriptBin "dusky-monitor" ''
-          #!${python}/bin/python3
-          ${builtins.readFile "${scriptDir}/monitor/monitor_wizard.py"}
-        '')
+        pkgs.writeShellApplication {
+          checkPhase = "";
+          name = "dusky-keybinds";
+          runtimeInputs = with pkgs; [hyprland fzf];
+          text = ''exec ${python}/bin/python3 ${scriptDir}/input/dusky_keybinds.py "$@"'';
+        })
+      # dusky-monitor lives in tui-scripts.nix: monitor_wizard.py is a
+      # dusky_tui schema now, not a standalone script.
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-window-rules";
-        runtimeInputs = with pkgs; [hyprland gum];
+        runtimeInputs = with pkgs; [hyprland gum jq wl-clipboard];
         text = builtins.readFile "${scriptDir}/old/dusky_window_rules.sh";
       })
       (pkgs.writeShellApplication {
