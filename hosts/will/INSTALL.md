@@ -60,9 +60,17 @@ nixos-generate-config --root /mnt --show-hardware-config \
 
 Check the generated file has the LUKS device
 (`boot.initrd.luks.devices."cryptroot"`) and the three btrfs mounts with
-`subvol=@`, `subvol=@home`, `subvol=@nix`. Add `"compress=zstd" "noatime"` to
-their `options` if it left them out. Send this file to the repo owner to commit
-(step 5).
+`subvol=@`, `subvol=@home`, `subvol=@nix`. `nixos-generate-config` never writes
+mount options beyond `subvol=`, so add `compress=zstd` and `noatime` back:
+
+```sh
+sed -i -E 's/"subvol=(@[a-z]*)"/"subvol=\1" "compress=zstd" "noatime"/' \
+  hosts/will/hardware-configuration.nix
+grep -n 'subvol=' hosts/will/hardware-configuration.nix   # 3 lines, each with compress=zstd noatime
+```
+
+Send this file to the repo owner to commit (step 5). Until then the clone is
+dirty, so `nixos-install` prints `warning: Git tree … is dirty`: expected.
 
 ## 3. Install
 
@@ -88,9 +96,13 @@ nixos-enter --root /mnt -c 'chown -R will:users /home/will'
 reboot
 ```
 
-Boot: Plymouth asks for the disk passphrase, then tuigreet asks for Will's
-password (same one) and starts Hyprland. First login fetches a wallpaper and
-generates the colour theme (needs network).
+Boot: Plymouth asks for the disk passphrase, then tuigreet asks for the
+username (`will`) and password (same as the disk) and starts Hyprland. First
+login fetches a wallpaper and generates the colour theme (needs network).
+
+If the desktop comes up without its bar or colours, `systemctl status
+home-manager-will` shows why the home setup failed; after fixing the cause,
+`sudo systemctl restart home-manager-will` and log in again.
 
 Root has no password; `sudo` uses Will's password.
 
@@ -111,7 +123,9 @@ Once the owner has committed Will's hardware file, drop the local copy so
 git -C ~/dusky-nix checkout -- hosts/will/hardware-configuration.nix
 ```
 
-Then, whenever the owner pushes (the `update-system` alias does both):
+Then, whenever the repo moves (the `update-system` alias does both). Besides
+the owner's pushes, a daily bot commit brings in upstream dusky, but only
+after the flake's checks pass:
 
 ```sh
 git -C ~/dusky-nix pull --ff-only
