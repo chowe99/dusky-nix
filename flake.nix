@@ -249,6 +249,8 @@
         inherit system;
         specialArgs = {inherit inputs duskyLib dusky;};
         modules = [
+          # pkgs.dusky.* (home/hyprland reads pkgs.dusky.dusky-user-scripts)
+          {nixpkgs.overlays = [self.overlays.default];}
           ./options/dusky.nix
           ./modules
           ./hosts/default

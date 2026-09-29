@@ -26,9 +26,9 @@ in {
     services.power-profiles-daemon.enable = false;
 
     # Lid close behavior
-    services.logind = {
-      lidSwitch = "suspend";
-      lidSwitchExternalPower = "lock";
+    services.logind.settings.Login = {
+      HandleLidSwitch = "suspend";
+      HandleLidSwitchExternalPower = lib.mkDefault "lock";
     };
 
     environment.systemPackages = with pkgs; [

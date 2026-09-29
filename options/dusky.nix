@@ -2,9 +2,9 @@
   options.dusky = {
     gpu = {
       type = lib.mkOption {
-        type = lib.types.enum ["intel" "nvidia" "amd" "nvidia-passthrough"];
+        type = lib.types.enum ["intel" "nvidia" "amd" "nvidia-passthrough" "mesa"];
         default = "intel";
-        description = "Primary GPU type for driver configuration.";
+        description = "Primary GPU type for driver configuration. \"mesa\": the generic Mesa stack only (unknown hardware), no vendor extras.";
       };
     };
 

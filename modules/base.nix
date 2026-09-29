@@ -6,10 +6,13 @@
 }: let
   cfg = config.dusky;
 in {
+  # Host-specific choices below are mkDefault so a host (or a profile built
+  # on this module) can set its own without a conflict.
+
   # Bootloader
   boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+    systemd-boot.enable = lib.mkDefault true;
+    efi.canTouchEfiVariables = lib.mkDefault true;
   };
 
   # Nix settings
@@ -20,9 +23,9 @@ in {
       warn-dirty = false;
     };
     gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 7d";
+      automatic = lib.mkDefault true;
+      dates = lib.mkDefault "weekly";
+      options = lib.mkDefault "--delete-older-than 7d";
     };
   };
 
@@ -30,10 +33,10 @@ in {
   nixpkgs.config.allowUnfree = true;
 
   # Locale and timezone
-  time.timeZone = "Asia/Karachi";
+  time.timeZone = lib.mkDefault "Asia/Karachi";
   i18n = {
-    defaultLocale = "en_US.UTF-8";
-    extraLocaleSettings = {
+    defaultLocale = lib.mkDefault "en_US.UTF-8";
+    extraLocaleSettings = lib.mapAttrs (_: lib.mkDefault) {
       LC_ADDRESS = "en_US.UTF-8";
       LC_IDENTIFICATION = "en_US.UTF-8";
       LC_MEASUREMENT = "en_US.UTF-8";
@@ -56,7 +59,7 @@ in {
   users.users.${cfg.user.name} = {
     isNormalUser = true;
     home = cfg.user.home;
-    description = "Dusky";
+    description = lib.mkDefault "Dusky";
     extraGroups = [
       "wheel"
       "networkmanager"
@@ -140,5 +143,5 @@ in {
   };
 
   # System state version
-  system.stateVersion = "24.11";
+  system.stateVersion = lib.mkDefault "24.11";
 }
