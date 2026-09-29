@@ -103,6 +103,12 @@
     # Standalone packages
     packages.${system} = import ./packages {inherit pkgs dusky;};
 
+    # `nix flake check`: every packaged script carries its own runtime deps.
+    checks.${system}.runtime-deps = import ./checks/runtime-deps {
+      inherit pkgs;
+      packages = [self.packages.${system}.dusky-scripts-all];
+    };
+
     # Complete NixOS configuration (for standalone dusky installs)
     nixosConfigurations = {
       default = lib.nixosSystem {

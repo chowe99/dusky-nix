@@ -1,0 +1,20 @@
+# Commands packaged dusky scripts may call without carrying them.
+# `cmd` allows it everywhere, `binary:cmd` for one binary only,
+# `binary:py:module` for an unimportable python module.
+
+# Arch-only: the auto-install branch of upstream's dependency checks. It only
+# runs when a dependency is missing, and every dependency is wrapped.
+pacman
+
+# Provided by a NixOS service, not a package: wrapping the CLI alone would not
+# make it work (it talks to the daemon), and the host enables the service.
+asusctl                         # services.asusd (ASUS laptops only)
+tlp                             # services.tlp (dusky.laptop.enable)
+warp-cli                        # services.cloudflare-warp
+dusky-ollama-terminal:ollama    # services.ollama
+
+# The thing being driven is the user's own app choice.
+dusky-spotify-toggle:spotify    # toggles the Spotify client, installed by the user
+
+# Arch-only step; NixOS locales are i18n.supportedLocales.
+dusky-locale-tui:locale-gen
