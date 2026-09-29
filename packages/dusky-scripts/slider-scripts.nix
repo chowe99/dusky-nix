@@ -59,7 +59,7 @@ let
     ["{HOME}/user_scripts/waybar/network/network_meter_calling.sh" "dusky-waybar-network-meter"]
 
     # No NixOS equivalent → informative no-op via the shim (see control-center.nix)
-    ["kitty --class system_update.sh --hold sh -c '~/user_scripts/update_dusky/system_update.sh --all'" "dusky-nixos-ctl na 'Update declaratively: sudo nixos-rebuild switch --flake ~/nix-config'"]
+    ["kitty --class system_update.sh --hold sh -c '~/user_scripts/update_dusky/system_update.sh --all'" "dusky-nixos-ctl na 'Update declaratively: sudo nixos-rebuild switch --flake <your-flake>#<host>'"]
     ["kitty --class update_dusky.sh --hold sh -c '~/user_scripts/update_dusky/update_dusky.sh'" "dusky-nixos-ctl na 'Update: nix flake update dusky-nix then rebuild'"]
     # TLP is not enabled on these hosts (powerManagement.cpuFreqGovernor instead)
     ["~/user_scripts/battery/tlp/tlp_mode_toggle.sh" "dusky-nixos-ctl na 'Power profiles are declarative: powerManagement.cpuFreqGovernor'"]
