@@ -1,0 +1,101 @@
+# profiles/home/standalone.nix — a complete dusky desktop user (home side):
+# common.nix + kitty, zsh (plugins, fzf-tab, vi-mode), fzf/zoxide/fastfetch,
+# tmux and the dusky keybinding overrides. Apps are the basics only: Zen,
+# kitty, Thunar, yazi, btop, plus what dusky's menus drive.
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  username,
+  ...
+}: {
+  imports = [
+    ./package-set.nix
+    ./zsh.nix
+    ./kitty.nix
+    ./fastfetch.nix
+    ./zoxide.nix
+    ./fzf.nix
+    ./fd.nix
+    ./ripgrep.nix
+    ./tmux.nix
+    ./hyprland-keybindings.nix
+    ./common.nix
+  ];
+
+  # tmux (SUPER+ALT+RETURN opens it).
+  programs.tmux-config.enable = true;
+
+  home.stateVersion = "26.05";
+  home.username = username;
+  home.homeDirectory = "/home/${username}";
+  programs.home-manager.enable = true;
+
+  home.packages = with pkgs; [
+    dusky.dusky-scripts-all
+    # Browser (zen-transparency seeds its theme)
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # GUI file manager (yazi is the TUI one, from dusky's NixOS module)
+    thunar
+    thunar-archive-plugin
+    xarchiver
+    btop # SUPER+SHIFT+T and the menu's "Activity"
+    lsd # zsh's ls aliases
+    (writeShellScriptBin "nix-search" (builtins.readFile ../scripts/nix-search)) # SUPER+SHIFT+N
+  ];
+
+  # Default apps. Globals — dusky's source/keybinds.lua reads them.
+  xdg.configFile."hypr/edit_here/source/default_apps.lua".text = ''
+    terminal    = "kitty"
+    fileManager = "yazi"
+    menu        = "rofi -show drun"
+    browser     = "zen-beta"
+    textEditor  = "nano"
+  '';
+
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "x-scheme-handler/terminal" = "kitty.desktop";
+      "text/html" = "zen-beta.desktop";
+      "application/xhtml+xml" = "zen-beta.desktop";
+      "x-scheme-handler/http" = "zen-beta.desktop";
+      "x-scheme-handler/https" = "zen-beta.desktop";
+      "x-scheme-handler/about" = "zen-beta.desktop";
+      "x-scheme-handler/unknown" = "zen-beta.desktop";
+      "inode/directory" = "thunar.desktop";
+      "application/zip" = "xarchiver.desktop";
+      "application/x-7z-compressed" = "xarchiver.desktop";
+      "application/x-tar" = "xarchiver.desktop";
+      "application/gzip" = "xarchiver.desktop";
+      "application/x-compressed-tar" = "xarchiver.desktop";
+      "application/x-xz-compressed-tar" = "xarchiver.desktop";
+    };
+  };
+
+  # Thunar's "Open Terminal Here"
+  xdg.configFile."xfce4/helpers.rc".text = ''
+    TerminalEmulator=kitty
+  '';
+
+  # The always-listening voice assistant (an OpenRouter agent with a
+  # hard-coded search endpoint): not started at login. SUPER+I/O TTS/STT
+  # still work on demand.
+  systemd.user.services.dusky-voice-assistant.Install.WantedBy = lib.mkForce [];
+
+  # Nothing upstream owns awww-daemon's lifetime, and
+  # dusky-rofi-wallpaper dies without it. Tie it to the session.
+  systemd.user.services.awww-daemon = {
+    Unit = {
+      Description = "awww wallpaper daemon";
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
+    };
+    Service = {
+      ExecStart = "${pkgs.awww}/bin/awww-daemon --format xrgb";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+}
