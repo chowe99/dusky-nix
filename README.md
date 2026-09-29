@@ -49,3 +49,17 @@ the pieces into your own config:
 
 `homeManagerModules.standalone` expects the `inputs` special arg to contain
 `zen-browser` (`lib.mkSystem` passes this flake's).
+
+## Upstream sync
+
+`.github/workflows/upstream-sync.yml` runs daily (18:00 UTC, or Actions →
+upstream-sync → Run workflow): it runs `nix flake update dusky-dotfiles`,
+and only if the new upstream still passes (`nix flake check --no-build`,
+`dusky-scripts-all` and the runtime-deps audit build, `will` and `default`
+evaluate) commits the new `flake.lock` to master. A failure commits nothing
+and comments on the open `upstream-sync-failure` issue instead.
+
+Consumers take upstream only through that validated lock: a flake that
+imports dusky-nix picks it up with `nix flake update dusky-nix`, and `will`
+with `nixos-rebuild switch --flake github:chowe99/dusky-nix#will` (or the
+`update-system` alias).
