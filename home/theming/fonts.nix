@@ -4,6 +4,20 @@
   lib,
   ...
 }: {
+  # The families the configs below and upstream's themes name: fontconfig
+  # aliases (Atkinson Hyperlegible Next, JetBrainsMono Nerd Font), GTK
+  # (Adwaita Sans), waybar/rofi/kitty (JetBrainsMono Nerd Font), hyprlock's
+  # matugen template (Rubik, Material Symbols Rounded), rofi emoji picker.
+  fonts.fontconfig.enable = true;
+  home.packages = with pkgs; [
+    atkinson-hyperlegible-next
+    nerd-fonts.jetbrains-mono
+    adwaita-fonts
+    rubik
+    material-symbols
+    noto-fonts-color-emoji
+  ];
+
   # Deploy fontconfig
   xdg.configFile."fontconfig/fonts.conf".text = ''
     <?xml version="1.0"?>

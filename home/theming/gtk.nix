@@ -4,6 +4,10 @@
   lib,
   ...
 }: {
+  # The theme, icon theme and cursor the settings below (and matugen's gtk
+  # post_hooks, and uwsm's XCURSOR_THEME) name.
+  home.packages = with pkgs; [adw-gtk3 papirus-icon-theme bibata-cursors];
+
   # GTK 3 settings
   xdg.configFile."gtk-3.0/settings.ini".text = ''
     [Settings]

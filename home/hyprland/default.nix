@@ -107,7 +107,9 @@ in {
 
   # UWSM is required for dusky's keybinds, desktop entries, and autostart commands
   # tesseract is required for dusky's OCR keybinds (SUPER+T, SUPER+SHIFT+T)
-  home.packages = [pkgs.uwsm pkgs.tesseract];
+  # dusky-scripts-all: every dusky-* command the keybinds, waybar, menus and
+  # desktop entries call by name.
+  home.packages = [pkgs.uwsm pkgs.tesseract pkgs.dusky.dusky-scripts-all];
 
   # Create mutable edit_here directory structure via activation
   home.activation.createHyprEditHere = lib.hm.dag.entryAfter ["writeBoundary"] ''

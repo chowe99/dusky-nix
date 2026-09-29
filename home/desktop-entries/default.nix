@@ -4,8 +4,25 @@
   lib,
   ...
 }: {
+  # What the entries below launch, so none of them is a dead launcher on a
+  # host that doesn't happen to install it. (dusky-* commands come from
+  # dusky-scripts-all, installed by the hyprland module.)
   home.packages = with pkgs; [
+    kitty
     wifitui
+    btop
+    htop
+    dgop
+    powertop
+    intel-gpu-tools # intel_gpu_top
+    fastfetch
+    dysk
+    cava
+    peaclock
+    kew
+    bluetui
+    tray-tui
+    neovim
   ];
 
   xdg.desktopEntries = {
