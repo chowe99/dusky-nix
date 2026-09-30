@@ -31,7 +31,7 @@
     "audio/dusky_in_out_source.sh" = "dusky-audio-in-out";
     "audio/mono_audio_pipewire.py" = "dusky-mono-audio";
     "audio/router/TTS_VC.sh" = "dusky-voice-assistant";
-    "battery/notify/dusky_battery_notify.sh" = "dusky-battery-notify";
+    "battery/notify/battery_notify.sh" = "dusky-battery-notify";
     "battery/power_saver.sh" = "dusky-power-saver";
     "drives/btrfs_zstd_compression_stats.sh" = "dusky-btrfs-stats";
     "drives/drive_manager.sh" = "dusky-drive-manager";

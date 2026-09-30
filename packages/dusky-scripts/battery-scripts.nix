@@ -10,11 +10,19 @@ in
   pkgs.symlinkJoin {
     name = "dusky-battery-scripts";
     paths = [
+      # Upstream rewrote the daemon as notify/battery_notify.sh: event-driven
+      # on `upower --monitor-detail`, thresholds overridable from the
+      # environment. Its config TUI (tui_battery.py) edits the script in place,
+      # which a store path can't take, so it isn't packaged.
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-battery-notify";
-        runtimeInputs = with pkgs; [libnotify acpi coreutils];
-        text = builtins.readFile "${scriptDir}/notify/dusky_battery_notify.sh";
+        runtimeInputs = with pkgs; [upower libnotify pulseaudio pipewire gawk gnused systemd];
+        text =
+          builtins.replaceStrings
+          ["/usr/share/sounds/freedesktop"]
+          ["${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop"]
+          (builtins.readFile "${scriptDir}/notify/battery_notify.sh");
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
