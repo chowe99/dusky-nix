@@ -11,7 +11,7 @@ pacman
 asusctl                         # services.asusd (ASUS laptops only)
 tlp                             # services.tlp (dusky.laptop.enable)
 warp-cli                        # services.cloudflare-warp
-dusky-ollama-terminal:ollama    # services.ollama
+dusky-llm-panel:ollama          # services.ollama
 
 # The thing being driven is the user's own app choice.
 dusky-spotify-toggle:spotify    # toggles the Spotify client, installed by the user

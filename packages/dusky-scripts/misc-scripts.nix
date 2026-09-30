@@ -37,6 +37,27 @@
     ps.scipy
     ps.scikit-learn
   ]);
+
+  # Upstream's LLM side panel (llm/llm_side_panal): GTK3 app, config in
+  # ~/.config/dusky/llm_side_panal/config.toml (created on first run).
+  llmPanel = pkgs.stdenv.mkDerivation {
+    pname = "dusky-llm-panel";
+    version = "0";
+    src = "${upstream}/llm/llm_side_panal";
+    nativeBuildInputs = with pkgs; [makeWrapper wrapGAppsHook3 gobject-introspection];
+    buildInputs = with pkgs; [gtk3 glib pango gdk-pixbuf];
+    dontWrapGApps = true;
+    installPhase = ''
+      mkdir -p $out/bin $out/lib/dusky-llm-panel
+      cp *.py config.toml $out/lib/dusky-llm-panel/
+    '';
+    postFixup = ''
+      makeWrapper ${pkgs.python3.withPackages (ps: [ps.pygobject3 ps.pycairo])}/bin/python3 $out/bin/dusky-llm-panel \
+        --add-flags "$out/lib/dusky-llm-panel/dusky_llm.py" \
+        "''${gappsWrapperArgs[@]}" \
+        --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.systemd]}
+    '';
+  };
 in
   pkgs.symlinkJoin {
     name = "dusky-misc-scripts";
@@ -47,12 +68,6 @@ in
         name = "dusky-lock";
         runtimeInputs = with pkgs; [hyprlock procps awww];
         text = builtins.readFile "${upstream}/hyprlock/lock.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-hyprlock-switcher";
-        runtimeInputs = with pkgs; [rofi coreutils jq];
-        text = builtins.readFile "${upstream}/hyprlock/dusky_hyprlock_switcher.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
@@ -78,21 +93,16 @@ in
       # --- Power / Performance ---
       (pkgs.writeShellApplication {
         checkPhase = "";
-        name = "dusky-power";
-        runtimeInputs = with pkgs; [gum];
-        text = builtins.readFile "${upstream}/power/dusky_power.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
         name = "dusky-process-terminator";
         runtimeInputs = with pkgs; [gum procps systemd];
         text = builtins.readFile "${upstream}/performance/services_and_process_terminator.sh";
       })
+      # Upstream rewrote sysbench_benchmark.sh in Python (stdlib only).
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-sysbench";
-        runtimeInputs = with pkgs; [sysbench util-linux coreutils gawk procps];
-        text = builtins.readFile "${upstream}/performance/sysbench_benchmark.sh";
+        runtimeInputs = with pkgs; [python3 sysbench util-linux];
+        text = ''exec python3 ${upstream}/performance/sysbench_benchmark.py "$@"'';
       })
 
       # --- Hypridle ---
@@ -118,11 +128,13 @@ in
         runtimeInputs = with pkgs; [grim slurp wl-clipboard curl xdg-utils jq libnotify uwsm];
         text = builtins.readFile "${upstream}/google_image_search/google_image_search.sh";
       })
+      # Upstream rewrote music_recognition.sh in Python: pw-record + songrec,
+      # with a history browsed through fzf and rendered with rich.
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-music-recognition";
-        runtimeInputs = with pkgs; [ffmpeg libnotify jq pulseaudio songrec];
-        text = builtins.readFile "${upstream}/music/music_recognition.sh";
+        runtimeInputs = with pkgs; [(python3.withPackages (ps: [ps.rich])) pipewire songrec fzf libnotify wl-clipboard];
+        text = ''exec python3 ${upstream}/music/music_recognition.py "$@"'';
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
@@ -132,11 +144,20 @@ in
       })
 
       # --- LLM ---
+      # Upstream replaced ollama_terminal.sh with llm_side_panal, a GTK3
+      # side panel talking to Ollama (services.ollama). See llmPanel above.
+      llmPanel
       (pkgs.writeShellApplication {
         checkPhase = "";
-        name = "dusky-ollama-terminal";
-        runtimeInputs = with pkgs; [curl jq wl-clipboard coreutils fzf];
-        text = builtins.readFile "${upstream}/llm/ollama_terminal.sh";
+        name = "dusky-llm-toggle";
+        runtimeInputs = [pkgs.glib llmPanel];
+        # toggle_llm_side_panal.sh: raise the running instance over D-Bus, else
+        # start one (upstream's resolves dusky_llm.py next to itself).
+        text = ''
+          gdbus call --session --dest org.dusky.llm --object-path /org/dusky/llm \
+            --method org.freedesktop.Application.Activate "{}" >/dev/null 2>&1 && exit 0
+          exec dusky-llm-panel "$@"
+        '';
       })
 
       # --- ASUS ---
@@ -228,12 +249,6 @@ in
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
-        name = "dusky-clipboard-persistence";
-        runtimeInputs = with pkgs; [gawk wl-clipboard cliphist procps uwsm];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/390_clipboard_persistance.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
         name = "dusky-hosts-blocker";
         runtimeInputs = with pkgs; [gawk coreutils];
         text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/325_hosts_files_block.sh";
@@ -243,19 +258,6 @@ in
         name = "dusky-blur-visibility";
         runtimeInputs = with pkgs; [brightnessctl];
         text = builtins.readFile "${patched}/arch_portable/155_blur_shadow_opacity.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-github-backup-new";
-        runtimeInputs = with pkgs; [git openssh coreutils];
-        # nix-compat: upstream calls git as /usr/bin/git.
-        text = builtins.replaceStrings ["/usr/bin/git"] ["git"] (builtins.readFile "${upstream}/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh");
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-github-backup-sync";
-        runtimeInputs = with pkgs; [git openssh coreutils];
-        text = builtins.replaceStrings ["/usr/bin/git"] ["git"] (builtins.readFile "${upstream}/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh");
       })
 
       # --- Neovim ---
@@ -287,25 +289,6 @@ in
       })
 
       # --- Portable Arch Setup Scripts (additional) ---
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-desktop-apps-fix";
-        runtimeInputs = with pkgs; [gnused coreutils];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-firefox-matugen";
-        runtimeInputs = with pkgs; [matugen coreutils pywalfox-native];
-        # Upstream moved this from arch_setup_scripts/scripts/ into firefox/.
-        text = builtins.readFile "${upstream}/firefox/400_firefox_matugen_pywalfox.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-battery-notify";
-        runtimeInputs = with pkgs; [systemd coreutils];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/135_battery_notify_service.sh";
-      })
 
       # --- Wayclick ---
       (pkgs.writeShellApplication {
