@@ -11,23 +11,7 @@
 # rewrite each button's schema argument to its absolute store path.
 let
   upstream = "${dusky}/user_scripts";
-
-  # Copy the framework into the store and teach main.py to also find schemas
-  # under the store user_scripts (the Arch model assumes ~/user_scripts).
-  duskyTui = pkgs.stdenv.mkDerivation {
-    name = "dusky-tui-framework";
-    src = "${upstream}/dusky_tui";
-    dontBuild = true;
-    installPhase = ''
-      mkdir -p $out
-      cp -r . $out/
-      substituteInPlace $out/python/main/main.py \
-        --replace 'Path("~/user_scripts").expanduser().resolve(),' \
-                  'Path("~/user_scripts").expanduser().resolve(), Path("${upstream}").resolve(),'
-    '';
-  };
-
-  pyTui = pkgs.python3.withPackages (ps: with ps; [textual rich]);
+  inherit (import ./tui-lib.nix {inherit pkgs dusky;}) duskyTui pyTui mkTui;
 in
   pkgs.symlinkJoin {
     name = "dusky-tui-scripts";
@@ -56,12 +40,16 @@ in
         runtimeInputs = with pkgs; [python3 hyprland wl-clipboard];
         text = ''exec python3 ${upstream}/hypr/rules/window_rules_generator.py "$@"'';
       })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-locale-tui";
-        runtimeInputs = with pkgs; [gawk gnused systemd hostname-debian];
-        text = builtins.readFile "${upstream}/locale/locale_tui.sh";
-      })
+      # Upstream ported locale_tui.sh to two dusky_tui schemas: the glibc
+      # locale generator (Arch's /etc/locale.gen + locale-gen; NixOS builds
+      # locales from i18n.supportedLocales) and the region/timezone manager
+      # (localectl/timedatectl).
+      (mkTui "dusky-locale-tui" "locale/tui_locale_gen.py" [pkgs.systemd])
+      (mkTui "dusky-system-region" "locale/tui_system_region.py" [pkgs.systemd])
+      # Upstream rewrote dusky_power.sh as a dusky_tui schema (logind drop-in).
+      (mkTui "dusky-power" "power/tui_power.py" [pkgs.systemd pkgs.procps])
+      # ...and dusky_hyprlock_switcher.sh as one too (hyprlock theme picker).
+      (mkTui "dusky-hyprlock-switcher" "hyprlock/tui_hyprlock.py" [pkgs.hyprlock pkgs.hyprland])
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-waybar-toggle-time";
@@ -90,30 +78,12 @@ in
       # The mako settings screen has a dedicated desktop-entry launcher, so it
       # needs its own binary (the control center reaches it via dusky-tui). It is
       # a dusky_tui schema, so run it through the framework dispatcher.
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-mako-tui";
-        runtimeInputs = [pyTui];
-        text = ''
-          export PYTHONPATH="${duskyTui}''${PYTHONPATH:+:$PYTHONPATH}"
-          exec ${pyTui}/bin/python3 ${duskyTui}/python/main/main.py \
-            ${upstream}/mako_osd/mako_tui/tui_mako.py "$@"
-        '';
-      })
+      (mkTui "dusky-mako-tui" "mako_osd/mako_tui/tui_mako.py" [])
 
       # monitor_wizard.py is a dusky_tui schema too (it imports the framework's
       # `python` package); it used to be run as a bare script, which died on
       # that import.
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-monitor";
-        runtimeInputs = [pyTui pkgs.hyprland pkgs.libnotify];
-        text = ''
-          export PYTHONPATH="${duskyTui}''${PYTHONPATH:+:$PYTHONPATH}"
-          exec ${pyTui}/bin/python3 ${duskyTui}/python/main/main.py \
-            ${upstream}/hypr/monitor/monitor_wizard.py "$@"
-        '';
-      })
+      (mkTui "dusky-monitor" "hypr/monitor/monitor_wizard.py" [pkgs.hyprland pkgs.libnotify])
 
       # Adaptive shim so upstream (Arch) Control Center / Quick Panal buttons work
       # on NixOS instead of erroring on missing $HOME/user_scripts paths:
