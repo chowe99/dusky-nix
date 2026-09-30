@@ -3,11 +3,11 @@
     "dusky-dotfiles": {
       "flake": false,
       "locked": {
-        "lastModified": 1790764260,
-        "narHash": "sha256-U0sIKmDviy216DnuB7ZAQnS1EGaKbYSlI0eYFUXSloc=",
+        "lastModified": 1790767192,
+        "narHash": "sha256-KiZjyFzDZRARFbZX66d8JLuLzcIDUYyBzXL1TZ8JrWc=",
         "owner": "dusklinux",
         "repo": "dusky",
-        "rev": "31f46e7b6cb614db548800e9e1c4f13781c9e3fc",
+        "rev": "8b199d4c91859bcae5f6bf43c57ef78b635dc706",
         "type": "github"
       },
       "original": {
