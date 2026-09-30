@@ -66,7 +66,8 @@ in
         checkPhase = "";
         name = "dusky-wireguard-new";
         runtimeInputs = with pkgs; [wireguard-tools systemd coreutils];
-        text = builtins.readFile "${upstream}/networking/dusky_wireguard_new.sh";
+        # nix-compat: upstream writes the config through `sudo -- /usr/bin/bash`.
+        text = builtins.replaceStrings ["/usr/bin/bash"] ["${pkgs.bash}/bin/bash"] (builtins.readFile "${upstream}/networking/dusky_wireguard_new.sh");
       })
       (pkgs.writeShellApplication {
         checkPhase = "";

@@ -16,6 +16,10 @@ dusky-llm-panel:ollama          # services.ollama
 # The thing being driven is the user's own app choice.
 dusky-spotify-toggle:spotify    # toggles the Spotify client, installed by the user
 
+# Only behind `[[ -f ~/user_scripts/audio/dusky_audio_studio/... ]]`: the
+# audio studio (GTK + audio-helper DSP) isn't packaged, so the branch is dead.
+dusky-audio-in-out:python3
+
 # Arch-only step; NixOS locales are i18n.supportedLocales.
 dusky-locale-tui:locale-gen
 

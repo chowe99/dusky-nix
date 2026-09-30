@@ -76,7 +76,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-rofi-keybindings";
-        runtimeInputs = with pkgs; [rofi hyprland gawk libxkbcommon jq luajit python3 libnotify kitty keybindsCheatsheet];
+        runtimeInputs = with pkgs; [rofi hyprland gawk libxkbcommon jq luajit (python3.withPackages (ps: [ps.rich])) libnotify kitty keybindsCheatsheet];
         text =
           builtins.replaceStrings
           ["\${HOME}/user_scripts/hypr/input/" "-e python3.14 \${script_path}"]
@@ -93,7 +93,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-rofi-shader";
-        runtimeInputs = with pkgs; [rofi hyprland hyprshade util-linux libnotify];
+        runtimeInputs = with pkgs; [rofi hyprland hyprshade util-linux libnotify python3];
         text = builtins.readFile "${scriptDir}/shader_menu.sh";
       })
       (pkgs.writeShellApplication {
@@ -105,7 +105,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-rofi-mako";
-        runtimeInputs = with pkgs; [rofi mako jq libnotify coreutils hyprland gtk3 uwsm];
+        runtimeInputs = with pkgs; [rofi mako jq libnotify coreutils hyprland gtk3 uwsm python3];
         text = builtins.readFile "${scriptDir}/rofi_mako.sh";
       })
     ];

@@ -163,6 +163,9 @@ def resolve_call(args: list[str | None], probes: set[str]) -> tuple[list[str], l
             cmds.append(a)
             i += 1
             while i < len(args) and args[i] is not None and args[i].startswith("-"):
+                # `timeout -k 1s 5s cmd`, `-s KILL`: skip an option's value too
+                if args[i] in ("-k", "--kill-after", "-s", "--signal"):
+                    i += 1
                 i += 1
             i += 1  # duration
             continue

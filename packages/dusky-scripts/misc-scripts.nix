@@ -133,7 +133,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-music-recognition";
-        runtimeInputs = with pkgs; [(python3.withPackages (ps: [ps.rich])) pipewire songrec fzf libnotify wl-clipboard];
+        runtimeInputs = with pkgs; [(python3.withPackages (ps: [ps.rich])) pipewire songrec fzf libnotify wl-clipboard xdg-utils];
         text = ''exec python3 ${upstream}/music/music_recognition.py "$@"'';
       })
       (pkgs.writeShellApplication {
