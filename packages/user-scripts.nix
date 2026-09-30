@@ -28,8 +28,7 @@
     "arch_setup_scripts/scripts/390_clipboard_persistance.sh" = "dusky-clipboard-persistence";
     "arch_setup_scripts/scripts/460_switch_clipboard.sh" = "dusky-clipboard-switch";
     "asus/asusctl.sh" = "dusky-asus-control";
-    "audio/dusky_input.sh" = "dusky-mic-switch";
-    "audio/dusky_output.sh" = "dusky-audio-switch";
+    "audio/dusky_in_out_source.sh" = "dusky-audio-in-out";
     "audio/mono_audio_pipewire.py" = "dusky-mono-audio";
     "audio/router/TTS_VC.sh" = "dusky-voice-assistant";
     "battery/notify/dusky_battery_notify.sh" = "dusky-battery-notify";

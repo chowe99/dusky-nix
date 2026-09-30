@@ -69,8 +69,7 @@ let
     ["\\$HOME/user_scripts/hypr/multi_monitor_workspace.sh" "dusky-multi-monitor-workspace"]
 
     # Audio
-    ["\\$HOME/user_scripts/audio/audio_switch.sh" "dusky-audio-switch"]
-    ["\\$HOME/user_scripts/audio/mic_switch.sh" "dusky-mic-switch"]
+    ["\\$HOME/user_scripts/audio/dusky_in_out_source.sh" "dusky-audio-in-out"]
     ["\\$HOME/user_scripts/audio/mono_audio_pipewire.py" "dusky-mono-audio"]
 
     # Rofi
