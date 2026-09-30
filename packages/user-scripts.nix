@@ -37,7 +37,6 @@
     "external/usb_sound_toggle.py" = "dusky-usb-sound";
     "google_image_search/google_image_search.sh" = "dusky-google-image-search";
     "gtk/dusky_gsettings.sh" = "dusky-gsettings";
-    "gtk/papirus_folder_colors.py" = "dusky-papirus-folder-colors";
     "hypr/hypr_blur_opacity_shadow_toggle.sh" = "dusky-blur-toggle";
     "hypr/input/dusky_keybinds.py" = "dusky-keybinds";
     "hypr/input/keybinds_cheatsheet.py" = "dusky-keybinds-cheatsheet";

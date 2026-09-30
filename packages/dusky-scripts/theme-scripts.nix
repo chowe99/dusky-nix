@@ -4,7 +4,6 @@
 }: let
   # Source directly from upstream dusky (no local patches needed)
   scriptDir = "${dusky}/user_scripts/theme_matugen";
-  gtkDir = "${dusky}/user_scripts/gtk";
 in
   pkgs.symlinkJoin {
     name = "dusky-theme-scripts";
@@ -56,12 +55,6 @@ in
         name = "dusky-theme-favorites";
         runtimeInputs = with pkgs; [coreutils awww libnotify];
         text = builtins.readFile "${scriptDir}/theme_favorites_ctl.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-papirus-folder-colors";
-        runtimeInputs = with pkgs; [python3 papirus-folders gsettings-desktop-schemas glib];
-        text = ''exec python3 ${gtkDir}/papirus_folder_colors.py "$@"'';
       })
       (pkgs.writeShellApplication {
         checkPhase = "";

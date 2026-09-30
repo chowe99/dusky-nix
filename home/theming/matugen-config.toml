@@ -11,7 +11,7 @@ output_path = "~/.config/matugen/generated/master-dump.jsonl"
 # -----------------------------------------------------------------------------
 
 [templates.gtk3]
-input_path  = '~/.config/matugen/templates/gtk-colors.css'
+input_path  = '~/.config/matugen/templates/gtk3-colors.css'
 output_path = '~/.config/matugen/generated/gtk-3.css'
 post_hook   = '''
 bash -c '
@@ -21,12 +21,11 @@ bash -c '
 '''
 
 [templates.gtk4]
-input_path  = '~/.config/matugen/templates/gtk-colors.css'
+input_path  = '~/.config/matugen/templates/gtk4-colors.css'
 output_path = '~/.config/matugen/generated/gtk-4.css'
 post_hook   = '''
 bash -c '
 {
-  dusky-papirus-folder-colors
   mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
   ln -nfs "$HOME/.config/matugen/generated/gtk-3.css" "$HOME/.config/gtk-3.0/gtk.css"
   ln -nfs "$HOME/.config/matugen/generated/gtk-4.css" "$HOME/.config/gtk-4.0/gtk.css"
@@ -42,6 +41,16 @@ output_path = '~/.config/matugen/generated/qt5ct-colors.conf'
 [templates.qt6ct]
 input_path  = '~/.config/matugen/templates/qtct-colors.conf'
 output_path = '~/.config/matugen/generated/qt6ct-colors.conf'
+
+# Palette for upstream's dusky_tui settings screens (their THEME_FILE).
+[templates.dusky_tui]
+input_path  = '~/.config/matugen/templates/dusky_tui.json'
+output_path = '~/.config/matugen/generated/dusky_tui.json'
+
+# fastfetch's config is generated now (home/apps/fastfetch.nix links it).
+[templates.fastfetch]
+input_path  = '~/.config/matugen/templates/fastfetch.jsonc'
+output_path = '~/.config/matugen/generated/fastfetch.jsonc'
 
 # -----------------------------------------------------------------------------
 # System Components (Wayland, Bars, Notifications)
