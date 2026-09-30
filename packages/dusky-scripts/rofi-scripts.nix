@@ -3,6 +3,13 @@
   dusky,
 }: let
   scriptDir = "${dusky}/user_scripts/rofi";
+  inputDir = "${dusky}/user_scripts/hypr/input";
+  keybindsCheatsheet = pkgs.writeShellApplication {
+    checkPhase = "";
+    name = "dusky-keybinds-cheatsheet";
+    runtimeInputs = [(pkgs.python3.withPackages (ps: [ps.rich])) pkgs.hyprland];
+    text = ''exec python3 ${inputDir}/keybinds_cheatsheet.py "$@"'';
+  };
 in
   pkgs.symlinkJoin {
     name = "dusky-rofi-scripts";
@@ -23,7 +30,8 @@ in
         checkPhase = "";
         name = "dusky-rofi-cliphist";
         runtimeInputs = with pkgs; [rofi cliphist wl-clipboard imagemagick];
-        text = builtins.readFile "${scriptDir}/rofi_cliphist.sh";
+        # Upstream renamed rofi_cliphist.sh → rofi_clipboard.sh.
+        text = builtins.readFile "${scriptDir}/rofi_clipboard.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
@@ -61,12 +69,21 @@ in
           ]
           (builtins.readFile "${scriptDir}/rofi_theme.sh");
       })
+      # Upstream moved the keybind menu to hypr/input/rofi_keybinds/, split
+      # into keybindings.sh + a Python categorizer + a luajit dispatcher for
+      # Lua-function binds, with a rich cheatsheet as the first row. The
+      # helpers are read from the store copy instead of ~/user_scripts.
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-rofi-keybindings";
-        runtimeInputs = with pkgs; [rofi hyprland gnugrep gawk libxkbcommon jq libnotify];
-        text = builtins.readFile "${scriptDir}/keybindings.sh";
+        runtimeInputs = with pkgs; [rofi hyprland gawk libxkbcommon jq luajit python3 libnotify kitty keybindsCheatsheet];
+        text =
+          builtins.replaceStrings
+          ["\${HOME}/user_scripts/hypr/input/" "-e python3.14 \${script_path}"]
+          ["${inputDir}/" "-e dusky-keybinds-cheatsheet"]
+          (builtins.readFile "${inputDir}/rofi_keybinds/keybindings.sh");
       })
+      keybindsCheatsheet
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-rofi-powermenu";

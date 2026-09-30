@@ -40,6 +40,8 @@
     "gtk/papirus_folder_colors.py" = "dusky-papirus-folder-colors";
     "hypr/hypr_blur_opacity_shadow_toggle.sh" = "dusky-blur-toggle";
     "hypr/input/dusky_keybinds.py" = "dusky-keybinds";
+    "hypr/input/keybinds_cheatsheet.py" = "dusky-keybinds-cheatsheet";
+    "hypr/input/rofi_keybinds/keybindings.sh" = "dusky-rofi-keybindings";
     "hypr/monitor/adjust_scale.py" = "dusky-adjust-scale";
     "hypr/monitor/monitor_wizard.py" = "dusky-monitor";
     "hypr/monitor/screen_rotate.py" = "dusky-screen-rotate";
@@ -77,9 +79,8 @@
     "rofi/calculator.sh" = "dusky-rofi-calculator";
     "rofi/emoji.sh" = "dusky-rofi-emoji";
     "rofi/hypr_anim.sh" = "dusky-rofi-animations";
-    "rofi/keybindings.sh" = "dusky-rofi-keybindings";
     "rofi/powermenu.sh" = "dusky-rofi-powermenu";
-    "rofi/rofi_cliphist.sh" = "dusky-rofi-cliphist";
+    "rofi/rofi_clipboard.sh" = "dusky-rofi-cliphist";
     "rofi/rofi_mako.sh" = "dusky-rofi-mako";
     "rofi/rofi_theme.sh" = "dusky-rofi-theme";
     "rofi/rofi_wallpaper_selctor.sh" = "dusky-rofi-wallpaper";

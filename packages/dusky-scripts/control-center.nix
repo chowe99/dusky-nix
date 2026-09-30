@@ -83,13 +83,14 @@ let
     # Rofi
     ["\\$HOME/user_scripts/rofi/rofi_wallpaper_selctor.sh" "dusky-rofi-wallpaper"]
     ["\\$HOME/user_scripts/rofi/rofi_theme.sh" "dusky-rofi-theme"]
-    ["\\$HOME/user_scripts/rofi/keybindings.sh" "dusky-rofi-keybindings"]
+    ["\\$HOME/user_scripts/hypr/input/rofi_keybinds/keybindings.sh" "dusky-rofi-keybindings"]
+    ["\\$HOME/user_scripts/hypr/input/keybinds_cheatsheet.py" "dusky-keybinds-cheatsheet"]
     ["\\$HOME/user_scripts/rofi/shader_menu.sh" "dusky-rofi-shader"]
     ["\\$HOME/user_scripts/rofi/hypr_anim.sh" "dusky-rofi-animations"]
     ["\\$HOME/user_scripts/rofi/powermenu.sh" "dusky-rofi-powermenu"]
     ["\\$HOME/user_scripts/rofi/emoji.sh" "dusky-rofi-emoji"]
     ["\\$HOME/user_scripts/rofi/calculator.sh" "dusky-rofi-calculator"]
-    ["\\$HOME/user_scripts/rofi/rofi_cliphist.sh" "dusky-rofi-cliphist"]
+    ["\\$HOME/user_scripts/rofi/rofi_clipboard.sh" "dusky-rofi-cliphist"]
 
     # Sliders
     ["\\$HOME/user_scripts/dusky_system/quickpanal/dusky_quickpanal.py" "dusky-sliders"]
