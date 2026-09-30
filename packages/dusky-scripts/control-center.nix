@@ -23,8 +23,17 @@ let
     # uses (the control center shell-expands $HOME, proven by upstream's own
     # literal $HOME commands).
     ["~/user_scripts" "\\$HOME/user_scripts"]
-    # The shared dispatcher (main.py) becomes our packaged binary.
+    # The shared dispatcher (main.py) becomes our packaged binary. Upstream now
+    # mostly spells it `python3 <path>`; that prefix must go with it, or the
+    # result is `python3 dusky-tui` (python reading a bash wrapper).
+    ["python3 \\$HOME/user_scripts/dusky_tui/python/main/main.py" "dusky-tui"]
     ["\\$HOME/user_scripts/dusky_tui/python/main/main.py" "dusky-tui"]
+    # Any schema run standalone (`python3 ~/user_scripts/<dir>/tui_<x>.py`, which
+    # self-dispatches to main.py) → dusky-tui on the schema's store path.
+    ["python3 \\$HOME/user_scripts/\\([^ \"]*/tui_[^ \"/]*\\.py\\)" "dusky-tui ${dusky}/user_scripts/\\1"]
+    # Other scripts upstream starts with `python3 <path>`: drop the interpreter
+    # so the per-path rules below can swap in the packaged binary.
+    ["python3 \\$HOME/user_scripts/" "\\$HOME/user_scripts/"]
     # Each schema argument → absolute store path, because main.py resolves a
     # direct path but its dot-notation fallback mangles full $HOME paths.
     ["\\$HOME/user_scripts/hypr/visual/tui_appearance.py" "${dusky}/user_scripts/hypr/visual/tui_appearance.py"]
@@ -41,7 +50,6 @@ let
     ["\\$HOME/user_scripts/hypr/rules/window_rules_generator.py" "dusky-window-rules-gen"]
     ["\\$HOME/user_scripts/external/usb_sound_toggle.py" "dusky-usb-sound"]
     ["\\$HOME/user_scripts/battery/power_saver.sh" "dusky-power-saver"]
-    ["\\$HOME/user_scripts/locale/locale_tui.sh" "dusky-locale-tui"]
     ["\\$HOME/user_scripts/waybar/toggle_time.sh" "dusky-waybar-toggle-time"]
     ["\\$HOME/user_scripts/wayclick/sounds/wayclick_soundpacks_download.sh" "dusky-wayclick-soundpacks"]
     ["\\$HOME/user_scripts/networking/dusky_wireguard_new.sh" "dusky-wireguard-new"]
@@ -94,7 +102,6 @@ let
     ["\\$HOME/user_scripts/waybar/toggle_hypridle.sh" "dusky-toggle-hypridle"]
 
     # Hyprlock
-    ["\\$HOME/user_scripts/hyprlock/dusky_hyprlock_switcher.sh" "dusky-hyprlock-switcher"]
     ["\\$HOME/user_scripts/hyprlock/lock.sh" "dusky-lock"]
 
     # Hypridle
@@ -103,8 +110,7 @@ let
     # Services / Performance / Power
     ["\\$HOME/user_scripts/services/dusky_service_toggle.sh" "dusky-service-toggle"]
     ["\\$HOME/user_scripts/performance/services_and_process_terminator.sh" "dusky-process-terminator"]
-    ["\\$HOME/user_scripts/performance/sysbench_benchmark.sh" "dusky-sysbench"]
-    ["\\$HOME/user_scripts/power/dusky_power.sh" "dusky-power"]
+    ["\\$HOME/user_scripts/performance/sysbench_benchmark.py" "dusky-sysbench"]
 
     # Battery
     ["\\$HOME/user_scripts/battery/power_saving/power_saver.sh" "dusky-power-saver"]
@@ -115,7 +121,7 @@ let
     ["\\$HOME/user_scripts/drives/drive_manager/drive_manager.py" "dusky-drive-manager"]
 
     # Networking
-    ["\\$HOME/user_scripts/networking/warp_toggle.sh" "dusky-warp-toggle"]
+    ["\\$HOME/user_scripts/networking/warp_toggle.py" "dusky-warp-toggle"]
     # ~/user_scripts/networking/airmon_ng.sh — no Nix equivalent, left as-is
 
     # Wayclick
@@ -124,11 +130,11 @@ let
 
     # Media
     ["\\$HOME/user_scripts/google_image_search/google_image_search.sh" "dusky-google-image-search"]
-    ["\\$HOME/user_scripts/music/music_recognition.sh" "dusky-music-recognition"]
+    ["\\$HOME/user_scripts/music/music_recognition.py" "dusky-music-recognition"]
     ["\\$HOME/user_scripts/spotify/spotify_toggle.sh" "dusky-spotify-toggle"]
 
     # LLM
-    ["\\$HOME/user_scripts/llm/ollama_terminal.sh" "dusky-ollama-terminal"]
+    ["\\$HOME/user_scripts/llm/llm_side_panal/toggle_llm_side_panal.sh" "dusky-llm-toggle"]
 
     # Screenshot
     ["\\$HOME/user_scripts/images/dusky_screenshot.sh" "dusky-screenshot"]
@@ -153,11 +159,8 @@ let
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/175_animation_default.sh" "dusky-animation-default"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh" "dusky-cursor-bibata"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/460_switch_clipboard.sh" "dusky-clipboard-switch"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/390_clipboard_persistance.sh" "dusky-clipboard-persistence"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/325_hosts_files_block.sh" "dusky-hosts-blocker"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/155_blur_shadow_opacity.sh" "dusky-blur-visibility"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/305_new_github_repo_to_backup.sh" "dusky-github-backup-new"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/310_reconnect_and_push_new_changes_to_github.sh" "dusky-github-backup-sync"]
 
     # Waybar (additional)
     ["\\$HOME/user_scripts/waybar/mako.sh" "dusky-waybar-mako"]
@@ -179,9 +182,6 @@ let
     ["\\$HOME/user_scripts/networking/arp_scan.sh" "dusky-arp-scan"]
 
     # Portable Arch Setup Scripts (additional — work on NixOS)
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh" "dusky-desktop-apps-fix"]
-    ["\\$HOME/user_scripts/firefox/400_firefox_matugen_pywalfox.sh" "dusky-firefox-matugen"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh" "dusky-battery-notify"]
 
     # --- Arch/service/app buttons adapted for NixOS via the dusky-nixos-ctl shim ---
     # service <unit> -- <cmd> : manage if the unit is declaratively present, else
@@ -196,7 +196,12 @@ let
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/470_vesktop_matugen.sh" "dusky-nixos-ctl install vesktop Vesktop"]
     # Declarative / Arch-only — informative no-op with the Nix way to do it:
     ["\\$HOME/user_scripts/networking/uninstall_tailscale.sh" "dusky-nixos-ctl na 'Tailscale is declarative: services.tailscale.enable'"]
-    ["\\$HOME/user_scripts/networking/airmon_ng.sh" "dusky-nixos-ctl na 'Add aircrack-ng to your config if needed'"]
+    ["\\$HOME/user_scripts/networking/airmon_ng_gpu.py" "dusky-nixos-ctl na 'Add aircrack-ng to your config if needed'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh" "dusky-nixos-ctl na 'Battery notifications run as the dusky-battery-notify user service'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/390_clipboard_persistance.py" "dusky-nixos-ctl na 'Clipboard storage needs upstream dusky_clipboard.service, not packaged yet'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/085_warp.py" "dusky-nixos-ctl na 'Cloudflare Warp is a service; enable declaratively'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/058_aur_paru_fallback_yay.sh" "dusky-nixos-ctl na 'No AUR on NixOS; add packages to your config'"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/383_configure_hyprland_gpu.py" "dusky-nixos-ctl na 'GPU configured declaratively'"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/005_hypr_custom_config_setup.py" "dusky-nixos-ctl na 'Hyprland config is managed by dusky-nix (home-manager)'"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/035_configure_uwsm_gpu.sh" "dusky-nixos-ctl na 'GPU/UWSM configured declaratively'"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/055_pacman_reflector.sh" "dusky-nixos-ctl na 'No pacman on NixOS'"]
@@ -220,6 +225,11 @@ let
     ["\\$HOME/user_scripts/arch_setup_scripts/send_logs.sh" "dusky-nixos-ctl na 'Arch-only'"]
     ["\\$HOME/user_scripts/update_dusky/update_dusky.sh" "dusky-nixos-ctl na 'Update: nix flake update dusky-nix then rebuild'"]
     ["\\$HOME/user_scripts/ftp/change_ftp_directory_server.sh" "dusky-nixos-ctl na 'FTP is declarative: services.vsftpd'"]
+
+    # Last: any dusky_tui schema still on a $HOME path (an argument to
+    # dusky-tui, or one we have no rule for) → its store path. Schema files
+    # never map to a binary name: they are arguments as often as commands.
+    ["\\$HOME/user_scripts/\\([^ \"]*/tui_[^ \"/]*\\.py\\)" "${dusky}/user_scripts/\\1"]
   ];
 
   # Build a chain of sed commands from the substitution list. The sed script is
