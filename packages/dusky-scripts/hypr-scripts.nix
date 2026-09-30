@@ -7,6 +7,32 @@ in
   pkgs.symlinkJoin {
     name = "dusky-hypr-scripts";
     paths = [
+      # Upstream's app launcher (v6), which its keybinds, rofi config and
+      # waybar configs now call as `dusky-run <cmd>`. Arch deploys it to
+      # /usr/local/bin from arch_iso_scripts/offline_iso/165_deploy_dusky_run.py,
+      # where it lives as an embedded string, hence copied here rather than
+      # read. Runs the command in a transient app.slice scope with a raised
+      # OOM score, so an OOM kill takes the app and not the session.
+      # systemd-run is the system's (it must match the running user manager).
+      (pkgs.writeShellApplication {
+        checkPhase = "";
+        name = "dusky-run";
+        runtimeInputs = [];
+        text = ''
+          if [[ $# -eq 0 ]]; then
+            echo "usage: dusky-run <cmd> [args...]" >&2
+            exit 1
+          fi
+          if ! printf '%d\n' 200 >/proc/self/oom_score_adj 2>/dev/null; then
+            echo "dusky-run: warning: cannot set oom_score_adj" >&2
+          fi
+          exec systemd-run --user --scope --slice=app.slice --collect \
+            --property=OOMPolicy=continue \
+            --property=ManagedOOMPreference=none \
+            --property=MemoryAccounting=yes \
+            -- "$@"
+        '';
+      })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-adjust-scale";
