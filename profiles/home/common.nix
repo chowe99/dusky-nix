@@ -174,7 +174,8 @@
       "14.49,9.38 A7,7 0 1,0 14.49,14.62"
     ];
     # Wraps dusky's meter: same text/tooltip/class, plus an n<frame> class
-    # whose rate follows total up+down throughput (log-ish tiers).
+    # whose rate follows total up+down throughput: 400ms/frame at <=10 KB/s,
+    # -80ms per decade, floor 80ms at 100 MB/s (faster backlogs waybar).
     netStream = pkgs.writeShellScript "waybar-net-chomp" ''
       state="''${XDG_RUNTIME_DIR:-/run/user/$UID}/waybar-net/state"
       frame=0 next=0 ms=400 out='{}'
@@ -184,15 +185,12 @@
           out=$(dusky-waybar-network-meter "$@")
           unit=- up=0 down=0
           [[ -r $state ]] && read -r unit up down _ < "$state"
-          up=''${up//[!0-9.]/} down=''${down//[!0-9.]/}
-          kb=$((10#''${up%.*}0 / 10 + 10#''${down%.*}0 / 10))
-          [[ $unit == MB ]] && kb=$((kb * 1024))
-          if ((kb < 5)); then ms=400
-          elif ((kb < 100)); then ms=220
-          elif ((kb < 1000)); then ms=130
-          elif ((kb < 10000)); then ms=80
-          else ms=45
-          fi
+          # awk: values are decimals ("0.9" MB) — integer bash math truncated
+          # them to 0 so real downloads drew as idle.
+          ms=$(${pkgs.gawk}/bin/awk -v u="$unit" -v a="$up" -v b="$down" 'BEGIN {
+            kb = (a + b) * (u == "GB" ? 1048576 : u == "MB" ? 1024 : 1)
+            ms = kb > 10 ? 400 - 80 * log(kb / 10) / log(10) : 400
+            printf "%d", ms < 80 ? 80 : ms }')
           next=$((now + 1000000))
         fi
         cls=
