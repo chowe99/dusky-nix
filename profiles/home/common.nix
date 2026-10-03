@@ -124,7 +124,9 @@
       hash = "sha256-ivsUBVD4mdOsS5AiHhabQNa+ipBJdMK3RjRapU/u2dI=";
     };
     # Streams one waybar JSON line per frame; the class picks the sprite in CSS.
-    # Cycle = 250ms at 100% CPU .. 1100ms at idle, eased by (1-x)^2 like RunCat.
+    # Cycle = 1s at 100% CPU .. 2.5s at idle, eased by (1-x)^2 like RunCat. Each
+    # frame is a class swap = full GTK restyle + SVG re-raster, ×2 bars; faster
+    # (old 50ms/frame) backlogged waybar's main thread at 100% CPU.
     runcatStream = pkgs.writeShellScript "waybar-runcat" ''
       read -r _ a b c d e f g h _ < /proc/stat
       pt=$((a + b + c + d + e + f + g + h)) pi=$((d + e)) u=0 frame=0 next=0
@@ -140,7 +142,7 @@
         ((u >= 90)) && cls="$cls,\"critical\"" || { ((u >= 70)) && cls="$cls,\"warning\""; }
         printf '{"text":"%s%%","tooltip":"CPU: %s%%","class":[%s]}\n' "$u" "$u" "$cls"
         frame=$(((frame + 1) % 5))
-        ms=$(((250 + 850 * (100 - u) * (100 - u) / 10000) / 5))
+        ms=$(((1000 + 1500 * (100 - u) * (100 - u) / 10000) / 5))
         ${pkgs.coreutils}/bin/sleep "0.$(printf %03d "$ms")"
       done
     '';
