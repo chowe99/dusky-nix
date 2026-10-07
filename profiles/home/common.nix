@@ -124,9 +124,9 @@
       hash = "sha256-ivsUBVD4mdOsS5AiHhabQNa+ipBJdMK3RjRapU/u2dI=";
     };
     # Streams one waybar JSON line per frame; the class picks the sprite in CSS.
-    # Cycle = 1s at 100% CPU .. 2.5s at idle, eased by (1-x)^2 like RunCat. Each
-    # frame is a class swap = full GTK restyle + SVG re-raster, ×2 bars; faster
-    # (old 50ms/frame) backlogged waybar's main thread at 100% CPU.
+    # Frame = 60ms at 100% CPU .. 500ms at idle, eased by (1-x)^2 like RunCat.
+    # Each frame is a class swap = full GTK restyle + SVG re-raster, ×2 bars;
+    # 50ms/frame backlogged waybar's main thread at 100% CPU, so 60 is the floor.
     runcatStream = pkgs.writeShellScript "waybar-runcat" ''
       read -r _ a b c d e f g h _ < /proc/stat
       pt=$((a + b + c + d + e + f + g + h)) pi=$((d + e)) u=0 frame=0 next=0
@@ -142,7 +142,7 @@
         ((u >= 90)) && cls="$cls,\"critical\"" || { ((u >= 70)) && cls="$cls,\"warning\""; }
         printf '{"text":"%s%%","tooltip":"CPU: %s%%","class":[%s]}\n' "$u" "$u" "$cls"
         frame=$(((frame + 1) % 5))
-        ms=$(((1000 + 1500 * (100 - u) * (100 - u) / 10000) / 5))
+        ms=$((60 + 440 * (100 - u) * (100 - u) / 10000))
         ${pkgs.coreutils}/bin/sleep "0.$(printf %03d "$ms")"
       done
     '';
@@ -175,7 +175,7 @@
     ];
     # Wraps dusky's meter: same text/tooltip/class, plus an n<frame> class
     # whose rate follows total up+down throughput: 400ms/frame at <=10 KB/s,
-    # -80ms per decade, floor 80ms at 100 MB/s (faster backlogs waybar).
+    # -120ms per decade, floor 60ms (~7 MB/s+; faster backlogs waybar).
     netStream = pkgs.writeShellScript "waybar-net-chomp" ''
       state="''${XDG_RUNTIME_DIR:-/run/user/$UID}/waybar-net/state"
       frame=0 next=0 ms=400 out='{}'
@@ -189,8 +189,8 @@
           # them to 0 so real downloads drew as idle.
           ms=$(${pkgs.gawk}/bin/awk -v u="$unit" -v a="$up" -v b="$down" 'BEGIN {
             kb = (a + b) * (u == "GB" ? 1048576 : u == "MB" ? 1024 : 1)
-            ms = kb > 10 ? 400 - 80 * log(kb / 10) / log(10) : 400
-            printf "%d", ms < 80 ? 80 : ms }')
+            ms = kb > 10 ? 400 - 120 * log(kb / 10) / log(10) : 400
+            printf "%d", ms < 60 ? 60 : ms }')
           next=$((now + 1000000))
         fi
         cls=
