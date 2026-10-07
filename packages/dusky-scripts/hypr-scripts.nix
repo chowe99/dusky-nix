@@ -19,6 +19,9 @@ in
         name = "dusky-run";
         runtimeInputs = [];
         text = ''
+          # Upstream callers mix `dusky-run cmd` and `dusky-run -- cmd`; a second
+          # `--` makes systemd-run exec a binary literally named "--".
+          if [[ ''${1:-} == -- ]]; then shift; fi
           if [[ $# -eq 0 ]]; then
             echo "usage: dusky-run <cmd> [args...]" >&2
             exit 1
