@@ -47,7 +47,6 @@ in {
 
     # Plymouth — clean boot splash with password prompt for LUKS decryption
     boot.plymouth.enable = true;
-    boot.initrd.systemd.enable = true; # required for Plymouth to show LUKS prompt
 
     # Set dusky NixOS options
     dusky.user.name = username;
