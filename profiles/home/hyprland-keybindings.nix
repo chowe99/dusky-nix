@@ -11,6 +11,23 @@
   # locals declared by the Hyprland config (mainMod, terminal, ...).
   mkBind = keys: dsp: {_args = [(mkLuaInline keys) (mkLuaInline dsp)];};
   mkBindOpts = keys: dsp: opts: {_args = [(mkLuaInline keys) (mkLuaInline dsp) opts];};
+
+  # Region → OCR'd text on the clipboard (CTRL+ALT+T, and dusky-menu's "text").
+  # Tesseract, English only (114 MiB vs 1.1 GiB for all 129 languages). On a
+  # terminal screenshot it scored 99% vs 4% for rust-paddle-ocr (PaddleOCR's
+  # Chinese model dropped spaces/letters); newbee-ocr lost whole lines.
+  # Gray + 3x upscale helps small screen fonts; tesseract wants dark-on-light,
+  # so invert dark-background captures (mean brightness < 0.5).
+  ocr = pkgs.writeShellScriptBin "dusky-ocr" ''
+    export PATH="${lib.makeBinPath [pkgs.slurp pkgs.grim pkgs.wl-clipboard pkgs.coreutils pkgs.gnused pkgs.imagemagick (pkgs.tesseract.override {enableLanguages = ["eng"];})]}:$PATH"
+    f="$(mktemp).png"
+    trap 'rm -f "$f"' EXIT
+    slurp | grim -g - "$f" || exit 1
+    neg=$(magick "$f" -colorspace gray -format '%[fx:mean<0.5?1:0]' info:)
+    magick "$f" -colorspace gray -resize 300% $([ "$neg" = 1 ] && echo -negate) "$f"
+    # -z: whole output as one record, so this trims tesseract's trailing \n\f.
+    tesseract "$f" - 2>/dev/null | sed -z 's/[[:space:]]*$//' | wl-copy
+  '';
 in {
   options.programs.hyprland-keybindings = {
     enable = lib.mkEnableOption "Hyprland keybindings management";
@@ -67,8 +84,8 @@ in {
     })
 
     (lib.mkIf (cfg.variant == "dusky") {
-      # `ocr` for the CTRL+ALT+T bind below.
-      home.packages = [pkgs.rust-paddle-ocr];
+      # `dusky-ocr` for the CTRL+ALT+T bind below.
+      home.packages = [ocr];
       xdg.configFile."hypr/edit_here/hyprland.lua".force = true;
       xdg.configFile."hypr/edit_here/hyprland.lua".text =
         ''
@@ -132,8 +149,8 @@ in {
               center = true,
           })
 
-          -- OCR (PaddleOCR via rust-paddle-ocr) — select region, extract text to clipboard
-          hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd([[pgrep -x ocr || (f=$(mktemp).png; slurp | grim -g - "$f" && ocr -p "$f" | wl-copy; rm -f "$f")]]), { description = "OCR Selection" })
+          -- OCR (PaddleOCR models via newbee-ocr) — select region, extract text to clipboard
+          hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd("pgrep -x dusky-ocr || dusky-ocr"), { description = "OCR Selection" })
 
           -- Screenshots (using dusky's screenshot tool)
           hl.bind("CTRL + ALT + S",         hl.dsp.exec_cmd("dusky-screenshot --region --freeze --no-notify"), { description = "OCR Screenshot" })

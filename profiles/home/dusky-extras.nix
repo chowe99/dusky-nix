@@ -171,7 +171,7 @@
   '';
 
   # ---------------------------------------------------------------------------
-  # QR decode — same shape as the existing OCR bind, zbarimg instead of ocr.
+  # QR decode — same shape as dusky-ocr (hyprland-keybindings.nix), zbarimg instead of OCR.
   # -Stest-inverted: also read light-on-dark codes (zbar skips them by default).
   # `$(mktemp).png` because the system mktemp is toybox and has no --suffix.
   # ---------------------------------------------------------------------------
@@ -384,7 +384,7 @@
   '';
 
   menu = pkgs.writeShellScriptBin "dusky-menu" ''
-    export PATH="${bin [pkgs.rofi pkgs.libnotify pkgs.coreutils pkgs.systemd pkgs.procps pkgs.wl-clipboard pkgs.yazi pkgs.gnugrep pkgs.slurp pkgs.grim pkgs.rust-paddle-ocr pkgs.hyprpicker pkgs.hyprlock pkgs.util-linux pkgs.gawk pkgs.glib pkgs.uwsm pkgs.localsend]}:$PATH"
+    export PATH="${bin [pkgs.rofi pkgs.libnotify pkgs.coreutils pkgs.systemd pkgs.procps pkgs.wl-clipboard pkgs.yazi pkgs.gnugrep pkgs.slurp pkgs.grim pkgs.hyprpicker pkgs.hyprlock pkgs.util-linux pkgs.gawk pkgs.glib pkgs.uwsm pkgs.localsend]}:$PATH"
 
     pick() { rofi -dmenu -i -p "$1…" ''${2:-}; }
     ask() { : | rofi -dmenu -p "$1…"; }
@@ -514,7 +514,7 @@
         apps)           run rofi -show drun -run-command "uwsm app -- {cmd}" ;;
         *screenshot*)   screenshot_menu ;;
         *screenrecord*) screenrecord_menu ;;
-        *text*|*ocr*)   sh_run 'f=$(mktemp).png; slurp | grim -g - "$f" && ocr -p "$f" | wl-copy; rm -f "$f"' ;;
+        *text*|*ocr*)   sh_run "dusky-ocr" ;; # from the hyprland-keybindings module
         *qr*)           sh_run "dusky-qr" ;;
         *color*)        sh_run "pkill hyprpicker || hyprpicker -a" ;;
         *transcode*)    sh_run "dusky-transcode" ;;
