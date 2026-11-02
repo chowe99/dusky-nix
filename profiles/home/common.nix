@@ -97,6 +97,15 @@
     end)
   '');
 
+  # Hyprland 0.57 rejects upstream's "unset" sentinels (transform = -1,
+  # tap_button_map = ""). 0 = normal transform; "lrm" = libinput default.
+  # ponytail: string patch; drop once upstream input.lua stops using them.
+  xdg.configFile."hypr/source/input.lua".source = lib.mkForce (pkgs.writeText "input.lua"
+    (builtins.replaceStrings
+      [''transform = -1,'' ''transform                = -1,'' ''tap_button_map          = "",'']
+      [''transform = 0,'' ''transform                = 0,'' ''tap_button_map          = "lrm",'']
+      (builtins.readFile "${dusky}/.config/hypr/source/input.lua")));
+
   # Workaround for dusky activation scripts that assume dirs exist
   home.activation.ensureDuskyDirs = lib.hm.dag.entryBefore ["createWaybarSymlinks"] ''
     run mkdir -p "$HOME/.config/waybar"
