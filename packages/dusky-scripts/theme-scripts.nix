@@ -14,11 +14,6 @@ in
         # hyprland/libnotify/mako/procps + the glib gsettings also serve matugen's
         # post_hooks (home/theming/matugen-config.toml), which run with this PATH.
         runtimeInputs = with pkgs; [awww matugen coreutils findutils gnugrep gawk procps glib gsettings-desktop-schemas dconf python3 uwsm hyprland libnotify mako];
-        # nix-compat: Nix's makeWrapper renames the daemon binary to
-        # `.awww-daemon-wrapped`, so the kernel `comm` (15-char) becomes
-        # `.awww-daemon-wr` and upstream's `pgrep -xu awww-daemon` never matches —
-        # theme_ctl then spawns a second daemon which aborts on the busy socket.
-        # Match the full cmdline (still contains `awww-daemon`) instead.
         # nix-compat: gsettings needs GSETTINGS_SCHEMA_DIR which
         # writeShellApplication doesn't set, causing color-scheme calls to
         # silently fail. Use dconf write instead — it works directly with
@@ -26,23 +21,37 @@ in
         #
         # UX fix: upstream only writes color-scheme deep inside the matugen
         # apply path, i.e. AFTER a ~1-2s color regen, so dark/light lands
-        # seconds after the toggle and users double-tap it. Fire the dconf
-        # write immediately on mode change (right where mode_changed is set),
-        # so portal-following apps (GTK4/libadwaita, Firefox/Zen) flip at once.
+        # seconds after the toggle and users double-tap it. Fire the write
+        # immediately on mode change (right where mode_changed is set), so
+        # portal-following apps (GTK4/libadwaita, Firefox/Zen) flip at once.
         # The later apply-path writes stay as a harmless idempotent backstop.
-        text =
-          builtins.replaceStrings
-          [
-            "pgrep -xu"
-            "        gsettings set org.gnome.desktop.interface color-scheme \"prefer-\${THEME_MODE}\" 2>/dev/null || true"
-            "    [[ \"$THEME_MODE\" != \"$prev_mode\" ]] && mode_changed=1"
-          ]
-          [
-            "pgrep -fu"
-            "        dconf write /org/gnome/desktop/interface/color-scheme \"'prefer-\${THEME_MODE}'\" 2>/dev/null || true"
-            "    [[ \"$THEME_MODE\" != \"$prev_mode\" ]] && mode_changed=1\n    (( mode_changed )) && dconf write /org/gnome/desktop/interface/color-scheme \"'prefer-\${THEME_MODE}'\" 2>/dev/null || true"
-          ]
-          (builtins.readFile "${scriptDir}/theme_ctl.sh");
+        #
+        # The assert fails the eval when upstream rewrites a target line (these
+        # patches silently no-op'd for a while after the last rewrite).
+        text = let
+          src = builtins.readFile "${scriptDir}/theme_ctl.sh";
+          from = [
+            "command -v gsettings >/dev/null 2>&1 || return 0"
+            ''
+              gsettings set org.gnome.desktop.interface \
+                      color-scheme "prefer-''${THEME_MODE}" \''
+            ''
+              if [[ "$THEME_MODE" != "$previous_mode" ]]; then
+                      mode_changed=1
+                  fi''
+          ];
+          to = [
+            "command -v dconf >/dev/null 2>&1 || return 0"
+            ''dconf write /org/gnome/desktop/interface/color-scheme "'prefer-''${THEME_MODE}'" \''
+            ''
+              if [[ "$THEME_MODE" != "$previous_mode" ]]; then
+                      mode_changed=1
+                      update_desktop_color_scheme
+                  fi''
+          ];
+        in
+          assert builtins.all (s: pkgs.lib.hasInfix s src) from;
+            builtins.replaceStrings from to src;
       })
       (pkgs.writeShellApplication {
         checkPhase = "";

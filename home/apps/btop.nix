@@ -5,11 +5,11 @@
   dusky,
   ...
 }: {
-  # Deploy btop config (upstream has truecolor=False; override to True for accurate matugen colors)
+  # Deploy btop config (upstream has truecolor = false; override to true for accurate matugen colors)
   xdg.configFile."btop/btop.conf".text =
     builtins.replaceStrings
-    ["truecolor = False"]
-    ["truecolor = True"]
+    ["truecolor = false"]
+    ["truecolor = true"]
     (builtins.readFile "${dusky}/.config/btop/btop.conf");
 
   # Theme dir for matugen-generated theme
