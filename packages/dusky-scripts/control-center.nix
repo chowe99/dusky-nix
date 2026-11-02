@@ -38,7 +38,7 @@ let
     # direct path but its dot-notation fallback mangles full $HOME paths.
     ["\\$HOME/user_scripts/hypr/visual/tui_appearance.py" "${dusky}/user_scripts/hypr/visual/tui_appearance.py"]
     ["\\$HOME/user_scripts/hypr/input/tui_input.py" "${dusky}/user_scripts/hypr/input/tui_input.py"]
-    ["\\$HOME/user_scripts/hypr/monitor/monitor_wizard.py" "${dusky}/user_scripts/hypr/monitor/monitor_wizard.py"]
+    ["\\$HOME/user_scripts/hypr/monitor/tui_monitor_wizard.py" "${dusky}/user_scripts/hypr/monitor/tui_monitor_wizard.py"]
     ["\\$HOME/user_scripts/hypridle/tui_dusky_hypridle.py" "${dusky}/user_scripts/hypridle/tui_dusky_hypridle.py"]
     ["\\$HOME/user_scripts/services/tui_service_toggle.py" "${dusky}/user_scripts/services/tui_service_toggle.py"]
     ["\\$HOME/user_scripts/mako_osd/mako_tui/tui_mako.py" "${dusky}/user_scripts/mako_osd/mako_tui/tui_mako.py"]
@@ -152,10 +152,7 @@ let
     # Portable arch_setup_scripts (work on NixOS)
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/150_wallpapers_download.sh" "dusky-wallpaper-download"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/265_mouse_button_reverse.sh" "dusky-mouse-reverse"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/235_file_manager_switch.sh" "dusky-file-manager-switch"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/236_browser_switcher.sh" "dusky-browser-switch"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/237_text_editer_switcher.sh" "dusky-editor-switch"]
-    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/238_terminal_switcher.sh" "dusky-terminal-switch"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/235_default_apps.py" "dusky-default-apps"]
     # 170_waypaper_config_reset.sh removed upstream (waypaper dropped for awww)
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/175_animation_default.sh" "dusky-animation-default"]
     ["\\$HOME/user_scripts/arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh" "dusky-cursor-bibata"]

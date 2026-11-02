@@ -81,10 +81,10 @@ in
       # a dusky_tui schema, so run it through the framework dispatcher.
       (mkTui "dusky-mako-tui" "mako_osd/mako_tui/tui_mako.py" [])
 
-      # monitor_wizard.py is a dusky_tui schema too (it imports the framework's
-      # `python` package); it used to be run as a bare script, which died on
-      # that import.
-      (mkTui "dusky-monitor" "hypr/monitor/monitor_wizard.py" [pkgs.hyprland pkgs.libnotify])
+      # tui_monitor_wizard.py is a dusky_tui schema too (it imports the
+      # framework's `python` package); it used to be run as a bare script,
+      # which died on that import.
+      (mkTui "dusky-monitor" "hypr/monitor/tui_monitor_wizard.py" [pkgs.hyprland pkgs.libnotify])
 
       # Adaptive shim so upstream (Arch) Control Center / Quick Panal buttons work
       # on NixOS instead of erroring on missing $HOME/user_scripts paths:

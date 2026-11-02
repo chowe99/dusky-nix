@@ -14,10 +14,7 @@
   shims = {
     "arch_setup_scripts/scripts/006_animation_default.sh" = "dusky-animation-default";
     "arch_setup_scripts/scripts/150_wallpapers_download.sh" = "dusky-wallpaper-download";
-    "arch_setup_scripts/scripts/235_file_manager_switch.sh" = "dusky-file-manager-switch";
-    "arch_setup_scripts/scripts/236_browser_switcher.sh" = "dusky-browser-switch";
-    "arch_setup_scripts/scripts/237_text_editer_switcher.sh" = "dusky-editor-switch";
-    "arch_setup_scripts/scripts/238_terminal_switcher.sh" = "dusky-terminal-switch";
+    "arch_setup_scripts/scripts/235_default_apps.py" = "dusky-default-apps";
     "arch_setup_scripts/scripts/265_mouse_button_reverse.sh" = "dusky-mouse-reverse";
     "arch_setup_scripts/scripts/325_hosts_files_block.sh" = "dusky-hosts-blocker";
     "arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh" = "dusky-cursor-bibata";
@@ -42,7 +39,7 @@
     "hypr/input/keybinds_cheatsheet.py" = "dusky-keybinds-cheatsheet";
     "hypr/input/rofi_keybinds/keybindings.sh" = "dusky-rofi-keybindings";
     "hypr/monitor/adjust_scale.py" = "dusky-adjust-scale";
-    "hypr/monitor/monitor_wizard.py" = "dusky-monitor";
+    "hypr/monitor/tui_monitor_wizard.py" = "dusky-monitor";
     "hypr/monitor/screen_rotate.py" = "dusky-screen-rotate";
     "hypr/multi_monitor_workspace.sh" = "dusky-multi-monitor-workspace";
     "hypr/old/dusky_appearances.sh" = "dusky-appearances";

@@ -89,7 +89,7 @@ in
           runtimeInputs = with pkgs; [hyprland fzf];
           text = ''exec ${python}/bin/python3 ${scriptDir}/input/dusky_keybinds.py "$@"'';
         })
-      # dusky-monitor lives in tui-scripts.nix: monitor_wizard.py is a
+      # dusky-monitor lives in tui-scripts.nix: tui_monitor_wizard.py is a
       # dusky_tui schema now, not a standalone script.
       (pkgs.writeShellApplication {
         checkPhase = "";

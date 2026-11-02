@@ -7,11 +7,8 @@
 }: let
   inherit (pkgs.mpvScripts) uosc thumbfast;
 in {
-  # Deploy mpv config. Upstream's [thumbfast] profile sets `network=no`,
-  # which mpv 0.41 rejects ("option not found") on every load.
-  xdg.configFile."mpv/mpv.conf".text =
-    builtins.replaceStrings ["network=no\n"] [""]
-    (builtins.readFile "${dusky}/.config/mpv/mpv.conf");
+  # Deploy mpv config.
+  xdg.configFile."mpv/mpv.conf".source = "${dusky}/.config/mpv/mpv.conf";
 
   # The conf sets osc=no for uosc (Arch ships it as mpv-uosc/mpv-thumbfast);
   # without the scripts mpv has no controls at all. Installed as config

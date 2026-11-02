@@ -132,6 +132,8 @@ hl.bind("SUPER + ALT + S", hl.dsp.exec_cmd("dusky-screenshot --region --freeze -
 hl.unbind("SUPER + ALT + O")
 -- SUPER+ALT+O is the TTS voice picker (below); Ollama chat has no key.
 hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("uwsm-app -- dusky-voice-reset"), { description = "Voice Assistant Reset" })
+-- Upstream took SUPER+Escape for "Leave Fullscreen" (2026-10); voice keeps it, SUPER+F still toggles fullscreen.
+hl.unbind("SUPER + Escape")
 hl.bind("SUPER + Escape", hl.dsp.exec_cmd("uwsm-app -- dusky-voice-interrupt"), { description = "Voice Proceed / double-tap Interrupt" })
 hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd("uwsm-app -- dusky-kokoro-voice"), { description = "TTS Voice Picker" })
 hl.bind("SUPER + Q", hl.dsp.window.close(), { description = "Close Window" })

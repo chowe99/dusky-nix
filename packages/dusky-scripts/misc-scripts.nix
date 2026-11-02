@@ -173,13 +173,13 @@ in
         checkPhase = "";
         name = "dusky-cc-restart";
         runtimeInputs = with pkgs; [procps systemd coreutils];
-        text = builtins.readFile "${patched}/control_center/cc_restart.sh";
+        text = builtins.readFile (patched + "/control_center/cc_restart.sh");
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-reload-sliders";
         runtimeInputs = with pkgs; [procps util-linux coreutils uwsm];
-        text = builtins.readFile "${patched}/sliders/reload_sliders.sh";
+        text = builtins.readFile (patched + "/sliders/reload_sliders.sh");
       })
 
       # --- Wallpaper Download ---
@@ -193,7 +193,7 @@ in
         checkPhase = "";
         name = "dusky-walls-download";
         runtimeInputs = with pkgs; [curl jq gum coreutils findutils];
-        text = builtins.readFile "${patched}/walls/dusky_walls_download.sh";
+        text = builtins.readFile (patched + "/walls/dusky_walls_download.sh");
       })
 
       # --- Portable Arch Setup Scripts (work on NixOS without modification) ---
@@ -203,29 +203,13 @@ in
         runtimeInputs = with pkgs; [gawk hyprland procps];
         text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/265_mouse_button_reverse.sh";
       })
+      # Upstream folded the four 235-238 *_switch.sh scripts into one
+      # (--file-manager/--browser/--text-editor/--terminal [--set <app>]).
       (pkgs.writeShellApplication {
         checkPhase = "";
-        name = "dusky-file-manager-switch";
-        runtimeInputs = with pkgs; [gawk xdg-utils coreutils hyprland];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/235_file_manager_switch.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-browser-switch";
-        runtimeInputs = with pkgs; [gawk xdg-utils coreutils hyprland];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/236_browser_switcher.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-editor-switch";
-        runtimeInputs = with pkgs; [gawk xdg-utils coreutils hyprland];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/237_text_editer_switcher.sh";
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-terminal-switch";
-        runtimeInputs = with pkgs; [gawk coreutils hyprland];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/238_terminal_switcher.sh";
+        name = "dusky-default-apps";
+        runtimeInputs = with pkgs; [python3 xdg-utils hyprland];
+        text = ''exec python3 ${upstream}/arch_setup_scripts/scripts/235_default_apps.py "$@"'';
       })
       # dusky-waypaper-reset removed: upstream dropped waypaper (replaced by awww),
       # so 170_waypaper_config_reset.sh no longer exists.
@@ -257,7 +241,7 @@ in
         checkPhase = "";
         name = "dusky-blur-visibility";
         runtimeInputs = with pkgs; [brightnessctl];
-        text = builtins.readFile "${patched}/arch_portable/155_blur_shadow_opacity.sh";
+        text = builtins.readFile (patched + "/arch_portable/155_blur_shadow_opacity.sh");
       })
 
       # --- Neovim ---
@@ -443,7 +427,7 @@ in
         checkPhase = "";
         name = "dusky-voice-assistant";
         runtimeInputs = with pkgs; [libnotify coreutils];
-        text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_trigger.sh";
+        text = builtins.readFile (patched + "/tts_stt/voice_assistant/dusky_voice_trigger.sh");
       })
 
       # --- Voice Assistant reset conversation ---
@@ -451,7 +435,7 @@ in
         checkPhase = "";
         name = "dusky-voice-reset";
         runtimeInputs = with pkgs; [libnotify coreutils];
-        text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_reset.sh";
+        text = builtins.readFile (patched + "/tts_stt/voice_assistant/dusky_voice_reset.sh");
       })
 
       # --- Voice Assistant interrupt TTS ---
@@ -459,7 +443,7 @@ in
         checkPhase = "";
         name = "dusky-voice-interrupt";
         runtimeInputs = with pkgs; [coreutils procps];
-        text = builtins.readFile "${patched}/tts_stt/voice_assistant/dusky_voice_interrupt.sh";
+        text = builtins.readFile (patched + "/tts_stt/voice_assistant/dusky_voice_interrupt.sh");
       })
 
       # --- STT trigger (keybind target): toggle recording, send audio to daemon ---
