@@ -136,13 +136,6 @@ in {
           sensible
           yank
           resurrect
-          {
-            plugin = continuum;
-            extraConfig = ''
-              set -g @continuum-restore 'on'
-              set -g @continuum-save-interval '10'
-            '';
-          }
           vim-tmux-navigator
           {
             plugin = tmux-which-key;
@@ -195,7 +188,16 @@ in {
 
             ${allKeybindings}
           ''
-          + lib.optionalString (cfg.extraConfig != "") "\n${cfg.extraConfig}";
+          + lib.optionalString (cfg.extraConfig != "") "\n${cfg.extraConfig}"
+          # continuum autosaves via a hook it appends to status-right, so it must
+          # load after every status-right write — as a normal plugin the status
+          # bar above silently wiped the hook and nothing was ever saved.
+          + ''
+
+            set -g @continuum-restore 'on'
+            set -g @continuum-save-interval '10'
+            run-shell ${pkgs.tmuxPlugins.continuum.rtp}
+          '';
       };
     }
   ]);
