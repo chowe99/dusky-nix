@@ -20,7 +20,7 @@ in {
     dusky-battery-scripts
     dusky-drive-scripts
     dusky-screenshot-scripts
-    dusky-slider-scripts
+    dusky-rust-apps
     dusky-control-center
     dusky-network-scripts
     dusky-mako-scripts

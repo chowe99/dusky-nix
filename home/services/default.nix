@@ -38,25 +38,27 @@ in {
       Install.WantedBy = ["graphical-session.target"];
     };
 
-    # Network speed daemon — writes $XDG_RUNTIME_DIR/waybar-net/state, which
-    # dusky-waybar-network-meter reads. Upstream ships this as network_meter.service;
-    # until now it only ran because waybar accidentally invoked the daemon in the
-    # caller's place (see waybar-scripts.nix), so fixing that packaging bug means
-    # something has to start it on purpose.
-    systemd.user.services.dusky-waybar-network-meter = {
+    # Shared network sampler for waybar's `dusky_network watch` (upstream's
+    # dusky_network.service; replaced the bash network_meter daemon).
+    systemd.user.services.dusky_network = {
       Unit = {
-        Description = "Dusky waybar network speed daemon";
+        Description = "Dusky network meter (shared Waybar sampler)";
         PartOf = ["graphical-session.target"];
         After = ["graphical-session.target"];
       };
       Service = {
-        Type = "simple";
-        ExecStart = "/etc/profiles/per-user/%u/bin/dusky-waybar-network-meter-daemon";
-        Restart = "always";
-        RestartSec = 1;
+        Type = "exec";
+        ExecStart = "/etc/profiles/per-user/%u/bin/dusky_network daemon";
+        Restart = "on-failure";
+        RestartSec = 3;
       };
       Install.WantedBy = ["graphical-session.target"];
     };
+
+    # Upstream configs launch its Rust apps as $HOME/.local/bin/<name>.
+    home.file = lib.genAttrs (map (n: ".local/bin/${n}") ["dusky_center" "dusky_tray" "dusky_network" "dusky_snap" "dusky_overview"]) (f: {
+      source = config.lib.file.mkOutOfStoreSymlink "${config.home.profileDirectory}/bin/${baseNameOf f}";
+    });
 
     # Mako OSD daemon (hardware key events: caps lock, num lock, keyboard backlight)
     systemd.user.services.dusky-mako-osd = {
@@ -73,32 +75,6 @@ in {
       };
       Install.WantedBy = ["graphical-session.target"];
     };
-
-    # Dusky control center daemon (D-Bus activated via SUPER+Space)
-    systemd.user.services.dusky = {
-      Unit = {
-        Description = "Dusky Control Center Daemon";
-        PartOf = ["graphical-session.target"];
-        After = ["graphical-session.target"];
-      };
-      Service = {
-        Type = "simple";
-        Environment = "PYTHONUNBUFFERED=1";
-        ExecStart = "/etc/profiles/per-user/%u/bin/dusky-control-center --gapplication-service";
-        Restart = "always";
-        RestartSec = 3;
-        Slice = "app.slice";
-      };
-      Install.WantedBy = ["graphical-session.target"];
-    };
-
-    # D-Bus service file for control center activation
-    xdg.dataFile."dbus-1/services/com.github.dusky.controlcenter.service".text = lib.mkDefault ''
-      [D-BUS Service]
-      Name=com.github.dusky.controlcenter
-      SystemdService=dusky.service
-      Exec=/usr/bin/false
-    '';
 
     # Kokoro TTS daemon (auto-starts on login, required by voice assistant)
     systemd.user.services.dusky-kokoro-tts = {

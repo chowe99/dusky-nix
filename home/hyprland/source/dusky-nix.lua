@@ -118,7 +118,7 @@ hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("uwsm-app -- looking-glass-client -
 hl.unbind("ALT + R")
 hl.bind("ALT + R", hl.dsp.exec_cmd("hyprctl reload"), { locked = true, description = "Reload Hyprland" })
 hl.unbind("ALT + V")
-hl.bind("ALT + V", hl.dsp.exec_cmd("uwsm-app -- dusky-sliders"), { description = "Volume/Brightness & Nightlight Slider" })
+hl.bind("ALT + V", hl.dsp.exec_cmd("uwsm-app -- dusky_tray"), { description = "Quick panel (Dusky Tray)" })
 hl.bind("XF86Launch3", hl.dsp.exec_cmd("uwsm-app -- " .. terminal .. " --class asusctl.sh -e sudo dusky-asus-control"), { description = "ASUS Control" })
 hl.unbind("SUPER + ALT + X")
 hl.bind("SUPER + ALT + X", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; dusky-rofi-shader"), { description = "Shader Menu" })

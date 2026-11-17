@@ -9,7 +9,7 @@
   inOut = pkgs.writeShellApplication {
     checkPhase = "";
     name = "dusky-audio-in-out";
-    runtimeInputs = with pkgs; [wireplumber pipewire rofi libnotify gawk];
+    runtimeInputs = with pkgs; [wireplumber pipewire rofi libnotify gawk jq];
     text = builtins.readFile "${scriptDir}/dusky_in_out_source.sh";
   };
 in

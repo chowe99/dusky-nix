@@ -2,18 +2,12 @@
   pkgs,
   dusky,
 }:
-# Python GTK control center app.
-# Upstream dusky_control_center.py hard-requires Python 3.14.3+
-# (sys.version_info < (3, 14, 3) → sys.exit). pkgs.python3 in current
-# nixpkgs is still 3.13, so pin to python314 explicitly.
+# Dusky Center: upstream's Rust (Iced/wgpu) control center, which replaced the
+# GTK/Python dusky_control_center.py. No daemon: each launch is a fresh window.
+# Its dusky_config.toml keeps the old format, so the old path rewrites apply.
 let
-  python = pkgs.python314.withPackages (ps:
-    with ps; [
-      pygobject3
-      pycairo
-      pyyaml
-    ]);
-  scriptDir = "${dusky}/user_scripts/dusky_system/control_center";
+  mk = import ./rust-lib.nix {inherit pkgs dusky;};
+  dir = "${dusky}/user_scripts/dusky";
 
   # Mapping of hardcoded $HOME/user_scripts/ paths → Nix package binary names.
   # Each entry is [pattern replacement]. Longest paths first to avoid partial matches.
@@ -44,6 +38,13 @@ let
     ["\\$HOME/user_scripts/mako_osd/mako_tui/tui_mako.py" "${dusky}/user_scripts/mako_osd/mako_tui/tui_mako.py"]
     ["\\$HOME/user_scripts/waybar/tui_waybars.py" "${dusky}/user_scripts/waybar/tui_waybars.py"]
     # Direct-invocation scripts → their packaged binaries (paths moved upstream).
+    ["\\$HOME/user_scripts/battery/power_saver/power_saver.py" "dusky-power-saver"]
+    # upstream: sh -c 'exec python3 \"$HOME/.../terminator.py\"' (TOML-escaped quotes)
+    ["python3 \\\\\"\\$HOME/user_scripts/performance/services_and_process_terminator/terminator.py\\\\\"" "dusky-process-terminator"]
+    ["\\$HOME/user_scripts/arch_setup_scripts/scripts/146_wallpapers_download.sh" "dusky-wallpaper-download"]
+    # Dusky Center's own stdlib-only helpers (radio state, text editor launcher),
+    # copied beside the config below. Some are argv[0], so no interpreter prefix.
+    ["\\$HOME/user_scripts/dusky/dusky_center/" "@out@/share/dusky_center/"]
     ["\\$HOME/user_scripts/hypr/monitor/adjust_scale.py" "dusky-adjust-scale"]
     ["\\$HOME/user_scripts/hypr/monitor/screen_rotate.py" "dusky-screen-rotate"]
     ["\\$HOME/user_scripts/hypr/input/dusky_keybinds.py" "dusky-keybinds"]
@@ -60,9 +61,6 @@ let
     ["~/user_scripts/theme_matugen/dusky_matugen_presets.sh" "dusky-matugen-presets"]
     ["\\$HOME/user_scripts/theme_matugen/dusky_matugen_presets.sh" "dusky-matugen-presets"]
     ["\\$HOME/user_scripts/theme_matugen/theme_favorites_ctl.sh" "dusky-theme-favorites"]
-
-    # Control center reload
-    ["\\$HOME/user_scripts/dusky_system/reload_cc/cc_restart.sh" "dusky-cc-restart"]
 
     # Hypr scripts
     ["\\$HOME/user_scripts/hypr/screen_rotate.sh" "dusky-screen-rotate"]
@@ -91,9 +89,6 @@ let
     ["\\$HOME/user_scripts/rofi/emoji.sh" "dusky-rofi-emoji"]
     ["\\$HOME/user_scripts/rofi/calculator.sh" "dusky-rofi-calculator"]
     ["\\$HOME/user_scripts/rofi/rofi_clipboard.sh" "dusky-rofi-cliphist"]
-
-    # Sliders
-    ["\\$HOME/user_scripts/dusky_system/quickpanal/dusky_quickpanal.py" "dusky-sliders"]
 
     # Wlogout
     ["\\$HOME/user_scripts/wlogout/wlogout_scale.sh" "dusky-wlogout-scale"]
@@ -240,57 +235,31 @@ let
       pair: let
         pattern = shEsc (builtins.elemAt pair 0);
         replacement = shEsc (builtins.elemAt pair 1);
-      in "sed -i 's|${pattern}|${replacement}|g' $out/lib/dusky-control-center/dusky_config.toml"
+      in "sed -i 's|${pattern}|${replacement}|g' $out/share/dusky_center/dusky_config.toml"
     )
     pathSubstitutions
   );
 in
-  pkgs.stdenv.mkDerivation {
-    pname = "dusky-control-center";
-    version = "1.0.0";
+  mk "dusky_center" {
+    postInstall = ''
+          install -Dm644 -t $out/share/dusky_center ${dir}/dusky_center/dusky_config.toml
+          # dusky_center reads the tray's notification ignore-list too.
+          install -Dm644 -t $out/share/dusky_tray ${dir}/dusky_tray/ignored_apps.toml
 
-    src = scriptDir;
-
-    nativeBuildInputs = with pkgs; [makeWrapper wrapGAppsHook4 gobject-introspection];
-
-    buildInputs = with pkgs; [
-      gtk4
-      libadwaita
-      glib
-    ];
-
-    dontWrapGApps = true;
-
-    installPhase = ''
-          mkdir -p $out/bin $out/lib/dusky-control-center
-          cp -r . $out/lib/dusky-control-center/
-
-          # nix-compat: upstream bumped its hard Python floor to 3.14.5, but pkgs.python314
-          # is 3.14.3 → the app sys.exit()s at startup ("[FATAL] Python 3.14.5+ is required"),
-          # so the D-Bus/dusky.service (ALT+SPACE) never starts. Point releases add no language
-          # features it needs; relax the gate to any 3.14.x.
-          sed -i 's/sys.version_info < (3, 14, 5)/sys.version_info < (3, 14, 0)/' \
-            $out/lib/dusky-control-center/dusky_control_center.py
-
-          # Visually grey out the "not applicable" buttons: every row widget ends its
-          # __init__ with self._start_hyprland_ipc(); append a check that renders the
-          # row insensitive + tooltipped when its command routes to `dusky-nixos-ctl na`
-          # (the declarative/Arch-only no-ops). Defensive getattr so it's a no-op for any
-          # row type without on_action. Covers ActionRows and grid cards uniformly.
-          substituteInPlace $out/lib/dusky-control-center/lib/rows.py \
-            --replace-quiet 'self._start_hyprland_ipc()' 'self._start_hyprland_ipc()
-              if isinstance(getattr(self, "on_action", None), dict) and "dusky-nixos-ctl na" in str(self.on_action.get("command", "")):
-                  self.set_sensitive(False)
-                  self.set_tooltip_text("Managed by NixOS (not applicable here)")'
+          for f in dusky_text_editor.py lib/radio_status.py lib/wireguard_status.py; do
+            install -Dm755 ${dir}/dusky_center/$f $out/share/dusky_center/$f
+            sed -i "1s|^#!/usr/bin/env python3|#!${pkgs.python3}/bin/python3|" $out/share/dusky_center/$f
+          done
 
           # Replace hardcoded $HOME/user_scripts/ paths with Nix-packaged binary names
           ${sedCommands}
+          sed -i "s|@out@|$out|g" $out/share/dusky_center/dusky_config.toml
 
           # Inject dharmx/walls download button after the existing wallpaper download button.
           # Upstream config is now TOML; anchor on the post-substitution download command
           # then the next `terminal = false`. Guarded so a missing anchor is a no-op (not a
           # build crash) in case upstream restructures the wallpaper section again.
-          local toml="$out/lib/dusky-control-center/dusky_config.toml"
+          local toml="$out/share/dusky_center/dusky_config.toml"
           local line_num
           line_num=$(grep -n 'dusky-wallpaper-download' "$toml" | tail -1 | cut -d: -f1)
           if [[ -n "$line_num" ]]; then
@@ -318,12 +287,5 @@ in
               rm -f "$snippet"
             fi
           fi
-    '';
-
-    postFixup = ''
-      makeWrapper ${python}/bin/python3 $out/bin/dusky-control-center \
-        --add-flags "$out/lib/dusky-control-center/dusky_control_center.py" \
-        "''${gappsWrapperArgs[@]}" \
-        --prefix GI_TYPELIB_PATH : "${pkgs.gobject-introspection}/lib/girepository-1.0"
     '';
   }

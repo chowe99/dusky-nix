@@ -14,7 +14,7 @@
   wrappers = builtins.attrNames cfg.security.wrappers;
 in
   pkgs.runCommand "dusky-session-deps-audit-${username}" {
-    nativeBuildInputs = [pkgs.python314 pkgs.shfmt];
+    nativeBuildInputs = [pkgs.python315 pkgs.shfmt];
   } ''
     printf '%s\n' ${pkgs.lib.escapeShellArgs wrappers} > baseline
     cp ${../runtime-deps/audit.py} audit.py

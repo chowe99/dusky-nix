@@ -40,10 +40,11 @@
       -e 's|\$HOME/user_scripts/waybar/update_counter.sh|dusky-waybar-update-counter|g' \
       -e 's|python3 ~/user_scripts/waybar/weather.py|dusky-waybar-weather|g' \
       -e 's|python3 \$HOME/user_scripts/waybar/weather.py|dusky-waybar-weather|g' \
+      -e 's|python3 \\"\$HOME/user_scripts/waybar/weather.py\\"|dusky-waybar-weather|g' \
       -e 's#foot --app-id=dusky_tui python \(~\|\$HOME\)/user_scripts/dusky_tui/python/main/main.py \(~\|\$HOME\)/user_scripts/network_manager/tui_dusky_network.py#kitty --class dusky_tui -e dusky-network#g' \
       -e 's#\(python3\? \)\?\(~\|\$HOME\)/user_scripts/drives/dusky_disk_monitor_io.py#dusky-io-monitor#g' \
       -e 's#\(~\|\$HOME\)/user_scripts/performance/sysbench_benchmark.py#dusky-sysbench#g' \
-      -e 's#\(~\|\$HOME\)/user_scripts/battery/power_saver.sh#dusky-power-saver#g' \
+      -e 's#\(\\"\)\?\(~\|\$HOME\)/user_scripts/battery/power_saver/power_saver.py\(\\"\)\?#dusky-power-saver#g' \
       -e 's#\(~\|\$HOME\)/user_scripts/dusky_system/quickpanal/dusky_quickpanal.py#dusky-sliders#g' \
       -e 's|\$HOME/user_scripts/waybar/toggle_hypridle.sh|dusky-toggle-hypridle|g' \
       -e 's#\(~\|\$HOME\)/user_scripts/rofi/rofi_clipboard.sh#dusky-rofi-cliphist#g' \

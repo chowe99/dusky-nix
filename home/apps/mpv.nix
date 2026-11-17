@@ -7,8 +7,8 @@
 }: let
   inherit (pkgs.mpvScripts) uosc thumbfast;
 in {
-  # Deploy mpv config.
-  xdg.configFile."mpv/mpv.conf".source = "${dusky}/.config/mpv/mpv.conf";
+  # Deploy mpv config. Upstream dropped its mpv.conf; keep the last copy (40c1ed1).
+  xdg.configFile."mpv/mpv.conf".source = ../../assets/mpv/mpv.conf;
 
   # The conf sets osc=no for uosc (Arch ships it as mpv-uosc/mpv-thumbfast);
   # without the scripts mpv has no controls at all. Installed as config

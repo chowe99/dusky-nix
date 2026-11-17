@@ -186,18 +186,17 @@
     # whose rate follows total up+down throughput: 400ms/frame at <=10 KB/s,
     # -120ms per decade, floor 60ms (~7 MB/s+; faster backlogs waybar).
     netStream = pkgs.writeShellScript "waybar-net-chomp" ''
-      state="''${XDG_RUNTIME_DIR:-/run/user/$UID}/waybar-net/state"
+      # dusky_network daemon's snapshot: "v1 iface rx_B/s tx_B/s ..."
+      state="''${XDG_RUNTIME_DIR:-/run/user/$UID}/waybar-net-rust/state"
       frame=0 next=0 ms=400 out='{}'
       while :; do
         now=''${EPOCHREALTIME/./}
         if ((now >= next)); then
-          out=$(dusky-waybar-network-meter "$@")
-          unit=- up=0 down=0
-          [[ -r $state ]] && read -r unit up down _ < "$state"
-          # awk: values are decimals ("0.9" MB) — integer bash math truncated
-          # them to 0 so real downloads drew as idle.
-          ms=$(${pkgs.gawk}/bin/awk -v u="$unit" -v a="$up" -v b="$down" 'BEGIN {
-            kb = (a + b) * (u == "GB" ? 1048576 : u == "MB" ? 1024 : 1)
+          out=$(dusky_network read "$@")
+          up=0 down=0
+          [[ -r $state ]] && read -r _ _ down up _ < "$state"
+          ms=$(${pkgs.gawk}/bin/awk -v a="$up" -v b="$down" 'BEGIN {
+            kb = (a + b) / 1024
             ms = kb > 10 ? 400 - 120 * log(kb / 10) / log(10) : 400
             printf "%d", ms < 60 ? 60 : ms }')
           next=$((now + 1000000))
@@ -255,10 +254,11 @@
         -e 's|\$HOME/user_scripts/waybar/update_counter.sh|dusky-waybar-update-counter|g' \
         -e 's|python3 ~/user_scripts/waybar/weather.py|dusky-waybar-weather|g' \
         -e 's|python3 \$HOME/user_scripts/waybar/weather.py|dusky-waybar-weather|g' \
+        -e 's|python3 \\"\$HOME/user_scripts/waybar/weather.py\\"|dusky-waybar-weather|g' \
         -e 's#foot --app-id=dusky_tui python \(~\|\$HOME\)/user_scripts/dusky_tui/python/main/main.py \(~\|\$HOME\)/user_scripts/network_manager/tui_dusky_network.py#kitty --class dusky_tui -e dusky-network#g' \
         -e 's#\(python3\? \)\?\(~\|\$HOME\)/user_scripts/drives/dusky_disk_monitor_io.py#dusky-io-monitor#g' \
         -e 's#\(~\|\$HOME\)/user_scripts/performance/sysbench_benchmark.py#dusky-sysbench#g' \
-        -e 's#\(~\|\$HOME\)/user_scripts/battery/power_saver.sh#dusky-power-saver#g' \
+        -e 's#\(\\"\)\?\(~\|\$HOME\)/user_scripts/battery/power_saver/power_saver.py\(\\"\)\?#dusky-power-saver#g' \
         -e 's#\(~\|\$HOME\)/user_scripts/dusky_system/quickpanal/dusky_quickpanal.py#dusky-sliders#g' \
         -e 's|\$HOME/user_scripts/waybar/toggle_hypridle.sh|dusky-toggle-hypridle|g' \
         -e 's#\(~\|\$HOME\)/user_scripts/rofi/rofi_clipboard.sh#dusky-rofi-cliphist#g' \
@@ -342,8 +342,8 @@
                     css.write_text(css.read_text().replace("#cpu", "#custom-runcat") + "\n" + pathlib.Path("${runcatCss}").read_text())
             # Stream the net-speed meter through the chomper wrapper.
             net = cfg.get("custom/net-speed")
-            if isinstance(net, dict) and str(net.get("exec", "")).startswith("dusky-waybar-network-meter"):
-                net["exec"] = "${netStream}" + net["exec"][len("dusky-waybar-network-meter"):]
+            if isinstance(net, dict) and "dusky_network watch" in str(net.get("exec", "")):
+                net["exec"] = "${netStream}" + net["exec"].split("dusky_network watch", 1)[1]
                 net.pop("interval", None)
                 css = path.with_name("style.css")
                 if css.exists():

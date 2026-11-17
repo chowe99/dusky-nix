@@ -127,7 +127,7 @@
     # --- Dusky Control Apps ---
     dusky_control_center = {
       name = "Dusky Control Center";
-      exec = "dusky-control-center";
+      exec = "dusky_center";
       icon = "preferences-system";
       comment = "Centralized configuration for Dusky OS";
       categories = ["System" "Settings"];
@@ -192,7 +192,7 @@
     };
     dusky_sliders = {
       name = "Dusky Sliders";
-      exec = "uwsm-app -- dusky-sliders";
+      exec = "uwsm-app -- dusky_tray";
       icon = "preferences-system";
       comment = "Adjust Brightness, Volume, and Nightlight";
       categories = ["Audio" "Settings"];
@@ -224,7 +224,7 @@
     };
     powersave = {
       name = "Power Saver Mode";
-      exec = "uwsm-app -- kitty --hold --class power_saver -e dusky-power-saver";
+      exec = "uwsm-app -- kitty --hold --class power_saver -e dusky-power-saver --enable";
       icon = "battery-low";
       comment = "Enable Power Saving Mode";
       categories = ["System" "Settings"];

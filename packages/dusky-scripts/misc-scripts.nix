@@ -1,6 +1,7 @@
 {
   pkgs,
   dusky,
+  pkgsPy314,
 }: let
   # Upstream dusky scripts (unpatched — pulled via flake input)
   upstream = "${dusky}/user_scripts";
@@ -9,25 +10,30 @@
   patched = ../../assets/scripts;
 
   # Python packages for TTS/STT
-  espeakng-loader = import ../python/espeakng-loader.nix {inherit pkgs;};
-  phonemizer-fork = import ../python/phonemizer-fork.nix {inherit pkgs;};
-  kokoro-onnx = import ../python/kokoro-onnx.nix {inherit pkgs espeakng-loader phonemizer-fork;};
+  # The TTS/STT/voice daemons run our local copies (assets/scripts) on 3.14,
+  # where onnxruntime & co. are cached. See default.nix.
+  espeakng-loader = import ../python/espeakng-loader.nix {pkgs = pkgsPy314;};
+  phonemizer-fork = import ../python/phonemizer-fork.nix {pkgs = pkgsPy314;};
+  kokoro-onnx = import ../python/kokoro-onnx.nix {
+    pkgs = pkgsPy314;
+    inherit espeakng-loader phonemizer-fork;
+  };
 
   # Bundled Python environments for TTS/STT scripts
-  tts-python = pkgs.python3.withPackages (_: [
+  tts-python = pkgsPy314.python3.withPackages (ps: [
     kokoro-onnx
-    pkgs.python3Packages.numpy
-    pkgs.python3Packages.onnxruntime
-    pkgs.python3Packages.soundfile
+    ps.numpy
+    ps.onnxruntime
+    ps.soundfile
   ]);
-  stt-python = pkgs.python3.withPackages (ps: [
+  stt-python = pkgsPy314.python3.withPackages (ps: [
     ps.onnx-asr
     ps.numpy
     ps.onnxruntime
     ps.huggingface-hub
   ]);
-  openwakeword = import ../python/openwakeword.nix {inherit pkgs;};
-  voice-python = pkgs.python3.withPackages (ps: [
+  openwakeword = import ../python/openwakeword.nix {pkgs = pkgsPy314;};
+  voice-python = pkgsPy314.python3.withPackages (ps: [
     openwakeword
     ps.onnx-asr
     ps.numpy
@@ -94,8 +100,9 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-process-terminator";
-        runtimeInputs = with pkgs; [gum procps systemd];
-        text = builtins.readFile "${upstream}/performance/services_and_process_terminator.sh";
+        # Upstream rewrote it in Python (stdlib, tomllib); list.toml sits beside it.
+        runtimeInputs = with pkgs; [python3 procps systemd gum];
+        text = ''exec python3 ${upstream}/performance/services_and_process_terminator/terminator.py "$@"'';
       })
       # Upstream rewrote sysbench_benchmark.sh in Python (stdlib only).
       (pkgs.writeShellApplication {
@@ -168,26 +175,12 @@ in
         text = builtins.readFile "${upstream}/asus/asusctl.sh";
       })
 
-      # --- Reload helpers (PATCHED — use packaged app names instead of hardcoded paths) ---
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-cc-restart";
-        runtimeInputs = with pkgs; [procps systemd coreutils];
-        text = builtins.readFile (patched + "/control_center/cc_restart.sh");
-      })
-      (pkgs.writeShellApplication {
-        checkPhase = "";
-        name = "dusky-reload-sliders";
-        runtimeInputs = with pkgs; [procps util-linux coreutils uwsm];
-        text = builtins.readFile (patched + "/sliders/reload_sliders.sh");
-      })
-
       # --- Wallpaper Download ---
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-wallpaper-download";
         runtimeInputs = with pkgs; [curl unzip coreutils];
-        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/150_wallpapers_download.sh";
+        text = builtins.readFile "${upstream}/arch_setup_scripts/scripts/146_wallpapers_download.sh";
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
@@ -254,8 +247,14 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-reset-neovim";
-        runtimeInputs = with pkgs; [coreutils];
-        text = builtins.readFile "${upstream}/nvim/reset/01_reset_neovim.sh";
+        # Upstream now sources the manager relative to itself; point it at the store.
+        runtimeInputs = with pkgs; [neovim git coreutils];
+        text = let
+          src = builtins.readFile "${upstream}/nvim/reset/01_reset_neovim.sh";
+          from = ''"$(dirname -- "''${BASH_SOURCE[0]}")/../dusky_neovim_manager.sh"'';
+        in
+          assert pkgs.lib.hasInfix from src;
+            builtins.replaceStrings [from] [''"${upstream}/nvim/dusky_neovim_manager.sh"''] src;
       })
       (pkgs.writeShellApplication {
         checkPhase = "";

@@ -20,8 +20,8 @@
       mkdir -p $out
       cp -r . $out/
       substituteInPlace $out/python/main/main.py \
-        --replace-fail 'Path("~/user_scripts").expanduser().resolve(),' \
-                  'Path("~/user_scripts").expanduser().resolve(), Path("${upstream}").resolve(),'
+        --replace-fail '    "~/user_scripts",' \
+                  '    "~/user_scripts", "${upstream}",'
     '';
   };
 

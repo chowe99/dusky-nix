@@ -280,18 +280,6 @@ bash -c '
 input_path  = '~/.config/matugen/templates/omp-theme.omp.json'
 output_path = '~/.config/matugen/generated/omp-theme.omp.json'
 
-[templates.script_runner]
-input_path  = '/dev/null'
-output_path = '/dev/null'
-post_hook   = '''
-bash -c '
-{
-  dusky-cc-restart --quiet &
-  dusky-reload-sliders --quiet &
-} >/dev/null 2>&1 </dev/null & disown
-'
-'''
-
 [templates.command_runner]
 input_path  = '/dev/null'
 output_path = '/dev/null'

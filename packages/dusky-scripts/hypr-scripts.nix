@@ -51,8 +51,15 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-blur-toggle";
-        runtimeInputs = with pkgs; [hyprland jq libnotify mako];
-        text = builtins.readFile "${scriptDir}/hypr_blur_opacity_shadow_toggle.sh";
+        runtimeInputs = with pkgs; [hyprland jq libnotify mako util-linux python3];
+        # Upstream now edits appearance.lua from an embedded Python heredoc that
+        # imports the dusky_tui Lua engine from ~/user_scripts.
+        text = let
+          src = builtins.readFile "${scriptDir}/hypr_blur_opacity_shadow_toggle.sh";
+          from = ["exec python - " ''str(Path.home() / "user_scripts" / "dusky_tui")''];
+        in
+          assert builtins.all (n: pkgs.lib.hasInfix n src) from;
+            builtins.replaceStrings from ["exec python3 - " ''"${(import ./tui-lib.nix {inherit pkgs dusky;}).duskyTui}"''] src;
       })
       (pkgs.writeShellApplication {
         checkPhase = "";
@@ -86,7 +93,7 @@ in
         pkgs.writeShellApplication {
           checkPhase = "";
           name = "dusky-keybinds";
-          runtimeInputs = with pkgs; [hyprland fzf];
+          runtimeInputs = with pkgs; [hyprland fzf lua5_4]; # luac -p validates edits
           text = ''exec ${python}/bin/python3 ${scriptDir}/input/dusky_keybinds.py "$@"'';
         })
       # dusky-monitor lives in tui-scripts.nix: tui_monitor_wizard.py is a

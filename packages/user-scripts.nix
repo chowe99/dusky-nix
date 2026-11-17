@@ -13,7 +13,7 @@
 }: let
   shims = {
     "arch_setup_scripts/scripts/006_animation_default.sh" = "dusky-animation-default";
-    "arch_setup_scripts/scripts/150_wallpapers_download.sh" = "dusky-wallpaper-download";
+    "arch_setup_scripts/scripts/146_wallpapers_download.sh" = "dusky-wallpaper-download";
     "arch_setup_scripts/scripts/235_default_apps.py" = "dusky-default-apps";
     "arch_setup_scripts/scripts/265_mouse_button_reverse.sh" = "dusky-mouse-reverse";
     "arch_setup_scripts/scripts/325_hosts_files_block.sh" = "dusky-hosts-blocker";
@@ -24,7 +24,7 @@
     "audio/mono_audio_pipewire.py" = "dusky-mono-audio";
     "audio/router/TTS_VC.sh" = "dusky-voice-assistant";
     "battery/notify/battery_notify.sh" = "dusky-battery-notify";
-    "battery/power_saver.sh" = "dusky-power-saver";
+    "battery/power_saver/power_saver.py" = "dusky-power-saver";
     "drives/btrfs_zstd_compression_stats.sh" = "dusky-btrfs-stats";
     "drives/drive_manager.sh" = "dusky-drive-manager";
     "drives/drive_manager/drive_manager.py" = "dusky-drive-manager";
@@ -69,7 +69,7 @@
     "nvim/dusky_neovim_manager.sh" = "dusky-neovim-manager";
     "nvim/reset/01_reset_neovim.sh" = "dusky-reset-neovim";
     "nvim/reset/02_cli_plugins_download.sh" = "dusky-neovim-plugins";
-    "performance/services_and_process_terminator.sh" = "dusky-process-terminator";
+    "performance/services_and_process_terminator/terminator.py" = "dusky-process-terminator";
     "performance/sysbench_benchmark.py" = "dusky-sysbench";
     "power/tui_power.py" = "dusky-power";
     "rofi/calculator.sh" = "dusky-rofi-calculator";
@@ -90,7 +90,6 @@
     "tts_stt/dusky_parakeet/trigger.sh" = "dusky-parakeet-stt";
     "waybar/cava.sh" = "dusky-waybar-cava";
     "waybar/mako.sh" = "dusky-waybar-mako";
-    "waybar/network/network_meter_daemon.sh" = "dusky-waybar-network-meter";
     "waybar/toggle_hypridle.sh" = "dusky-toggle-hypridle";
     "waybar/toggle_time.sh" = "dusky-waybar-toggle-time";
     "waybar/toggle_timer_waybar.sh" = "dusky-waybar-toggle-time";

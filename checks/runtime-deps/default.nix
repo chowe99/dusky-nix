@@ -45,7 +45,7 @@
     iputils
     shadow
   ];
-  python = pkgs.python314;
+  python = pkgs.python315; # parses upstream scripts, which use 3.15 syntax
 in
   pkgs.runCommand "dusky-runtime-deps-audit" {
     nativeBuildInputs = [python pkgs.shfmt];

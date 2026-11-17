@@ -17,7 +17,7 @@ in
       (pkgs.writeShellApplication {
         checkPhase = "";
         name = "dusky-osd-router";
-        runtimeInputs = with pkgs; [wireplumber brightnessctl playerctl libnotify coreutils util-linux hyprland];
+        runtimeInputs = with pkgs; [wireplumber brightnessctl playerctl libnotify coreutils util-linux hyprland jq python3 socat];
         text = builtins.readFile "${upstream}/mako_osd/osd_router/osd_router.sh";
       })
 

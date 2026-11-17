@@ -535,7 +535,7 @@
         *wallpaper*)    run dusky-rofi-wallpaper ;;
         *keybind*)      run dusky-rofi-keybindings ;;
         *notification*) run dusky-rofi-mako ;;
-        *setting*|*control*) sh_run "gdbus call --session --dest com.github.dusky.controlcenter --object-path /com/github/dusky/controlcenter --method org.freedesktop.Application.Activate '{}'" ;;
+        *setting*|*control*) sh_run "dusky_center" ;;
         *activity*|*btop*) run ${term} --class btop -e btop ;;
         *files*)        run ${term} --class dusky-tui -e yazi ;;
         *lock*)         sh_run "hyprlock --immediate" ;;
