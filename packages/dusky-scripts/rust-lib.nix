@@ -41,12 +41,19 @@ in
         buildInputs = runtimeLibs;
         # Upstream's tests spawn real processes, need a GPU and a session.
         doCheck = false;
-        postPatch = ''
-          # pins target-dir to /tmp, outside the sandbox
-          rm -f dusky/${name}/.cargo/config.toml
-          { grep -rlZ -e /usr/bin/ -e /usr/share/ dusky/${name}/src || true; } | xargs -0r sed -i ${sedFhs}
-          { grep -rlZ @out@ dusky/${name}/src || true; } | xargs -0r sed -i "s|@out@|$out|g"
-        '' + args.postPatch or "";
+        postPatch =
+          ''
+            # pins target-dir to /tmp, outside the sandbox
+            rm -f dusky/${name}/.cargo/config.toml
+            { grep -rlZ -e /usr/bin/ -e /usr/share/ dusky/${name}/src || true; } | xargs -0r sed -i ${sedFhs}
+            { grep -rlZ @out@ dusky/${name}/src || true; } | xargs -0r sed -i "s|@out@|$out|g"
+            # The shared fontdb loads 7 fixed Arch font files and nothing else;
+            # missing ones mean no text at all (icons still draw).
+            substituteInPlace rust_shared/fontdb/src/dusky.rs \
+              --replace-fail /usr/share/fonts/OTF/ ${pkgs.atkinson-hyperlegible}/share/fonts/opentype/ \
+              --replace-fail /usr/share/fonts/TTF/DejaVu ${pkgs.dejavu_fonts}/share/fonts/truetype/DejaVu
+          ''
+          + args.postPatch or "";
         postFixup = ''
           patchelf --add-rpath ${lib.makeLibraryPath runtimeLibs} $out/bin/${name}
         '';
