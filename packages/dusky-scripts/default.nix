@@ -27,7 +27,12 @@
         };
       };
   };
-  pkgs' = pkgs // {python3 = py; python3Packages = py.pkgs;};
+  pkgs' =
+    pkgs
+    // {
+      python3 = py;
+      python3Packages = py.pkgs;
+    };
 in let
   pkgs = pkgs';
 in {
