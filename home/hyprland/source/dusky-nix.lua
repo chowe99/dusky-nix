@@ -98,7 +98,7 @@ hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("pkill rofi; rofi -show drun -run-comma
 hl.unbind("CTRL + SPACE")
 hl.bind("CTRL + SPACE", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; dusky-rofi-wallpaper"), { description = "Rofi Wallpaper Selector" })
 hl.unbind("ALT + SPACE")
-hl.bind("ALT + SPACE", hl.dsp.exec_cmd("gdbus call --session --dest com.github.dusky.controlcenter --object-path /com/github/dusky/controlcenter --method org.freedesktop.Application.Activate \"{}\""), { description = "System Menu" })
+hl.bind("ALT + SPACE", hl.dsp.exec_cmd("uwsm-app -- dusky_center"), { description = "Dusky Center" })
 hl.unbind("CTRL + ALT + SPACE")
 hl.bind("CTRL + ALT + SPACE", hl.dsp.exec_cmd("uwsm-app -- pkill rofi; uuctl"), { description = "UWSM uuctl - display active user units" })
 hl.unbind("ALT + 4")
@@ -260,19 +260,6 @@ hl.window_rule({
     },
     float = true,
     size = "741 579",
-    center = true,
-})
-
-hl.window_rule({
-    name = "dusky_control_center.py",
-    match = {
-        title = "^(Dusky Control Center)$",
-        class = "^(com.github.dusky.controlcenter)$",
-    },
-    float = true,
-    animation = "slide down",
-    size = "(monitor_w*0.50) (monitor_h*0.92)",
-    move = "(monitor_w*0.05) (monitor_h*0.05)",
     center = true,
 })
 
