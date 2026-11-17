@@ -15,6 +15,23 @@
 local osd = "dusky-osd-router"
 
 -- -------------------------------------------------------------------------------------------------
+-- GPU ORDER
+-- -------------------------------------------------------------------------------------------------
+-- Upstream's Rust apps (dusky_center, _tray, _overview, _snap) render on the first
+-- AQ_DRM_DEVICES card; Arch's setup writes it into gpu.lua. Unset on a multi-GPU
+-- box, they take the low-power GPU, and a window rendered on a GPU that drives no
+-- display is black. Same as Hyprland's default: all cards, display GPUs first.
+if (os.getenv("AQ_DRM_DEVICES") or "") == "" then
+    local h = io.popen([[cd /sys/class/drm 2>/dev/null && for c in card[0-9]*; do
+        case $c in *-*) continue ;; esac
+        if grep -qsx connected "$c"-*/status; then echo "0 /dev/dri/$c"; else echo "1 /dev/dri/$c"; fi
+    done | sort | cut -d' ' -f2 | paste -sd:]])
+    local cards = h and h:read("*l")
+    if h then h:close() end
+    if cards and cards ~= "" then hl.env("AQ_DRM_DEVICES", cards) end
+end
+
+-- -------------------------------------------------------------------------------------------------
 -- APPEARANCE
 -- -------------------------------------------------------------------------------------------------
 hl.config({
